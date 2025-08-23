@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitAI Tech Stack Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.8em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 40px;
+        }
+
+        .architecture-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .layer {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 16px;
+            padding: 25px;
+            border-left: 6px solid;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .layer:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .layer-ui { border-left-color: #007AFF; }
+        .layer-business { border-left-color: #34C759; }
+        .layer-data { border-left-color: #FF9500; }
+        .layer-external { border-left-color: #FF3B30; }
+        .layer-tools { border-left-color: #5856D6; }
+
+        .layer-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 700;
+        }
+
+        .layer-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            margin-right: 15px;
+            color: white;
+        }
+
+        .icon-ui { background: linear-gradient(135deg, #007AFF, #0056CC); }
+        .icon-business { background: linear-gradient(135deg, #34C759, #248A3D); }
+        .icon-data { background: linear-gradient(135deg, #FF9500, #CC7700); }
+        .icon-external { background: linear-gradient(135deg, #FF3B30, #CC2E25); }
+        .icon-tools { background: linear-gradient(135deg, #5856D6, #4644AA); }
+
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .component {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e1e8ed;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .component:hover {
+            border-color: #667eea;
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .component-title {
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .component-description {
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .tech-tag {
+            background: #f1f3f4;
+            color: #5f6368;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 500;
+        }
+
+        .tech-tag.primary { background: #e3f2fd; color: #1976d2; }
+        .tech-tag.secondary { background: #f3e5f5; color: #7b1fa2; }
+
+        .data-flow {
+            margin: 40px 0;
+            position: relative;
+        }
+
+        .flow-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            position: relative;
+        }
+
+        .flow-node {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            border: 3px solid;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9em;
+            min-width: 120px;
+            position: relative;
+        }
+
+        .flow-user { border-color: #007AFF; background: linear-gradient(135deg, #e3f2fd, white); }
+        .flow-app { border-color: #34C759; background: linear-gradient(135deg, #e8f5e8, white); }
+        .flow-ai { border-color: #FF9500; background: linear-gradient(135deg, #fff8e1, white); }
+        .flow-data { border-color: #5856D6; background: linear-gradient(135deg, #f3e5f5, white); }
+
+        .flow-arrow {
+            font-size: 1.5em;
+            color: #667eea;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .stat-number {
+            display: block;
+            font-size: 2.5em;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            margin-top: 8px;
+            opacity: 0.9;
+        }
+
+        .comparison-table {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin: 30px 0;
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e1e8ed;
+            align-items: center;
+        }
+
+        .table-row:hover {
+            background: #f8f9fa;
+        }
+
+        .feature-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .feature-tech {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .feature-status {
+            text-align: center;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .status-mvp { background: #e8f5e8; color: #2e7d32; }
+        .status-v11 { background: #fff3e0; color: #f57c00; }
+        .status-v12 { background: #e3f2fd; color: #1976d2; }
+        .status-future { background: #f3e5f5; color: #7b1fa2; }
+
+        .cost-breakdown {
+            background: linear-gradient(135deg, #f8f9fa, white);
+            border-radius: 16px;
+            padding: 25px;
+            margin: 30px 0;
+            border: 2px solid #e1e8ed;
+        }
+
+        .cost-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .cost-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .cost-item {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .cost-item-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .cost-item-price {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .components-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .flow-container {
+                flex-direction: column;
+            }
+            
+            .table-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 FitAI Tech Stack Architecture</h1>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number">5</span>
+                <div class="stat-label">Architecture Layers</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">15+</span>
+                <div class="stat-label">Core Technologies</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">100%</span>
+                <div class="stat-label">iOS Native</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">$99</span>
+                <div class="stat-label">Minimum Start Cost</div>
+            </div>
+        </div>
+
+        <div class="architecture-container">
+            <!-- UI Layer -->
+            <div class="layer layer-ui">
+                <div class="layer-header">
+                    <div class="layer-icon icon-ui">📱</div>
+                    User Interface Layer
+                </div>
+                <div class="components-grid">
+                    <div class="component">
+                        <div class="component-title">SwiftUI Framework</div>
+                        <div class="component-description">Modern declarative UI with smooth animations and native performance</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag primary">SwiftUI</span>
+                            <span class="tech-tag">Combine</span>
+                            <span class="tech-tag">Swift 5.9+</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">Navigation & Routing</div>
+                        <div class="component-description">iOS 16+ navigation with programmatic routing and deep linking</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag primary">NavigationStack</span>
+                            <span class="tech-tag">Deep Links</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">UI Components</div>
+                        <div class="component-description">Custom components with animations and accessibility support</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">Lottie</span>
+                            <span class="tech-tag">Charts</span>
+                            <span class="tech-tag">SDWebImage</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">Design System</div>
+                        <div class="component-description">Consistent styling with iOS Human Interface Guidelines</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">SF Symbols</span>
+                            <span class="tech-tag">Dynamic Type</span>
+                            <span class="tech-tag">Dark Mode</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business Logic Layer -->
+            <div class="layer layer-business">
+                <div class="layer-header">
+                    <div class="layer-icon icon-business">⚙️</div>
+                    Business Logic Layer
+                </div>
+                <div class="components-grid">
+                    <div class="component">
+                        <div class="component-title">MVVM Architecture</div>
+                        <div class="component-description">Clean separation between UI and business logic with reactive patterns</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag primary">ObservableObject</span>
+                            <span class="tech-tag">@Published</span>
+                            <span class="tech-tag">Combine</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">AI Recommendation Engine</div>
+                        <div class="component-description">Smart fitness and nutrition recommendations powered by GPT-4</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag primary">OpenAI GPT-4</span>
+                            <span class="tech-tag">Structured Prompts</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">Fitness Calculations</div>
+                        <div class="component-description">BMR, calorie tracking, and workout intensity calculations</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">Swift Algorithms</span>
+                            <span class="tech-tag">Core ML</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">User Profile Manager</div>
+                        <div class="component-description">Secure user data management with privacy-first approach</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">Keychain</span>
+                            <span class="tech-tag">BiometricAuth</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Layer -->
+            <div class="layer layer-data">
+                <div class="layer-header">
+                    <div class="layer-icon icon-data">💾</div>
+                    Data & Storage Layer
+                </div>
+                <div class="components-grid">
+                    <div class="component">
+                        <div class="component-title">Core Data + CloudKit</div>
+                        <div class="component-description">Robust local storage with automatic cloud synchronization</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag primary">Core Data</span>
+                            <span class="tech-tag primary">CloudKit</span>
+                            <span class="tech-tag">NSPersistentContainer</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">Caching System</div>
+                        <div class="component-description">Intelligent caching for AI responses and API data</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">NSCache</span>
+                            <span class="tech-tag">URLCache</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">Security & Encryption</div>
+                        <div class="component-description">End-to-end encryption for sensitive health data</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">CryptoKit</span>
+                            <span class="tech-tag">Keychain Services</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">Data Migration</div>
+                        <div class="component-description">Seamless app updates with automatic data migration</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">Core Data Migration</span>
+                            <span class="tech-tag">Version Management</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- External APIs Layer -->
+            <div class="layer layer-external">
+                <div class="layer-header">
+                    <div class="layer-icon icon-external">🌐</div>
+                    External APIs & Services
+                </div>
+                <div class="components-grid">
+                    <div class="component">
+                        <div class="component-title">OpenAI GPT-4 API</div>
+                        <div class="component-description">Primary AI service for workout and nutrition recommendations</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag primary">GPT-4 Turbo</span>
+                            <span class="tech-tag">Rate Limiting</span>
+                            <span class="tech-tag">Token Management</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">YouTube Data API</div>
+                        <div class="component-description">Exercise video integration with curated content</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag secondary">YouTube API v3</span>
+                            <span class="tech-tag">Video Search</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">Nutrition Database</div>
+                        <div class="component-description">Recipe and nutritional information from trusted sources</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag secondary">Edamam API</span>
+                            <span class="tech-tag">Spoonacular</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">Apple Services</div>
+                        <div class="component-description">Native iOS integrations for seamless user experience</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">HealthKit</span>
+                            <span class="tech-tag">Sign In with Apple</span>
+                            <span class="tech-tag">MapKit</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Development Tools Layer -->
+            <div class="layer layer-tools">
+                <div class="layer-header">
+                    <div class="layer-icon icon-tools">🔧</div>
+                    Development & DevOps Tools
+                </div>
+                <div class="components-grid">
+                    <div class="component">
+                        <div class="component-title">Development Environment</div>
+                        <div class="component-description">Apple's world-class IDE with comprehensive debugging tools</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag primary">Xcode 15+</span>
+                            <span class="tech-tag">Swift Package Manager</span>
+                            <span class="tech-tag">Instruments</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">Testing Framework</div>
+                        <div class="component-description">Comprehensive testing with unit, integration, and UI tests</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">XCTest</span>
+                            <span class="tech-tag">SwiftUI Testing</span>
+                            <span class="tech-tag">Quick/Nimble</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">Code Quality</div>
+                        <div class="component-description">Automated code formatting and quality analysis</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">SwiftLint</span>
+                            <span class="tech-tag">SwiftFormat</span>
+                            <span class="tech-tag">SonarCloud</span>
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">CI/CD Pipeline</div>
+                        <div class="component-description">Automated building, testing, and deployment to App Store</div>
+                        <div class="tech-tags">
+                            <span class="tech-tag">GitHub Actions</span>
+                            <span class="tech-tag">Fastlane</span>
+                            <span class="tech-tag">TestFlight</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Flow Diagram -->
+        <div class="data-flow">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #2c3e50;">🔄 Data Flow Architecture</h2>
+            <div class="flow-container">
+                <div class="flow-node flow-user">
+                    👤<br>User Input<br>
+                    <small>(Profile, Goals)</small>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-node flow-app">
+                    📱<br>FitAI App<br>
+                    <small>(SwiftUI + Logic)</small>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-node flow-ai">
+                    🤖<br>AI Processing<br>
+                    <small>(OpenAI GPT-4)</small>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-node flow-data">
+                    💾<br>Local Storage<br>
+                    <small>(Core Data + CloudKit)</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Implementation Timeline -->
+        <div class="comparison-table">
+            <div class="table-header">
+                📋 Feature Implementation by Release
+            </div>
+            <div class="table-row">
+                <div class="feature-name">User Authentication</div>
+                <div class="feature-tech">Sign in with Apple, Keychain Services</div>
+                <div class="feature-status">
+                    <span class="status-badge status-mvp">MVP</span>
+                </div>
+            </div>
+            <div class="table-row">
+                <div class="feature-name">Basic AI Recommendations</div>
+                <div class="feature-tech">OpenAI GPT-4, Custom Prompts</div>
+                <div class="feature-status">
+                    <span class="status-badge status-mvp">MVP</span>
+                </div>
+            </div>
+            <div class="table-row">
+                <div class="feature-name">Core Data Storage</div>
+                <div class="feature-tech">Core Data + CloudKit Sync</div>
+                <div class="feature-status">
+                    <span class="status-badge status-mvp">MVP</span>
+                </div>
+            </div>
+            <div class="table-row">
+                <div class="feature-name">Progress Tracking</div>
+                <div class="feature-tech">SwiftUI Charts, Analytics</div>
+                <div class="feature-status">
+                    <span class="status-badge status-v11">V1.1</span>
+                </div>
+            </div>
+            <div class="table-row">
+                <div class="feature-name">Meal Planning</div>
+                <div class="feature-tech">Nutrition APIs, AI Meal Generation</div>
+                <div class="feature-status">
+                    <span class="status-badge status-v12">V1.2</span>
+                </div>
+            </div>
+            <div class="table-row">
+                <div class="feature-name">Video Integration</div>
+                <div class="feature-tech">YouTube Data API, AVPlayer</div>
+                <div class="feature-status">
+                    <span class="status-badge status-v12">V1.2</span>
+                </div>
+            </div>
+            <div class="table-row">
+                <div class="feature-name">HealthKit Integration</div>
+                <div class="feature-tech">HealthKit Framework, Data Sync</div>
+                <div class="feature-status">
+                    <span class="status-badge status-future">Future</span>
+                </div>
+            </div>
+            <div class="table-row">
+                <div class="feature-name">Social Features</div>
+                <div class="feature-tech">CloudKit Sharing, Social Framework</div>
+                <div class="feature-status">
+                    <span class="status-badge status-future">Future</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cost Breakdown -->
+        <div class="cost-breakdown">
+            <div class="cost-title">💰 Technology Costs Breakdown</div>
+            <div class="cost-items">
+                <div class="cost-item">
+                    <div class="cost-item-name">Apple Developer Account</div>
+                    <div class="cost-item-price">$99/year</div>
+                </div>
+                <div class="cost-item">
+                    <div class="cost-item-name">OpenAI GPT-4 API</div>
+                    <div class="cost-item-price">$50-500/month</div>
+                </div>
+                <div class="cost-item">
+                    <div class="cost-item-name">YouTube Data API</div>
+                    <div class="cost-item-price">Free (10K requests/day)</div>
+                </div>
+                <div class="cost-item">
+                    <div class="cost-item-name">Nutrition API</div>
+                    <div class="cost-item-price">$0-200/month</div>
+                </div>
+                <div class="cost-item">
+                    <div class="cost-item-name">Development Tools</div>
+                    <div class="cost-item-price">Free (Xcode, Swift)</div>
+                </div>
+                <div class="cost-item">
+                    <div class="cost-item-name">Analytics & Monitoring</div>
+                    <div class="cost-item-price">$0-50/month</div>
+                </div>
+                <div class="cost-item">
+                    <div class="cost-item-name">CloudKit Storage</div>
+                    <div class="cost-item-price">Free (User's iCloud)</div>
+                </div>
+                <div class="cost-item">
+                    <div class="cost-item-name">CI/CD & Testing</div>
+                    <div class="cost-item-price">$0-100/month</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 30px; border-radius: 16px; text-align: center;">
+            <h3 style="margin: 0 0 15px 0; font-size: 1.5em;">🎯 Why This Stack Wins</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px;">
+                <div>
+                    <strong>🚀 Performance</strong><br>
+                    Native iOS with 60fps animations and optimal battery usage
+                </div>
+                <div>
+                    <strong>🔒 Privacy</strong><br>
+                    Data stays local with CloudKit, no custom backend needed
+                </div>
+                <div>
+                    <strong>⚡ Development Speed</strong><br>
+                    SwiftUI + modern tools = faster development cycles
+                </div>
+                <div>
+                    <strong>💰 Cost Effective</strong><br>
+                    Low initial costs, pay-as-you-scale model
+                </div>
+                <div>
+                    <strong>📈 Scalable</strong><br>
+                    Architecture supports growth from MVP to enterprise
+                </div>
+                <div>
+                    <strong>🏆 App Store Ready</strong><br>
+                    Built with Apple's best practices for approval success
+                </div>
+            </div>
+        </div>
+    </div>
+
+       
