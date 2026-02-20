@@ -6,12 +6,19 @@ struct OzempicAIApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if authViewModel.isAuthenticated {
-                DashboardView()
-                    .environmentObject(authViewModel)
-            } else {
-                LoginView()
-                    .environmentObject(authViewModel)
+            Group {
+                if authViewModel.isLoading {
+                    ProgressView("Loading...")
+                } else if authViewModel.isAuthenticated {
+                    DashboardView()
+                        .environmentObject(authViewModel)
+                } else {
+                    LoginView()
+                        .environmentObject(authViewModel)
+                }
+            }
+            .task {
+                await authViewModel.checkSession()
             }
         }
     }

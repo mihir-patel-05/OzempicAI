@@ -32,6 +32,14 @@ class AuthViewModel: ObservableObject {
         isLoading = false
     }
 
+    func checkSession() async {
+        isLoading = true
+        if let _ = await authService.currentSession() {
+            isAuthenticated = true
+        }
+        isLoading = false
+    }
+
     func signOut() async {
         try? await authService.signOut()
         isAuthenticated = false
