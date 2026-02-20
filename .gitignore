@@ -29,3 +29,8 @@ fastlane/test_output
 
 # Secrets — never commit real credentials
 OzempicAI/Utilities/Constants.swift
+
+# Docker / local Supabase
+supabase/.env
+supabase/logs/
+*.env.local
