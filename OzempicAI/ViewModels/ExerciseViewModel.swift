@@ -17,7 +17,15 @@ class ExerciseViewModel: ObservableObject {
         // TODO: fetch from Supabase
     }
 
-    func logExercise(name: String, category: ExerciseLog.ExerciseCategory, duration: Int, caloriesBurned: Int) async {
+    func logExercise(
+        name: String,
+        category: ExerciseLog.ExerciseCategory,
+        duration: Int,
+        caloriesBurned: Int,
+        sets: Int? = nil,
+        repsPerSet: Int? = nil,
+        bodyPart: ExerciseLog.BodyPart? = nil
+    ) async {
         // TODO: insert into Supabase
     }
 

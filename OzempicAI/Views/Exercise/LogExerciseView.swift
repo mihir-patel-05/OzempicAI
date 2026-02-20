@@ -8,6 +8,18 @@ struct LogExerciseView: View {
     @State private var category = ExerciseLog.ExerciseCategory.cardio
     @State private var durationText = ""
     @State private var caloriesText = ""
+    // Strength-only fields
+    @State private var setsText = ""
+    @State private var repsText = ""
+    @State private var bodyPart = ExerciseLog.BodyPart.chest
+
+    var isStrength: Bool { category == .strength }
+
+    var isFormValid: Bool {
+        guard !exerciseName.isEmpty && !durationText.isEmpty && !caloriesText.isEmpty else { return false }
+        if isStrength { return !setsText.isEmpty && !repsText.isEmpty }
+        return true
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,6 +34,20 @@ struct LogExerciseView: View {
                     .keyboardType(.numberPad)
                 TextField("Calories burned", text: $caloriesText)
                     .keyboardType(.numberPad)
+
+                if isStrength {
+                    Section("Strength Details") {
+                        TextField("Sets", text: $setsText)
+                            .keyboardType(.numberPad)
+                        TextField("Reps per set", text: $repsText)
+                            .keyboardType(.numberPad)
+                        Picker("Body part", selection: $bodyPart) {
+                            ForEach(ExerciseLog.BodyPart.allCases, id: \.self) {
+                                Text($0.displayName)
+                            }
+                        }
+                    }
+                }
             }
             .navigationTitle("Log Exercise")
             .navigationBarTitleDisplayMode(.inline)
@@ -34,17 +60,22 @@ struct LogExerciseView: View {
                         guard let duration = Int(durationText),
                               let calories = Int(caloriesText),
                               !exerciseName.isEmpty else { return }
+                        let sets = Int(setsText)
+                        let reps = Int(repsText)
                         Task {
                             await viewModel.logExercise(
                                 name: exerciseName,
                                 category: category,
                                 duration: duration,
-                                caloriesBurned: calories
+                                caloriesBurned: calories,
+                                sets: isStrength ? sets : nil,
+                                repsPerSet: isStrength ? reps : nil,
+                                bodyPart: isStrength ? bodyPart : nil
                             )
                             dismiss()
                         }
                     }
-                    .disabled(exerciseName.isEmpty || durationText.isEmpty || caloriesText.isEmpty)
+                    .disabled(!isFormValid)
                 }
             }
         }

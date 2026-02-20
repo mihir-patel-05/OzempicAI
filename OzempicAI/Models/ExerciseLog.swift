@@ -7,10 +7,25 @@ struct ExerciseLog: Codable, Identifiable {
     var category: ExerciseCategory
     var durationMinutes: Int
     var caloriesBurned: Int
+    // Strength-only fields (nil for cardio, flexibility, etc.)
+    var sets: Int?
+    var repsPerSet: Int?
+    var bodyPart: BodyPart?
     let loggedAt: Date
 
     enum ExerciseCategory: String, Codable, CaseIterable {
         case cardio, strength, flexibility, sports, other
+    }
+
+    enum BodyPart: String, Codable, CaseIterable {
+        case chest, back, shoulders, arms, legs, core, fullBody = "full_body"
+
+        var displayName: String {
+            switch self {
+            case .fullBody: return "Full Body"
+            default: return rawValue.capitalized
+            }
+        }
     }
 
     enum CodingKeys: String, CodingKey {
@@ -20,6 +35,9 @@ struct ExerciseLog: Codable, Identifiable {
         case category
         case durationMinutes = "duration_minutes"
         case caloriesBurned = "calories_burned"
+        case sets
+        case repsPerSet = "reps_per_set"
+        case bodyPart = "body_part"
         case loggedAt = "logged_at"
     }
 }
