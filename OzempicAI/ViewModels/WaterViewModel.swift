@@ -57,6 +57,19 @@ class WaterViewModel: ObservableObject {
         }
     }
 
+    func deleteLog(_ log: WaterLog) async {
+        do {
+            try await client
+                .from("water_logs")
+                .delete()
+                .eq("id", value: log.id.uuidString)
+                .execute()
+            await loadTodaysLogs()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func loadWeekHistory() async {
         do {
             let userId = try await SupabaseService.shared.currentUserId

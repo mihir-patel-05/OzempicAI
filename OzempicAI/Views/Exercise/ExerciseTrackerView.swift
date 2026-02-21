@@ -3,6 +3,7 @@ import SwiftUI
 struct ExerciseTrackerView: View {
     @StateObject private var viewModel = ExerciseViewModel()
     @State private var showLogExercise = false
+    @State private var exerciseToEdit: ExerciseLog?
 
     private func categoryIcon(for category: ExerciseLog.ExerciseCategory) -> String {
         switch category {
@@ -113,7 +114,25 @@ struct ExerciseTrackerView: View {
                                         }
                                     }
 
-                                    Spacer()
+                                    HStack(spacing: AppSpacing.sm) {
+                                        Button {
+                                            exerciseToEdit = log
+                                        } label: {
+                                            Image(systemName: "pencil")
+                                                .font(.caption)
+                                                .foregroundStyle(Color.theme.mediumBlue)
+                                        }
+                                        .buttonStyle(.plain)
+
+                                        Button {
+                                            Task { await viewModel.deleteLog(log) }
+                                        } label: {
+                                            Image(systemName: "trash")
+                                                .font(.caption)
+                                                .foregroundStyle(.red.opacity(0.7))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                 }
                                 .cardStyle()
                             }
@@ -136,6 +155,9 @@ struct ExerciseTrackerView: View {
             }
             .sheet(isPresented: $showLogExercise) {
                 LogExerciseView(viewModel: viewModel)
+            }
+            .sheet(item: $exerciseToEdit) { log in
+                LogExerciseView(viewModel: viewModel, existingLog: log)
             }
             .task { await viewModel.loadLogs() }
         }
