@@ -8,12 +8,12 @@ struct GroceryListView: View {
 
     private func categoryIcon(for category: GroceryItem.GroceryCategory) -> String {
         switch category {
-        case .produce: return "carrot.fill"
+        case .produce: return "leaf.fill"
         case .dairy: return "cup.and.saucer.fill"
-        case .protein: return "fish.fill"
+        case .protein: return "fork.knife"
         case .grains: return "takeoutbag.and.cup.and.straw.fill"
-        case .beverages: return "waterbottle.fill"
-        case .snacks: return "birthday.cake.fill"
+        case .beverages: return "drop.fill"
+        case .snacks: return "star.fill"
         case .other: return "basket.fill"
         }
     }

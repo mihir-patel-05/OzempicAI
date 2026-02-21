@@ -7,8 +7,8 @@ struct ExerciseTrackerView: View {
     private func categoryIcon(for category: ExerciseLog.ExerciseCategory) -> String {
         switch category {
         case .cardio: return "figure.run"
-        case .strength: return "dumbbell.fill"
-        case .flexibility: return "figure.flexibility"
+        case .strength: return "figure.strengthtraining.traditional"
+        case .flexibility: return "figure.mind.and.body"
         case .sports: return "sportscourt.fill"
         case .other: return "ellipsis.circle.fill"
         }
