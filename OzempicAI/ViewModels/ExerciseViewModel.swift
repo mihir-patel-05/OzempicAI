@@ -41,7 +41,9 @@ class ExerciseViewModel: ObservableObject {
         caloriesBurned: Int,
         sets: Int? = nil,
         repsPerSet: Int? = nil,
-        bodyPart: ExerciseLog.BodyPart? = nil
+        bodyPart: ExerciseLog.BodyPart? = nil,
+        weight: Double? = nil,
+        weightUnit: ExerciseLog.WeightUnit? = nil
     ) async {
         errorMessage = nil
         do {
@@ -56,6 +58,8 @@ class ExerciseViewModel: ObservableObject {
                 let sets: Int?
                 let reps_per_set: Int?
                 let body_part: String?
+                let weight: Double?
+                let weight_unit: String?
             }
 
             let entry = NewExerciseLog(
@@ -66,7 +70,9 @@ class ExerciseViewModel: ObservableObject {
                 calories_burned: caloriesBurned,
                 sets: sets,
                 reps_per_set: repsPerSet,
-                body_part: bodyPart?.rawValue
+                body_part: bodyPart?.rawValue,
+                weight: weight,
+                weight_unit: weightUnit?.rawValue
             )
 
             try await client.from("exercise_logs").insert(entry).execute()

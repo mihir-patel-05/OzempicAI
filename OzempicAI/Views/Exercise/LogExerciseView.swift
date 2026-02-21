@@ -11,6 +11,8 @@ struct LogExerciseView: View {
     @State private var setsText = ""
     @State private var repsText = ""
     @State private var bodyPart = ExerciseLog.BodyPart.chest
+    @State private var weightText = ""
+    @State private var weightUnit = ExerciseLog.WeightUnit.lb
     @State private var isSaving = false
 
     var isStrength: Bool { category == .strength }
@@ -105,6 +107,32 @@ struct LogExerciseView: View {
                                 }
                             }
 
+                            // Weight
+                            HStack(spacing: AppSpacing.md) {
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    Text("Weight")
+                                        .font(.caption.bold())
+                                        .foregroundColor(Color.theme.secondaryText)
+                                    TextField("135", text: $weightText)
+                                        .keyboardType(.decimalPad)
+                                        .textFieldStyle(ThemedTextFieldStyle())
+                                }
+
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    Text("Unit")
+                                        .font(.caption.bold())
+                                        .foregroundColor(Color.theme.secondaryText)
+                                    Picker("Unit", selection: $weightUnit) {
+                                        ForEach(ExerciseLog.WeightUnit.allCases, id: \.self) {
+                                            Text($0.rawValue)
+                                        }
+                                    }
+                                    .pickerStyle(.segmented)
+                                    .frame(height: 44)
+                                }
+                                .frame(width: 100)
+                            }
+
                             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                 Text("Body Part")
                                     .font(.caption.bold())
@@ -131,6 +159,7 @@ struct LogExerciseView: View {
                               !exerciseName.isEmpty else { return }
                         let sets = Int(setsText)
                         let reps = Int(repsText)
+                        let weight = Double(weightText)
                         isSaving = true
                         Task {
                             await viewModel.logExercise(
@@ -140,7 +169,9 @@ struct LogExerciseView: View {
                                 caloriesBurned: calories,
                                 sets: isStrength ? sets : nil,
                                 repsPerSet: isStrength ? reps : nil,
-                                bodyPart: isStrength ? bodyPart : nil
+                                bodyPart: isStrength ? bodyPart : nil,
+                                weight: isStrength ? weight : nil,
+                                weightUnit: (isStrength && weight != nil) ? weightUnit : nil
                             )
                             isSaving = false
                             if viewModel.errorMessage == nil {

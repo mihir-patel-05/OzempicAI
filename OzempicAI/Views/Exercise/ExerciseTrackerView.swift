@@ -101,9 +101,15 @@ struct ExerciseTrackerView: View {
                                         if log.category == .strength,
                                            let sets = log.sets,
                                            let reps = log.repsPerSet {
-                                            Text("\(sets) sets × \(reps) reps")
-                                                .font(.caption)
-                                                .foregroundColor(Color.theme.mediumBlue)
+                                            HStack(spacing: 4) {
+                                                Text("\(sets) sets × \(reps) reps")
+                                                if let weight = log.weight {
+                                                    Text("·")
+                                                    Text("\(weight, specifier: "%g") \(log.weightUnit?.rawValue ?? "lb")")
+                                                }
+                                            }
+                                            .font(.caption)
+                                            .foregroundColor(Color.theme.mediumBlue)
                                         }
                                     }
 

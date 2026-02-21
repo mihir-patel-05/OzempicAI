@@ -11,6 +11,8 @@ struct ExerciseLog: Codable, Identifiable {
     var sets: Int?
     var repsPerSet: Int?
     var bodyPart: BodyPart?
+    var weight: Double?
+    var weightUnit: WeightUnit?
     let loggedAt: Date
 
     enum ExerciseCategory: String, Codable, CaseIterable {
@@ -28,6 +30,10 @@ struct ExerciseLog: Codable, Identifiable {
         }
     }
 
+    enum WeightUnit: String, Codable, CaseIterable {
+        case lb, kg
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
@@ -38,6 +44,8 @@ struct ExerciseLog: Codable, Identifiable {
         case sets
         case repsPerSet = "reps_per_set"
         case bodyPart = "body_part"
+        case weight
+        case weightUnit = "weight_unit"
         case loggedAt = "logged_at"
     }
 }
