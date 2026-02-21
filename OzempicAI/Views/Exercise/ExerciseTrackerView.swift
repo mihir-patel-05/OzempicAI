@@ -114,24 +114,27 @@ struct ExerciseTrackerView: View {
                                         }
                                     }
 
-                                    Spacer()
+                                    HStack(spacing: AppSpacing.sm) {
+                                        Button {
+                                            exerciseToEdit = log
+                                        } label: {
+                                            Image(systemName: "pencil")
+                                                .font(.caption)
+                                                .foregroundStyle(Color.theme.mediumBlue)
+                                        }
+                                        .buttonStyle(.plain)
+
+                                        Button {
+                                            Task { await viewModel.deleteLog(log) }
+                                        } label: {
+                                            Image(systemName: "trash")
+                                                .font(.caption)
+                                                .foregroundStyle(.red.opacity(0.7))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                 }
                                 .cardStyle()
-                                .swipeActions(edge: .leading) {
-                                    Button {
-                                        exerciseToEdit = log
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
-                                    }
-                                    .tint(Color.theme.mediumBlue)
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        Task { await viewModel.deleteLog(log) }
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
                             }
                         }
                     }
