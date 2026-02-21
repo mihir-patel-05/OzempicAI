@@ -73,6 +73,45 @@ struct WaterTrackerView: View {
                     }
                     .padding(.horizontal)
 
+                    // Today's entries
+                    if !viewModel.todaysLogs.isEmpty {
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            Text("Today's Entries")
+                                .font(.headline)
+                                .foregroundColor(Color.theme.primaryText)
+                                .padding(.horizontal)
+
+                            ForEach(viewModel.todaysLogs) { log in
+                                HStack {
+                                    Image(systemName: "drop.fill")
+                                        .foregroundStyle(Color.theme.mediumBlue)
+                                        .font(.caption)
+
+                                    Text("\(log.amountMl) ml")
+                                        .font(.subheadline)
+                                        .foregroundColor(Color.theme.primaryText)
+
+                                    Spacer()
+
+                                    Text(log.loggedAt, style: .time)
+                                        .font(.caption)
+                                        .foregroundColor(Color.theme.secondaryText)
+                                }
+                                .padding(.horizontal, AppSpacing.md)
+                                .padding(.vertical, AppSpacing.xs)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        Task { await viewModel.deleteLog(log) }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                            }
+                        }
+                        .cardStyle()
+                        .padding(.horizontal)
+                    }
+
                     Spacer().frame(height: AppSpacing.lg)
                 }
                 .padding(.horizontal)
