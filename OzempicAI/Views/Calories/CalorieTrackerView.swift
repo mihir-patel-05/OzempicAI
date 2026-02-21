@@ -167,6 +167,13 @@ struct CalorieTrackerView: View {
                                             .foregroundColor(Color.theme.secondaryText)
                                     }
                                     .padding(.vertical, 2)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button(role: .destructive) {
+                                            Task { await viewModel.deleteLog(log) }
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
                                 }
                             }
                         }
