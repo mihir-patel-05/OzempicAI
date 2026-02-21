@@ -10,31 +10,65 @@ struct LogMealView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                TextField("Food name", text: $foodName)
-                TextField("Calories", text: $caloriesText)
-                    .keyboardType(.numberPad)
-                Picker("Meal", selection: $mealType) {
-                    ForEach(CalorieLog.MealType.allCases, id: \.self) {
-                        Text($0.rawValue.capitalized)
+            ScrollView {
+                VStack(spacing: AppSpacing.md) {
+                    // Food name
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("Food Name")
+                            .font(.caption.bold())
+                            .foregroundColor(Color.theme.secondaryText)
+                        TextField("e.g. Grilled Chicken", text: $foodName)
+                            .textFieldStyle(ThemedTextFieldStyle())
                     }
-                }
-            }
-            .navigationTitle("Log Meal")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
+
+                    // Calories
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("Calories")
+                            .font(.caption.bold())
+                            .foregroundColor(Color.theme.secondaryText)
+                        TextField("e.g. 350", text: $caloriesText)
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(ThemedTextFieldStyle())
+                    }
+
+                    // Meal type
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("Meal Type")
+                            .font(.caption.bold())
+                            .foregroundColor(Color.theme.secondaryText)
+                        Picker("Meal", selection: $mealType) {
+                            ForEach(CalorieLog.MealType.allCases, id: \.self) {
+                                Text($0.rawValue.capitalized)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    Spacer().frame(height: AppSpacing.md)
+
+                    // Add button
+                    Button {
                         guard let calories = Int(caloriesText), !foodName.isEmpty else { return }
                         Task {
                             await viewModel.logFood(name: foodName, calories: calories, mealType: mealType)
                             dismiss()
                         }
+                    } label: {
+                        Text("Add Meal")
                     }
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(foodName.isEmpty || caloriesText.isEmpty)
+                    .opacity(foodName.isEmpty || caloriesText.isEmpty ? 0.5 : 1)
+                }
+                .padding(AppSpacing.lg)
+            }
+            .screenBackground()
+            .navigationTitle("Log Meal")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(Color.theme.mediumBlue)
                 }
             }
         }

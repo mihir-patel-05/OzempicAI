@@ -10,56 +10,91 @@ struct SignUpView: View {
     var passwordsMatch: Bool { password == confirmPassword }
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        ZStack {
+            LinearGradient(
+                colors: [Color.theme.darkNavy, Color.theme.mediumBlue],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-            Text("Create Account")
-                .font(.largeTitle.bold())
+            VStack(spacing: AppSpacing.lg) {
+                Spacer()
 
-            VStack(spacing: 12) {
-                TextField("Email", text: $email)
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-                    .textFieldStyle(.roundedBorder)
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 50))
+                        .foregroundStyle(Color.theme.amber)
 
-                SecureField("Password", text: $password)
-                    .textContentType(.newPassword)
-                    .textFieldStyle(.roundedBorder)
-
-                SecureField("Confirm Password", text: $confirmPassword)
-                    .textContentType(.newPassword)
-                    .textFieldStyle(.roundedBorder)
-
-                if !confirmPassword.isEmpty && !passwordsMatch {
-                    Text("Passwords do not match")
-                        .foregroundStyle(.red)
-                        .font(.caption)
+                    Text("Create Account")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
                 }
-            }
 
-            if let error = authViewModel.errorMessage {
-                Text(error)
-                    .foregroundStyle(.red)
-                    .font(.caption)
-            }
+                // Fields card
+                VStack(spacing: 12) {
+                    TextField("Email", text: $email)
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+                        .textFieldStyle(AuthTextFieldStyle())
 
-            Button {
-                Task { await authViewModel.signUp(email: email, password: password) }
-            } label: {
-                if authViewModel.isLoading {
-                    ProgressView()
-                } else {
-                    Text("Sign Up")
-                        .frame(maxWidth: .infinity)
+                    SecureField("Password", text: $password)
+                        .textContentType(.newPassword)
+                        .textFieldStyle(AuthTextFieldStyle())
+
+                    SecureField("Confirm Password", text: $confirmPassword)
+                        .textContentType(.newPassword)
+                        .textFieldStyle(AuthTextFieldStyle())
+
+                    if !confirmPassword.isEmpty && !passwordsMatch {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text("Passwords do not match")
+                        }
+                        .font(.caption.bold())
+                        .foregroundColor(Color.theme.darkNavy)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.theme.amber.opacity(0.9))
+                        .cornerRadius(AppRadius.small)
+                    }
                 }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(authViewModel.isLoading || !passwordsMatch || email.isEmpty)
+                .padding(AppSpacing.lg)
+                .background(.ultraThinMaterial)
+                .cornerRadius(AppRadius.large)
 
-            Spacer()
+                // Error
+                if let error = authViewModel.errorMessage {
+                    Text(error)
+                        .font(.caption.bold())
+                        .foregroundColor(Color.theme.darkNavy)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.theme.amber.opacity(0.9))
+                        .cornerRadius(AppRadius.small)
+                }
+
+                // Sign Up button
+                Button {
+                    Task { await authViewModel.signUp(email: email, password: password) }
+                } label: {
+                    if authViewModel.isLoading {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text("Sign Up")
+                    }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(authViewModel.isLoading || !passwordsMatch || email.isEmpty)
+
+                Spacer()
+            }
+            .padding()
         }
-        .padding()
-        .navigationTitle("Sign Up")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }
