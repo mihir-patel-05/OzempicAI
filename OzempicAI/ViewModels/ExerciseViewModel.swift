@@ -82,6 +82,55 @@ class ExerciseViewModel: ObservableObject {
         }
     }
 
+    func updateLog(
+        _ log: ExerciseLog,
+        name: String,
+        category: ExerciseLog.ExerciseCategory,
+        duration: Int,
+        caloriesBurned: Int,
+        sets: Int? = nil,
+        repsPerSet: Int? = nil,
+        bodyPart: ExerciseLog.BodyPart? = nil,
+        weight: Double? = nil,
+        weightUnit: ExerciseLog.WeightUnit? = nil
+    ) async {
+        errorMessage = nil
+        do {
+            struct ExerciseUpdate: Encodable {
+                let exercise_name: String
+                let category: String
+                let duration_minutes: Int
+                let calories_burned: Int
+                let sets: Int?
+                let reps_per_set: Int?
+                let body_part: String?
+                let weight: Double?
+                let weight_unit: String?
+            }
+
+            let update = ExerciseUpdate(
+                exercise_name: name,
+                category: category.rawValue,
+                duration_minutes: duration,
+                calories_burned: caloriesBurned,
+                sets: sets,
+                reps_per_set: repsPerSet,
+                body_part: bodyPart?.rawValue,
+                weight: weight,
+                weight_unit: weightUnit?.rawValue
+            )
+
+            try await client
+                .from("exercise_logs")
+                .update(update)
+                .eq("id", value: log.id.uuidString)
+                .execute()
+            await loadLogs()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func deleteLog(_ log: ExerciseLog) async {
         do {
             try await client

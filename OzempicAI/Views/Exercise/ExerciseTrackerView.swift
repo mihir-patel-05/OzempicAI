@@ -3,6 +3,7 @@ import SwiftUI
 struct ExerciseTrackerView: View {
     @StateObject private var viewModel = ExerciseViewModel()
     @State private var showLogExercise = false
+    @State private var exerciseToEdit: ExerciseLog?
 
     private func categoryIcon(for category: ExerciseLog.ExerciseCategory) -> String {
         switch category {
@@ -116,6 +117,21 @@ struct ExerciseTrackerView: View {
                                     Spacer()
                                 }
                                 .cardStyle()
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        exerciseToEdit = log
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                    .tint(Color.theme.mediumBlue)
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        Task { await viewModel.deleteLog(log) }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                     }
@@ -136,6 +152,9 @@ struct ExerciseTrackerView: View {
             }
             .sheet(isPresented: $showLogExercise) {
                 LogExerciseView(viewModel: viewModel)
+            }
+            .sheet(item: $exerciseToEdit) { log in
+                LogExerciseView(viewModel: viewModel, existingLog: log)
             }
             .task { await viewModel.loadLogs() }
         }

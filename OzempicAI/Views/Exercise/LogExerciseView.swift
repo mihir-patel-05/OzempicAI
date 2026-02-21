@@ -4,6 +4,8 @@ struct LogExerciseView: View {
     @ObservedObject var viewModel: ExerciseViewModel
     @Environment(\.dismiss) private var dismiss
 
+    var existingLog: ExerciseLog? = nil
+
     @State private var exerciseName = ""
     @State private var category = ExerciseLog.ExerciseCategory.cardio
     @State private var durationText = ""
@@ -15,6 +17,7 @@ struct LogExerciseView: View {
     @State private var weightUnit = ExerciseLog.WeightUnit.lb
     @State private var isSaving = false
 
+    var isEditing: Bool { existingLog != nil }
     var isStrength: Bool { category == .strength }
 
     var isFormValid: Bool {
@@ -152,7 +155,7 @@ struct LogExerciseView: View {
 
                     Spacer().frame(height: AppSpacing.md)
 
-                    // Add button
+                    // Add / Update button
                     Button {
                         guard let duration = Int(durationText),
                               let calories = Int(caloriesText),
@@ -162,17 +165,32 @@ struct LogExerciseView: View {
                         let weight = Double(weightText)
                         isSaving = true
                         Task {
-                            await viewModel.logExercise(
-                                name: exerciseName,
-                                category: category,
-                                duration: duration,
-                                caloriesBurned: calories,
-                                sets: isStrength ? sets : nil,
-                                repsPerSet: isStrength ? reps : nil,
-                                bodyPart: isStrength ? bodyPart : nil,
-                                weight: isStrength ? weight : nil,
-                                weightUnit: (isStrength && weight != nil) ? weightUnit : nil
-                            )
+                            if let log = existingLog {
+                                await viewModel.updateLog(
+                                    log,
+                                    name: exerciseName,
+                                    category: category,
+                                    duration: duration,
+                                    caloriesBurned: calories,
+                                    sets: isStrength ? sets : nil,
+                                    repsPerSet: isStrength ? reps : nil,
+                                    bodyPart: isStrength ? bodyPart : nil,
+                                    weight: isStrength ? weight : nil,
+                                    weightUnit: (isStrength && weight != nil) ? weightUnit : nil
+                                )
+                            } else {
+                                await viewModel.logExercise(
+                                    name: exerciseName,
+                                    category: category,
+                                    duration: duration,
+                                    caloriesBurned: calories,
+                                    sets: isStrength ? sets : nil,
+                                    repsPerSet: isStrength ? reps : nil,
+                                    bodyPart: isStrength ? bodyPart : nil,
+                                    weight: isStrength ? weight : nil,
+                                    weightUnit: (isStrength && weight != nil) ? weightUnit : nil
+                                )
+                            }
                             isSaving = false
                             if viewModel.errorMessage == nil {
                                 dismiss()
@@ -183,7 +201,7 @@ struct LogExerciseView: View {
                             ProgressView()
                                 .tint(.white)
                         } else {
-                            Text("Add Exercise")
+                            Text(isEditing ? "Update Exercise" : "Add Exercise")
                         }
                     }
                     .buttonStyle(PrimaryButtonStyle())
@@ -193,13 +211,25 @@ struct LogExerciseView: View {
                 .padding(AppSpacing.lg)
             }
             .screenBackground()
-            .navigationTitle("Log Exercise")
+            .navigationTitle(isEditing ? "Edit Exercise" : "Log Exercise")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .foregroundStyle(Color.theme.mediumBlue)
                 }
+            }
+            .onAppear {
+                guard let log = existingLog else { return }
+                exerciseName = log.exerciseName
+                category = log.category
+                durationText = "\(log.durationMinutes)"
+                caloriesText = "\(log.caloriesBurned)"
+                if let sets = log.sets { setsText = "\(sets)" }
+                if let reps = log.repsPerSet { repsText = "\(reps)" }
+                if let bp = log.bodyPart { bodyPart = bp }
+                if let w = log.weight { weightText = "\(w)" }
+                if let wu = log.weightUnit { weightUnit = wu }
             }
         }
     }
