@@ -3,6 +3,8 @@ import SwiftUI
 struct CalorieTrackerView: View {
     @StateObject private var viewModel = CalorieViewModel()
     @State private var showLogMeal = false
+    @State private var showGoalSheet = false
+    @State private var goalText = ""
 
     private func mealIcon(for type: CalorieLog.MealType) -> String {
         switch type {
@@ -15,6 +17,18 @@ struct CalorieTrackerView: View {
 
     private func mealCalories(for type: CalorieLog.MealType) -> Int {
         (viewModel.logsByMeal[type] ?? []).reduce(0) { $0 + $1.calories }
+    }
+
+    private var dateLabel: String {
+        if Calendar.current.isDateInToday(viewModel.selectedDate) {
+            return "Today"
+        } else if Calendar.current.isDateInYesterday(viewModel.selectedDate) {
+            return "Yesterday"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d, yyyy"
+            return formatter.string(from: viewModel.selectedDate)
+        }
     }
 
     var body: some View {
@@ -35,11 +49,48 @@ struct CalorieTrackerView: View {
                         .cornerRadius(AppRadius.small)
                     }
 
+                    // Date navigation
+                    HStack {
+                        Button { viewModel.goToPreviousDay() } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.title3.bold())
+                                .foregroundStyle(Color.theme.mediumBlue)
+                        }
+
+                        Spacer()
+
+                        VStack(spacing: 2) {
+                            Text(dateLabel)
+                                .font(.headline)
+                                .foregroundColor(Color.theme.primaryText)
+
+                            if !viewModel.isToday {
+                                Button("Go to Today") {
+                                    viewModel.goToToday()
+                                }
+                                .font(.caption)
+                                .foregroundStyle(Color.theme.mediumBlue)
+                            }
+                        }
+
+                        Spacer()
+
+                        Button { viewModel.goToNextDay() } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.title3.bold())
+                                .foregroundStyle(viewModel.isToday
+                                    ? Color.theme.lightBlue.opacity(0.4)
+                                    : Color.theme.mediumBlue)
+                        }
+                        .disabled(viewModel.isToday)
+                    }
+                    .padding(.horizontal, AppSpacing.sm)
+
                     // Hero: circular progress
                     ZStack {
                         CircularProgressView(
                             progress: viewModel.dailyGoal > 0
-                                ? Double(viewModel.totalCaloriesToday) / Double(viewModel.dailyGoal)
+                                ? Double(viewModel.totalCalories) / Double(viewModel.dailyGoal)
                                 : 0,
                             size: 180,
                             lineWidth: 18,
@@ -51,19 +102,28 @@ struct CalorieTrackerView: View {
                                 .font(.title2)
                                 .foregroundStyle(Color.theme.orange)
 
-                            Text("\(viewModel.totalCaloriesToday)")
+                            Text("\(viewModel.totalCalories)")
                                 .font(.system(size: 36, weight: .bold, design: .rounded))
                                 .foregroundColor(Color.theme.primaryText)
 
-                            Text("/ \(viewModel.dailyGoal) cal")
-                                .font(.subheadline)
+                            // Tappable goal
+                            Button {
+                                goalText = "\(viewModel.dailyGoal)"
+                                showGoalSheet = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text("/ \(viewModel.dailyGoal) cal")
+                                        .font(.subheadline)
+                                    Image(systemName: "pencil.circle.fill")
+                                        .font(.caption)
+                                }
                                 .foregroundColor(Color.theme.secondaryText)
+                            }
                         }
                     }
-                    .padding(.top, AppSpacing.lg)
 
                     // Remaining label
-                    let remaining = max(viewModel.dailyGoal - viewModel.totalCaloriesToday, 0)
+                    let remaining = max(viewModel.dailyGoal - viewModel.totalCalories, 0)
                     Text("\(remaining) cal remaining")
                         .font(.subheadline.bold())
                         .foregroundColor(Color.theme.mediumBlue)
@@ -130,7 +190,22 @@ struct CalorieTrackerView: View {
             .sheet(isPresented: $showLogMeal) {
                 LogMealView(viewModel: viewModel)
             }
-            .task { await viewModel.loadTodaysLogs() }
+            .alert("Set Daily Calorie Goal", isPresented: $showGoalSheet) {
+                TextField("Calories", text: $goalText)
+                    .keyboardType(.numberPad)
+                Button("Save") {
+                    if let goal = Int(goalText), goal > 0 {
+                        Task { await viewModel.updateDailyGoal(goal) }
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Enter your daily calorie target")
+            }
+            .task {
+                await viewModel.loadUserGoal()
+                await viewModel.loadLogs()
+            }
         }
     }
 }

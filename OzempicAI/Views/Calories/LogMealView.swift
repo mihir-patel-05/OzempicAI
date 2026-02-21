@@ -27,6 +27,20 @@ struct LogMealView: View {
                         .cornerRadius(AppRadius.small)
                     }
 
+                    // Date indicator (when logging for a past date)
+                    if !Calendar.current.isDateInToday(viewModel.selectedDate) {
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: "calendar")
+                            Text("Logging for \(viewModel.selectedDate, format: .dateTime.month().day().year())")
+                        }
+                        .font(.caption.bold())
+                        .foregroundColor(Color.theme.mediumBlue)
+                        .padding(AppSpacing.sm)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.theme.mediumBlue.opacity(0.1))
+                        .cornerRadius(AppRadius.small)
+                    }
+
                     // Food name
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("Food Name")
@@ -66,7 +80,7 @@ struct LogMealView: View {
                         guard let calories = Int(caloriesText), !foodName.isEmpty else { return }
                         isSaving = true
                         Task {
-                            await viewModel.logFood(name: foodName, calories: calories, mealType: mealType)
+                            await viewModel.logFood(name: foodName, calories: calories, mealType: mealType, date: viewModel.selectedDate)
                             isSaving = false
                             if viewModel.errorMessage == nil {
                                 dismiss()
