@@ -96,16 +96,18 @@ struct WaterTrackerView: View {
                                     Text(log.loggedAt, style: .time)
                                         .font(.caption)
                                         .foregroundColor(Color.theme.secondaryText)
+
+                                    Button {
+                                        Task { await viewModel.deleteLog(log) }
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .font(.caption)
+                                            .foregroundStyle(.red.opacity(0.7))
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                                 .padding(.horizontal, AppSpacing.md)
                                 .padding(.vertical, AppSpacing.xs)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        Task { await viewModel.deleteLog(log) }
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
                             }
                         }
                         .cardStyle()
