@@ -79,13 +79,15 @@ struct LoginView: View {
                     Button {
                         showSignUp = true
                     } label: {
-                        Text("Don't have an account? ")
-                            .foregroundColor(Color.theme.lightBlue) +
-                        Text("Sign Up")
-                            .foregroundColor(Color.theme.amber)
-                            .bold()
+                        HStack(spacing: 4) {
+                            Text("Don't have an account?")
+                                .foregroundColor(Color.theme.lightBlue)
+                            Text("Sign Up")
+                                .foregroundColor(Color.theme.amber)
+                                .bold()
+                        }
+                        .font(.footnote)
                     }
-                    .font(.footnote)
 
                     Spacer()
                 }

@@ -95,6 +95,5 @@ struct SignUpView: View {
             .padding()
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }

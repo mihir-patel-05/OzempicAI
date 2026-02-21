@@ -3,8 +3,6 @@ import SwiftUI
 struct GroceryListView: View {
     @StateObject private var viewModel = GroceryViewModel()
     @State private var showAddItem = false
-    @State private var newItemName = ""
-    @State private var newItemCategory = GroceryItem.GroceryCategory.other
 
     private func categoryIcon(for category: GroceryItem.GroceryCategory) -> String {
         switch category {
