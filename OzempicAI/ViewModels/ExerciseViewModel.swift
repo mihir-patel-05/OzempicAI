@@ -43,6 +43,7 @@ class ExerciseViewModel: ObservableObject {
         repsPerSet: Int? = nil,
         bodyPart: ExerciseLog.BodyPart? = nil
     ) async {
+        errorMessage = nil
         do {
             let userId = try await SupabaseService.shared.currentUserId
 

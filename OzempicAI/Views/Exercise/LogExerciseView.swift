@@ -11,6 +11,7 @@ struct LogExerciseView: View {
     @State private var setsText = ""
     @State private var repsText = ""
     @State private var bodyPart = ExerciseLog.BodyPart.chest
+    @State private var isSaving = false
 
     var isStrength: Bool { category == .strength }
 
@@ -24,6 +25,20 @@ struct LogExerciseView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: AppSpacing.md) {
+                    // Error display
+                    if let error = viewModel.errorMessage {
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text(error)
+                        }
+                        .font(.caption.bold())
+                        .foregroundColor(Color.theme.darkNavy)
+                        .padding(AppSpacing.sm)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.theme.amber.opacity(0.2))
+                        .cornerRadius(AppRadius.small)
+                    }
+
                     // Exercise name
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("Exercise Name")
@@ -116,6 +131,7 @@ struct LogExerciseView: View {
                               !exerciseName.isEmpty else { return }
                         let sets = Int(setsText)
                         let reps = Int(repsText)
+                        isSaving = true
                         Task {
                             await viewModel.logExercise(
                                 name: exerciseName,
@@ -126,13 +142,21 @@ struct LogExerciseView: View {
                                 repsPerSet: isStrength ? reps : nil,
                                 bodyPart: isStrength ? bodyPart : nil
                             )
-                            dismiss()
+                            isSaving = false
+                            if viewModel.errorMessage == nil {
+                                dismiss()
+                            }
                         }
                     } label: {
-                        Text("Add Exercise")
+                        if isSaving {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text("Add Exercise")
+                        }
                     }
                     .buttonStyle(PrimaryButtonStyle())
-                    .disabled(!isFormValid)
+                    .disabled(!isFormValid || isSaving)
                     .opacity(isFormValid ? 1 : 0.5)
                 }
                 .padding(AppSpacing.lg)

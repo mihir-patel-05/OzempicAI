@@ -5,6 +5,7 @@ class AuthViewModel: ObservableObject {
     @Published var isAuthenticated = false
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var needsEmailConfirmation = false
 
     private let authService = AuthService()
 
@@ -13,7 +14,10 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         do {
             try await authService.signIn(email: email, password: password)
+            // Ensure user profile exists (created on first sign-in after email confirmation)
+            try await authService.ensureUserProfile()
             isAuthenticated = true
+            needsEmailConfirmation = false
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -25,7 +29,8 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         do {
             try await authService.signUp(email: email, password: password)
-            isAuthenticated = true
+            // Don't set isAuthenticated — user must confirm email first
+            needsEmailConfirmation = true
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -34,8 +39,11 @@ class AuthViewModel: ObservableObject {
 
     func checkSession() async {
         isLoading = true
-        if let _ = await authService.currentSession() {
-            isAuthenticated = true
+        if let session = await authService.currentSession() {
+            // Only authenticate if the user's email is confirmed
+            if session.user.emailConfirmedAt != nil {
+                isAuthenticated = true
+            }
         }
         isLoading = false
     }
@@ -43,5 +51,10 @@ class AuthViewModel: ObservableObject {
     func signOut() async {
         try? await authService.signOut()
         isAuthenticated = false
+        needsEmailConfirmation = false
+    }
+
+    func dismissConfirmation() {
+        needsEmailConfirmation = false
     }
 }

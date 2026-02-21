@@ -19,6 +19,7 @@
 		502118B864C4F53AF339DCA9 /* AddMealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F9F0514AEDC758CB0026E13 /* AddMealView.swift */; };
 		56686261133111892F60CCE7 /* GroceryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26956EAA906A7FA9B7A07321 /* GroceryViewModel.swift */; };
 		5866C812E9F147D28D10AA80 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4753D32E5B3D4CF8DFF9F345 /* DashboardView.swift */; };
+		5ADB8DAB38F28DC9E3A7C8F5 /* EmailConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93865C9E7E987A3C3A74427E /* EmailConfirmationView.swift */; };
 		670A1F7B31A3F5277BB82AEF /* LogExerciseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25529E6836A1C691DE3CE1D /* LogExerciseView.swift */; };
 		68008613C3C684603B01657E /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A6EAEAE7B1F5F7627011E72 /* ViewModifiers.swift */; };
 		68E2E02EA10782504673C9D0 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 10C61031BA892B3D8EA53FD5 /* Supabase */; };
@@ -73,6 +74,7 @@
 		8A6EAEAE7B1F5F7627011E72 /* ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifiers.swift; sourceTree = "<group>"; };
 		8D93070849D0293539900A78 /* CalorieViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieViewModel.swift; sourceTree = "<group>"; };
 		90DD768B9AE50C1C6B58CA26 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		93865C9E7E987A3C3A74427E /* EmailConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailConfirmationView.swift; sourceTree = "<group>"; };
 		A0D74ABA9637E546B4DE914E /* WaterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterViewModel.swift; sourceTree = "<group>"; };
 		A0ECE7A4BFECC32ECC0B5EF2 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
 		A6C38F7BF5B8ECE4D186B1F2 /* HeartRateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateView.swift; sourceTree = "<group>"; };
@@ -149,6 +151,7 @@
 		49092AF5DE0B342385016EE5 /* Auth */ = {
 			isa = PBXGroup;
 			children = (
+				93865C9E7E987A3C3A74427E /* EmailConfirmationView.swift */,
 				90DD768B9AE50C1C6B58CA26 /* LoginView.swift */,
 				7315363BF974E6A664F281F0 /* SignUpView.swift */,
 			);
@@ -369,6 +372,7 @@
 				1566CCF67173E440D1063391 /* CircularProgressView.swift in Sources */,
 				C5E6FBBABB2AF020E5F8A445 /* Constants.swift in Sources */,
 				5866C812E9F147D28D10AA80 /* DashboardView.swift in Sources */,
+				5ADB8DAB38F28DC9E3A7C8F5 /* EmailConfirmationView.swift in Sources */,
 				C2DC1DD233CA2C07D6C72EA2 /* ExerciseLog.swift in Sources */,
 				08B4BE9CEE414585E24DD136 /* ExerciseTrackerView.swift in Sources */,
 				6C1C7A2B2217555E2DE10287 /* ExerciseViewModel.swift in Sources */,

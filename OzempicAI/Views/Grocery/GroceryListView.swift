@@ -114,11 +114,26 @@ struct AddGroceryItemSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var itemName = ""
     @State private var category = GroceryItem.GroceryCategory.produce
+    @State private var isSaving = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: AppSpacing.md) {
+                    // Error display
+                    if let error = viewModel.errorMessage {
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text(error)
+                        }
+                        .font(.caption.bold())
+                        .foregroundColor(Color.theme.darkNavy)
+                        .padding(AppSpacing.sm)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.theme.amber.opacity(0.2))
+                        .cornerRadius(AppRadius.small)
+                    }
+
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("Item Name")
                             .font(.caption.bold())
@@ -144,15 +159,24 @@ struct AddGroceryItemSheet: View {
 
                     Button {
                         guard !itemName.isEmpty else { return }
+                        isSaving = true
                         Task {
                             await viewModel.addItem(name: itemName, category: category)
-                            dismiss()
+                            isSaving = false
+                            if viewModel.errorMessage == nil {
+                                dismiss()
+                            }
                         }
                     } label: {
-                        Text("Add Item")
+                        if isSaving {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text("Add Item")
+                        }
                     }
                     .buttonStyle(PrimaryButtonStyle())
-                    .disabled(itemName.isEmpty)
+                    .disabled(itemName.isEmpty || isSaving)
                     .opacity(itemName.isEmpty ? 0.5 : 1)
                 }
                 .padding(AppSpacing.lg)

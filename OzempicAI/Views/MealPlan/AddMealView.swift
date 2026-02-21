@@ -8,11 +8,26 @@ struct AddMealView: View {
     @State private var plannedDate = Date()
     @State private var mealType = MealPlan.MealType.lunch
     @State private var caloriesText = ""
+    @State private var isSaving = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: AppSpacing.md) {
+                    // Error display
+                    if let error = viewModel.errorMessage {
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text(error)
+                        }
+                        .font(.caption.bold())
+                        .foregroundColor(Color.theme.darkNavy)
+                        .padding(AppSpacing.sm)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.theme.amber.opacity(0.2))
+                        .cornerRadius(AppRadius.small)
+                    }
+
                     // Meal name
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("Meal Name")
@@ -61,15 +76,24 @@ struct AddMealView: View {
                     // Add button
                     Button {
                         guard let calories = Int(caloriesText), !mealName.isEmpty else { return }
+                        isSaving = true
                         Task {
                             await viewModel.addMeal(name: mealName, date: plannedDate, mealType: mealType, calories: calories)
-                            dismiss()
+                            isSaving = false
+                            if viewModel.errorMessage == nil {
+                                dismiss()
+                            }
                         }
                     } label: {
-                        Text("Add Meal")
+                        if isSaving {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text("Add Meal")
+                        }
                     }
                     .buttonStyle(PrimaryButtonStyle())
-                    .disabled(mealName.isEmpty || caloriesText.isEmpty)
+                    .disabled(mealName.isEmpty || caloriesText.isEmpty || isSaving)
                     .opacity(mealName.isEmpty || caloriesText.isEmpty ? 0.5 : 1)
                 }
                 .padding(AppSpacing.lg)

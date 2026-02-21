@@ -21,6 +21,20 @@ struct CalorieTrackerView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: AppSpacing.lg) {
+                    // Error display
+                    if let error = viewModel.errorMessage {
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text(error)
+                        }
+                        .font(.caption.bold())
+                        .foregroundColor(Color.theme.darkNavy)
+                        .padding(AppSpacing.sm)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.theme.amber.opacity(0.2))
+                        .cornerRadius(AppRadius.small)
+                    }
+
                     // Hero: circular progress
                     ZStack {
                         CircularProgressView(

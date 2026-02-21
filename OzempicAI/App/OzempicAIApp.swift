@@ -34,6 +34,9 @@ struct OzempicAIApp: App {
                 } else if authViewModel.isAuthenticated {
                     DashboardView()
                         .environmentObject(authViewModel)
+                } else if authViewModel.needsEmailConfirmation {
+                    EmailConfirmationView()
+                        .environmentObject(authViewModel)
                 } else {
                     LoginView()
                         .environmentObject(authViewModel)

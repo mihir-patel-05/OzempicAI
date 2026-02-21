@@ -39,6 +39,7 @@ class CalorieViewModel: ObservableObject {
     }
 
     func logFood(name: String, calories: Int, mealType: CalorieLog.MealType) async {
+        errorMessage = nil
         do {
             let userId = try await SupabaseService.shared.currentUserId
 

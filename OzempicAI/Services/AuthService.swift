@@ -9,8 +9,9 @@ class AuthService {
     }
 
     func signUp(email: String, password: String) async throws {
-        let response = try await client.auth.signUp(email: email, password: password)
-        try await createUserProfile(id: response.user.id, email: email)
+        // Only create the auth user — profile is created on first sign-in
+        // after the user confirms their email
+        _ = try await client.auth.signUp(email: email, password: password)
     }
 
     func signOut() async throws {
@@ -21,11 +22,32 @@ class AuthService {
         try? await client.auth.session
     }
 
-    private func createUserProfile(id: UUID, email: String) async throws {
-        struct NewUser: Encodable {
-            let id: UUID
-            let email: String
+    /// Creates a user profile row if one doesn't already exist.
+    /// Called on first successful sign-in after email confirmation.
+    func ensureUserProfile() async throws {
+        let session = try await client.auth.session
+        let userId = session.user.id
+        let email = session.user.email ?? ""
+
+        // Check if profile already exists
+        let existing: [UserRow] = try await client
+            .from("users")
+            .select("id")
+            .eq("id", value: userId.uuidString)
+            .execute()
+            .value
+
+        if existing.isEmpty {
+            struct NewUser: Encodable {
+                let id: UUID
+                let email: String
+            }
+            try await client.from("users").insert(NewUser(id: userId, email: email)).execute()
         }
-        try await client.from("users").insert(NewUser(id: id, email: email)).execute()
     }
+}
+
+/// Minimal struct just for the existence check query
+private struct UserRow: Decodable {
+    let id: UUID
 }

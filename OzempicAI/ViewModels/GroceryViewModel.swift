@@ -32,6 +32,7 @@ class GroceryViewModel: ObservableObject {
     }
 
     func addItem(name: String, category: GroceryItem.GroceryCategory, mealPlanId: UUID? = nil) async {
+        errorMessage = nil
         do {
             let userId = try await SupabaseService.shared.currentUserId
 
