@@ -8,7 +8,6 @@ struct LogExerciseView: View {
     @State private var category = ExerciseLog.ExerciseCategory.cardio
     @State private var durationText = ""
     @State private var caloriesText = ""
-    // Strength-only fields
     @State private var setsText = ""
     @State private var repsText = ""
     @State private var bodyPart = ExerciseLog.BodyPart.chest
@@ -23,40 +22,95 @@ struct LogExerciseView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                TextField("Exercise name", text: $exerciseName)
-                Picker("Category", selection: $category) {
-                    ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) {
-                        Text($0.rawValue.capitalized)
+            ScrollView {
+                VStack(spacing: AppSpacing.md) {
+                    // Exercise name
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("Exercise Name")
+                            .font(.caption.bold())
+                            .foregroundColor(Color.theme.secondaryText)
+                        TextField("e.g. Bench Press", text: $exerciseName)
+                            .textFieldStyle(ThemedTextFieldStyle())
                     }
-                }
-                TextField("Duration (minutes)", text: $durationText)
-                    .keyboardType(.numberPad)
-                TextField("Calories burned", text: $caloriesText)
-                    .keyboardType(.numberPad)
 
-                if isStrength {
-                    Section("Strength Details") {
-                        TextField("Sets", text: $setsText)
-                            .keyboardType(.numberPad)
-                        TextField("Reps per set", text: $repsText)
-                            .keyboardType(.numberPad)
-                        Picker("Body part", selection: $bodyPart) {
-                            ForEach(ExerciseLog.BodyPart.allCases, id: \.self) {
-                                Text($0.displayName)
+                    // Category
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("Category")
+                            .font(.caption.bold())
+                            .foregroundColor(Color.theme.secondaryText)
+                        Picker("Category", selection: $category) {
+                            ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) {
+                                Text($0.rawValue.capitalized)
                             }
                         }
+                        .pickerStyle(.segmented)
                     }
-                }
-            }
-            .navigationTitle("Log Exercise")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
+
+                    // Duration & Calories
+                    HStack(spacing: AppSpacing.md) {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Duration (min)")
+                                .font(.caption.bold())
+                                .foregroundColor(Color.theme.secondaryText)
+                            TextField("30", text: $durationText)
+                                .keyboardType(.numberPad)
+                                .textFieldStyle(ThemedTextFieldStyle())
+                        }
+
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Calories")
+                                .font(.caption.bold())
+                                .foregroundColor(Color.theme.secondaryText)
+                            TextField("200", text: $caloriesText)
+                                .keyboardType(.numberPad)
+                                .textFieldStyle(ThemedTextFieldStyle())
+                        }
+                    }
+
+                    // Strength details
+                    if isStrength {
+                        VStack(spacing: AppSpacing.md) {
+                            HStack(spacing: AppSpacing.md) {
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    Text("Sets")
+                                        .font(.caption.bold())
+                                        .foregroundColor(Color.theme.secondaryText)
+                                    TextField("3", text: $setsText)
+                                        .keyboardType(.numberPad)
+                                        .textFieldStyle(ThemedTextFieldStyle())
+                                }
+
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    Text("Reps per Set")
+                                        .font(.caption.bold())
+                                        .foregroundColor(Color.theme.secondaryText)
+                                    TextField("12", text: $repsText)
+                                        .keyboardType(.numberPad)
+                                        .textFieldStyle(ThemedTextFieldStyle())
+                                }
+                            }
+
+                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                Text("Body Part")
+                                    .font(.caption.bold())
+                                    .foregroundColor(Color.theme.secondaryText)
+                                Picker("Body part", selection: $bodyPart) {
+                                    ForEach(ExerciseLog.BodyPart.allCases, id: \.self) {
+                                        Text($0.displayName)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                        }
+                        .padding(AppSpacing.md)
+                        .background(Color.theme.lightBlue.opacity(0.1))
+                        .cornerRadius(AppRadius.medium)
+                    }
+
+                    Spacer().frame(height: AppSpacing.md)
+
+                    // Add button
+                    Button {
                         guard let duration = Int(durationText),
                               let calories = Int(caloriesText),
                               !exerciseName.isEmpty else { return }
@@ -74,8 +128,22 @@ struct LogExerciseView: View {
                             )
                             dismiss()
                         }
+                    } label: {
+                        Text("Add Exercise")
                     }
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(!isFormValid)
+                    .opacity(isFormValid ? 1 : 0.5)
+                }
+                .padding(AppSpacing.lg)
+            }
+            .screenBackground()
+            .navigationTitle("Log Exercise")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(Color.theme.mediumBlue)
                 }
             }
         }
