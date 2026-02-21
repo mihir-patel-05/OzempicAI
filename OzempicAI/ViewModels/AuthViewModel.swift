@@ -14,8 +14,8 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         do {
             try await authService.signIn(email: email, password: password)
-            // Ensure user profile exists (created on first sign-in after email confirmation)
-            try await authService.ensureUserProfile()
+            // Ensure user profile exists — don't block login if this fails
+            try? await authService.ensureUserProfile()
             isAuthenticated = true
             needsEmailConfirmation = false
         } catch {
@@ -40,8 +40,9 @@ class AuthViewModel: ObservableObject {
     func checkSession() async {
         isLoading = true
         if let session = await authService.currentSession() {
-            // Only authenticate if the user's email is confirmed
             if session.user.emailConfirmedAt != nil {
+                // Ensure user profile exists on session restore too
+                try? await authService.ensureUserProfile()
                 isAuthenticated = true
             }
         }
