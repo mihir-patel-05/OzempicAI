@@ -39,6 +39,7 @@ class MealPlanViewModel: ObservableObject {
     }
 
     func addMeal(name: String, date: Date, mealType: MealPlan.MealType, calories: Int) async {
+        errorMessage = nil
         do {
             let userId = try await SupabaseService.shared.currentUserId
 

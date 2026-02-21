@@ -23,5 +23,13 @@ struct DashboardView: View {
             GroceryListView()
                 .tabItem { Label("Grocery", systemImage: "cart.fill") }
         }
+        .tint(Color.theme.mediumBlue)
+        .onAppear {
+            let appearance = UITabBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = UIColor(Color.theme.lightBlue.opacity(0.08))
+            UITabBar.appearance().standardAppearance = appearance
+            UITabBar.appearance().scrollEdgeAppearance = appearance
+        }
     }
 }

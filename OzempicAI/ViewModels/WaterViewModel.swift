@@ -40,6 +40,7 @@ class WaterViewModel: ObservableObject {
     }
 
     func logWater(amountMl: Int) async {
+        errorMessage = nil
         do {
             let userId = try await SupabaseService.shared.currentUserId
 

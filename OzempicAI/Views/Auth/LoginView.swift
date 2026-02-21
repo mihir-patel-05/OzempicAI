@@ -8,51 +8,91 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Spacer()
+            ZStack {
+                LinearGradient(
+                    colors: [Color.theme.darkNavy, Color.theme.mediumBlue],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
 
-                Text("OzempicAI")
-                    .font(.largeTitle.bold())
+                VStack(spacing: AppSpacing.lg) {
+                    Spacer()
 
-                VStack(spacing: 12) {
-                    TextField("Email", text: $email)
-                        .textContentType(.emailAddress)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .textFieldStyle(.roundedBorder)
+                    // Branding
+                    VStack(spacing: 12) {
+                        Image(systemName: "heart.text.square.fill")
+                            .font(.system(size: 60))
+                            .foregroundStyle(Color.theme.amber)
 
-                    SecureField("Password", text: $password)
-                        .textContentType(.password)
-                        .textFieldStyle(.roundedBorder)
-                }
+                        Text("OzempicAI")
+                            .font(.system(size: 38, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
 
-                if let error = authViewModel.errorMessage {
-                    Text(error)
-                        .foregroundStyle(.red)
-                        .font(.caption)
-                }
-
-                Button {
-                    Task { await authViewModel.signIn(email: email, password: password) }
-                } label: {
-                    if authViewModel.isLoading {
-                        ProgressView()
-                    } else {
-                        Text("Sign In")
-                            .frame(maxWidth: .infinity)
+                        Text("Your Health Companion")
+                            .font(.subheadline)
+                            .foregroundColor(Color.theme.lightBlue)
                     }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(authViewModel.isLoading)
 
-                Button("Don't have an account? Sign Up") {
-                    showSignUp = true
-                }
-                .font(.footnote)
+                    // Fields card
+                    VStack(spacing: 12) {
+                        TextField("Email", text: $email)
+                            .textContentType(.emailAddress)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .textFieldStyle(AuthTextFieldStyle())
 
-                Spacer()
+                        SecureField("Password", text: $password)
+                            .textContentType(.password)
+                            .textFieldStyle(AuthTextFieldStyle())
+                    }
+                    .padding(AppSpacing.lg)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(AppRadius.large)
+
+                    // Error
+                    if let error = authViewModel.errorMessage {
+                        Text(error)
+                            .font(.caption.bold())
+                            .foregroundColor(Color.theme.darkNavy)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.theme.amber.opacity(0.9))
+                            .cornerRadius(AppRadius.small)
+                    }
+
+                    // Sign In button
+                    Button {
+                        Task { await authViewModel.signIn(email: email, password: password) }
+                    } label: {
+                        if authViewModel.isLoading {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text("Sign In")
+                        }
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(authViewModel.isLoading)
+
+                    // Sign Up link
+                    Button {
+                        showSignUp = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("Don't have an account?")
+                                .foregroundColor(Color.theme.lightBlue)
+                            Text("Sign Up")
+                                .foregroundColor(Color.theme.amber)
+                                .bold()
+                        }
+                        .font(.footnote)
+                    }
+
+                    Spacer()
+                }
+                .padding()
             }
-            .padding()
             .navigationDestination(isPresented: $showSignUp) {
                 SignUpView()
             }
