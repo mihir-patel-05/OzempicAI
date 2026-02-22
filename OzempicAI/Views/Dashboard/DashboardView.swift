@@ -22,6 +22,9 @@ struct DashboardView: View {
 
             GroceryListView()
                 .tabItem { Label("Grocery", systemImage: "cart.fill") }
+
+            FastingView()
+                .tabItem { Label("Fasting", systemImage: "moon.stars.fill") }
         }
         .tint(Color.theme.mediumBlue)
         .onAppear {
