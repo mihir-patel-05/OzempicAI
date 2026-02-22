@@ -27,6 +27,9 @@ struct DashboardView: View {
             FastingView()
                 .tabItem { Label("Fasting", systemImage: "moon.stars.fill") }
 
+            WeightTrackerView()
+                .tabItem { Label("Weight", systemImage: "scalemass.fill") }
+
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
         }
