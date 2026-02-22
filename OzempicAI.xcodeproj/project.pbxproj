@@ -17,6 +17,7 @@
 		27FE6EA60143CF166717D2D4 /* WaterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D74ABA9637E546B4DE914E /* WaterViewModel.swift */; };
 		2B82F700C4EF5722FA01E7EB /* FastingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EBD62DEFE6D8DC0F47B3B02 /* FastingViewModel.swift */; };
 		43DDD2DD51B8D6BC12A13F4E /* MealPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96898553289FEDA471B1278 /* MealPlanView.swift */; };
+		4A4A7678053E601BF5245CDB /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD4CE4D9C018EF4D9757C55 /* ThemeManager.swift */; };
 		502118B864C4F53AF339DCA9 /* AddMealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F9F0514AEDC758CB0026E13 /* AddMealView.swift */; };
 		56686261133111892F60CCE7 /* GroceryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26956EAA906A7FA9B7A07321 /* GroceryViewModel.swift */; };
 		5866C812E9F147D28D10AA80 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4753D32E5B3D4CF8DFF9F345 /* DashboardView.swift */; };
@@ -48,13 +49,16 @@
 		E012DEDAA384538950C5C143 /* FastingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A398B420C3EFFABDB65FF9CF /* FastingView.swift */; };
 		EAEF37DA041CFA668044712B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2ADEB9D916F7D015A46F5DCF /* Assets.xcassets */; };
 		ED8C3E659B7DD9D171A46940 /* GroceryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C0BFC2F997827C4ADA1EC6 /* GroceryItem.swift */; };
+		FBF31C007A2ED2EA8C99B531 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B69C58B4DDAE253A36A136 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		06B69C58B4DDAE253A36A136 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		1B4BBCA4DE80CC664F1E42D7 /* MealPlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPlanViewModel.swift; sourceTree = "<group>"; };
 		1F68592A9ACB97DAFC747C95 /* ExerciseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		1F9F0514AEDC758CB0026E13 /* AddMealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMealView.swift; sourceTree = "<group>"; };
 		26956EAA906A7FA9B7A07321 /* GroceryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroceryViewModel.swift; sourceTree = "<group>"; };
+		2AD4CE4D9C018EF4D9757C55 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		2ADEB9D916F7D015A46F5DCF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		33538D7BB307CF8D5E599FB2 /* HeartRateViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateViewModel.swift; sourceTree = "<group>"; };
 		44B529D7DB3D9C6E2055272F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -182,6 +186,7 @@
 				8D7EC0971AFF2CD588D204F6 /* Grocery */,
 				271C4C7381E44804479C05E1 /* HeartRate */,
 				DCE995C9E085419DD5FE3482 /* MealPlan */,
+				D08507AFE98F69CA8B84A5D3 /* Settings */,
 				1C994A4858D12B99E037EA40 /* Water */,
 			);
 			path = Views;
@@ -241,6 +246,14 @@
 			path = OzempicAI;
 			sourceTree = "<group>";
 		};
+		D08507AFE98F69CA8B84A5D3 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				06B69C58B4DDAE253A36A136 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		DCE995C9E085419DD5FE3482 /* MealPlan */ = {
 			isa = PBXGroup;
 			children = (
@@ -269,6 +282,7 @@
 				26956EAA906A7FA9B7A07321 /* GroceryViewModel.swift */,
 				33538D7BB307CF8D5E599FB2 /* HeartRateViewModel.swift */,
 				1B4BBCA4DE80CC664F1E42D7 /* MealPlanViewModel.swift */,
+				2AD4CE4D9C018EF4D9757C55 /* ThemeManager.swift */,
 				A0D74ABA9637E546B4DE914E /* WaterViewModel.swift */,
 			);
 			path = ViewModels;
@@ -406,9 +420,11 @@
 				43DDD2DD51B8D6BC12A13F4E /* MealPlanView.swift in Sources */,
 				96D913E8C8BCE8910C1D0CB0 /* MealPlanViewModel.swift in Sources */,
 				90659994F97FF31D51F637FC /* OzempicAIApp.swift in Sources */,
+				FBF31C007A2ED2EA8C99B531 /* SettingsView.swift in Sources */,
 				8EA2685B8DB9CE5D46F64898 /* SignUpView.swift in Sources */,
 				0993C1D527187C7294787C9A /* SupabaseService.swift in Sources */,
 				BB4FB92E9489FA8163FA0F8A /* Theme.swift in Sources */,
+				4A4A7678053E601BF5245CDB /* ThemeManager.swift in Sources */,
 				D7BEABF0995BC2199488BDF2 /* User.swift in Sources */,
 				68008613C3C684603B01657E /* ViewModifiers.swift in Sources */,
 				851C9BF81EF197700115355D /* WaterLog.swift in Sources */,
