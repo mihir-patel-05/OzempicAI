@@ -16,8 +16,8 @@ struct ColorTheme {
     // Semantic aliases
     var background: Color      { lightBlue.opacity(0.15) }
     var cardBackground: Color  { Color(.systemBackground) }
-    var primaryText: Color     { darkNavy }
-    var secondaryText: Color   { darkNavy.opacity(0.6) }
+    var primaryText: Color     { Color(.label) }
+    var secondaryText: Color   { Color(.secondaryLabel) }
     var accent: Color          { mediumBlue }
     var ctaButton: Color       { orange }
     var calorieRing: Color     { amber }

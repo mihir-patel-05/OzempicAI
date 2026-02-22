@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
         TabView {
@@ -25,6 +26,9 @@ struct DashboardView: View {
 
             FastingView()
                 .tabItem { Label("Fasting", systemImage: "moon.stars.fill") }
+
+            SettingsView()
+                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
         }
         .tint(Color.theme.mediumBlue)
         .onAppear {

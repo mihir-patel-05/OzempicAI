@@ -3,12 +3,13 @@ import SwiftUI
 @main
 struct OzempicAIApp: App {
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var themeManager = ThemeManager()
 
     init() {
         let navAppearance = UINavigationBarAppearance()
         navAppearance.configureWithOpaqueBackground()
-        navAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor(Color.theme.darkNavy)]
-        navAppearance.titleTextAttributes = [.foregroundColor: UIColor(Color.theme.darkNavy)]
+        navAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
+        navAppearance.titleTextAttributes = [.foregroundColor: UIColor.label]
         UINavigationBar.appearance().standardAppearance = navAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
     }
@@ -34,6 +35,7 @@ struct OzempicAIApp: App {
                 } else if authViewModel.isAuthenticated {
                     DashboardView()
                         .environmentObject(authViewModel)
+                        .environmentObject(themeManager)
                 } else if authViewModel.needsEmailConfirmation {
                     EmailConfirmationView()
                         .environmentObject(authViewModel)
@@ -42,6 +44,7 @@ struct OzempicAIApp: App {
                         .environmentObject(authViewModel)
                 }
             }
+            .preferredColorScheme(themeManager.colorScheme)
             .tint(Color.theme.mediumBlue)
             .task {
                 await authViewModel.checkSession()
