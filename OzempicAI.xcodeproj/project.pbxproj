@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		015D8D10F8D5246B76578925 /* CalorieViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D93070849D0293539900A78 /* CalorieViewModel.swift */; };
+		041207DBA63101A1E1706294 /* WeightTrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E365BBBE360F5AB10B22CBD /* WeightTrackerView.swift */; };
 		08B4BE9CEE414585E24DD136 /* ExerciseTrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB6B3EF8FF5B7E86AEC9267 /* ExerciseTrackerView.swift */; };
 		0993C1D527187C7294787C9A /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0ECE7A4BFECC32ECC0B5EF2 /* SupabaseService.swift */; };
 		0D39ED5B58638F413315EAB9 /* CalorieTrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C1AEF86C60E9AF023860653 /* CalorieTrackerView.swift */; };
@@ -28,6 +29,7 @@
 		6C1C7A2B2217555E2DE10287 /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F68592A9ACB97DAFC747C95 /* ExerciseViewModel.swift */; };
 		7DF31685806C3D6FA82CD7DB /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE62CFEB683C43A24D7517CA /* AuthService.swift */; };
 		806BCFEFA1A9A50A2B5897FB /* WaterWaveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87332710B068BDB72973DE12 /* WaterWaveView.swift */; };
+		824BA5D5C0EF53B0737CB374 /* WeightLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4F10EFDF473F8A881938B92 /* WeightLog.swift */; };
 		83A49BABAB3C9B9B48C3B7CB /* HeartRateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C38F7BF5B8ECE4D186B1F2 /* HeartRateView.swift */; };
 		844EF4AC69BEAA4910DDE770 /* Constants.example.swift.bak in Resources */ = {isa = PBXBuildFile; fileRef = 4CE1FD1C85C4AAF8DCE452D6 /* Constants.example.swift.bak */; };
 		851C9BF81EF197700115355D /* WaterLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 659340A170EAA5780622710E /* WaterLog.swift */; };
@@ -45,6 +47,7 @@
 		C5E6FBBABB2AF020E5F8A445 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDDFA90D59ADE3F6D30BAB66 /* Constants.swift */; };
 		CD63CD9D904615D224FC3225 /* MealPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F26B6CE7FE614D3A6A0386 /* MealPlan.swift */; };
 		D304C0DC97B465A7FC7E40EC /* CalorieLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A21DC3F6B20392C864E2CD /* CalorieLog.swift */; };
+		D549C04E5FAB200959E20A4E /* WeightViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C562C89900AD823ABF6E05CB /* WeightViewModel.swift */; };
 		D7BEABF0995BC2199488BDF2 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = B83933A2481D8DB3654CDE71 /* User.swift */; };
 		E012DEDAA384538950C5C143 /* FastingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A398B420C3EFFABDB65FF9CF /* FastingView.swift */; };
 		EAEF37DA041CFA668044712B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2ADEB9D916F7D015A46F5DCF /* Assets.xcassets */; };
@@ -68,6 +71,7 @@
 		50F534E69959C6A8D4C51CA9 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		5BAD8210976990DC1FF6BF4B /* OzempicAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OzempicAI.entitlements; sourceTree = "<group>"; };
 		5C1AEF86C60E9AF023860653 /* CalorieTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieTrackerView.swift; sourceTree = "<group>"; };
+		5E365BBBE360F5AB10B22CBD /* WeightTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightTrackerView.swift; sourceTree = "<group>"; };
 		659340A170EAA5780622710E /* WaterLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterLog.swift; sourceTree = "<group>"; };
 		67F5E56367D9C7B86521E5B1 /* WaterTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterTrackerView.swift; sourceTree = "<group>"; };
 		7315363BF974E6A664F281F0 /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
@@ -85,11 +89,13 @@
 		A0D74ABA9637E546B4DE914E /* WaterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterViewModel.swift; sourceTree = "<group>"; };
 		A0ECE7A4BFECC32ECC0B5EF2 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
 		A398B420C3EFFABDB65FF9CF /* FastingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FastingView.swift; sourceTree = "<group>"; };
+		A4F10EFDF473F8A881938B92 /* WeightLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightLog.swift; sourceTree = "<group>"; };
 		A6C38F7BF5B8ECE4D186B1F2 /* HeartRateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateView.swift; sourceTree = "<group>"; };
 		B83933A2481D8DB3654CDE71 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		BA9735EB01A5BA29365A26FD /* ExerciseLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLog.swift; sourceTree = "<group>"; };
 		BDDFA90D59ADE3F6D30BAB66 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		C25529E6836A1C691DE3CE1D /* LogExerciseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogExerciseView.swift; sourceTree = "<group>"; };
+		C562C89900AD823ABF6E05CB /* WeightViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightViewModel.swift; sourceTree = "<group>"; };
 		CDB6B3EF8FF5B7E86AEC9267 /* ExerciseTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseTrackerView.swift; sourceTree = "<group>"; };
 		CE62CFEB683C43A24D7517CA /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		D6F26B6CE7FE614D3A6A0386 /* MealPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPlan.swift; sourceTree = "<group>"; };
@@ -188,6 +194,7 @@
 				DCE995C9E085419DD5FE3482 /* MealPlan */,
 				D08507AFE98F69CA8B84A5D3 /* Settings */,
 				1C994A4858D12B99E037EA40 /* Water */,
+				8626AC8AC727B8BAEEF1E47E /* Weight */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -202,8 +209,17 @@
 				D6F26B6CE7FE614D3A6A0386 /* MealPlan.swift */,
 				B83933A2481D8DB3654CDE71 /* User.swift */,
 				659340A170EAA5780622710E /* WaterLog.swift */,
+				A4F10EFDF473F8A881938B92 /* WeightLog.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		8626AC8AC727B8BAEEF1E47E /* Weight */ = {
+			isa = PBXGroup;
+			children = (
+				5E365BBBE360F5AB10B22CBD /* WeightTrackerView.swift */,
+			);
+			path = Weight;
 			sourceTree = "<group>";
 		};
 		8D7EC0971AFF2CD588D204F6 /* Grocery */ = {
@@ -284,6 +300,7 @@
 				1B4BBCA4DE80CC664F1E42D7 /* MealPlanViewModel.swift */,
 				2AD4CE4D9C018EF4D9757C55 /* ThemeManager.swift */,
 				A0D74ABA9637E546B4DE914E /* WaterViewModel.swift */,
+				C562C89900AD823ABF6E05CB /* WeightViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -431,6 +448,9 @@
 				18A32708BAB56D065B52BAFF /* WaterTrackerView.swift in Sources */,
 				27FE6EA60143CF166717D2D4 /* WaterViewModel.swift in Sources */,
 				806BCFEFA1A9A50A2B5897FB /* WaterWaveView.swift in Sources */,
+				824BA5D5C0EF53B0737CB374 /* WeightLog.swift in Sources */,
+				041207DBA63101A1E1706294 /* WeightTrackerView.swift in Sources */,
+				D549C04E5FAB200959E20A4E /* WeightViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
