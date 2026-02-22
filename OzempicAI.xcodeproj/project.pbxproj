@@ -15,6 +15,7 @@
 		18A32708BAB56D065B52BAFF /* WaterTrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F5E56367D9C7B86521E5B1 /* WaterTrackerView.swift */; };
 		1B726DC68FE3146F2E019795 /* GroceryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A51E0CD789ED480A27A97CA /* GroceryListView.swift */; };
 		27FE6EA60143CF166717D2D4 /* WaterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D74ABA9637E546B4DE914E /* WaterViewModel.swift */; };
+		2B82F700C4EF5722FA01E7EB /* FastingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EBD62DEFE6D8DC0F47B3B02 /* FastingViewModel.swift */; };
 		43DDD2DD51B8D6BC12A13F4E /* MealPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F96898553289FEDA471B1278 /* MealPlanView.swift */; };
 		502118B864C4F53AF339DCA9 /* AddMealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F9F0514AEDC758CB0026E13 /* AddMealView.swift */; };
 		56686261133111892F60CCE7 /* GroceryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26956EAA906A7FA9B7A07321 /* GroceryViewModel.swift */; };
@@ -44,6 +45,7 @@
 		CD63CD9D904615D224FC3225 /* MealPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F26B6CE7FE614D3A6A0386 /* MealPlan.swift */; };
 		D304C0DC97B465A7FC7E40EC /* CalorieLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A21DC3F6B20392C864E2CD /* CalorieLog.swift */; };
 		D7BEABF0995BC2199488BDF2 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = B83933A2481D8DB3654CDE71 /* User.swift */; };
+		E012DEDAA384538950C5C143 /* FastingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A398B420C3EFFABDB65FF9CF /* FastingView.swift */; };
 		EAEF37DA041CFA668044712B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2ADEB9D916F7D015A46F5DCF /* Assets.xcassets */; };
 		ED8C3E659B7DD9D171A46940 /* GroceryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C0BFC2F997827C4ADA1EC6 /* GroceryItem.swift */; };
 /* End PBXBuildFile section */
@@ -58,6 +60,7 @@
 		44B529D7DB3D9C6E2055272F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4753D32E5B3D4CF8DFF9F345 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		4CE1FD1C85C4AAF8DCE452D6 /* Constants.example.swift.bak */ = {isa = PBXFileReference; path = Constants.example.swift.bak; sourceTree = "<group>"; };
+		4EBD62DEFE6D8DC0F47B3B02 /* FastingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FastingViewModel.swift; sourceTree = "<group>"; };
 		50F534E69959C6A8D4C51CA9 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		5BAD8210976990DC1FF6BF4B /* OzempicAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OzempicAI.entitlements; sourceTree = "<group>"; };
 		5C1AEF86C60E9AF023860653 /* CalorieTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieTrackerView.swift; sourceTree = "<group>"; };
@@ -77,6 +80,7 @@
 		93865C9E7E987A3C3A74427E /* EmailConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailConfirmationView.swift; sourceTree = "<group>"; };
 		A0D74ABA9637E546B4DE914E /* WaterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterViewModel.swift; sourceTree = "<group>"; };
 		A0ECE7A4BFECC32ECC0B5EF2 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
+		A398B420C3EFFABDB65FF9CF /* FastingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FastingView.swift; sourceTree = "<group>"; };
 		A6C38F7BF5B8ECE4D186B1F2 /* HeartRateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateView.swift; sourceTree = "<group>"; };
 		B83933A2481D8DB3654CDE71 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		BA9735EB01A5BA29365A26FD /* ExerciseLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLog.swift; sourceTree = "<group>"; };
@@ -104,6 +108,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		12741936CA6EDB502F75F0E0 /* Fasting */ = {
+			isa = PBXGroup;
+			children = (
+				A398B420C3EFFABDB65FF9CF /* FastingView.swift */,
+			);
+			path = Fasting;
+			sourceTree = "<group>";
+		};
 		1C994A4858D12B99E037EA40 /* Water */ = {
 			isa = PBXGroup;
 			children = (
@@ -166,6 +178,7 @@
 				F09ED1E618C366CD55FFCD88 /* Components */,
 				2958921ED769A271834E911E /* Dashboard */,
 				E0A74244879F6982D1CEB1B0 /* Exercise */,
+				12741936CA6EDB502F75F0E0 /* Fasting */,
 				8D7EC0971AFF2CD588D204F6 /* Grocery */,
 				271C4C7381E44804479C05E1 /* HeartRate */,
 				DCE995C9E085419DD5FE3482 /* MealPlan */,
@@ -252,6 +265,7 @@
 				50F534E69959C6A8D4C51CA9 /* AuthViewModel.swift */,
 				8D93070849D0293539900A78 /* CalorieViewModel.swift */,
 				1F68592A9ACB97DAFC747C95 /* ExerciseViewModel.swift */,
+				4EBD62DEFE6D8DC0F47B3B02 /* FastingViewModel.swift */,
 				26956EAA906A7FA9B7A07321 /* GroceryViewModel.swift */,
 				33538D7BB307CF8D5E599FB2 /* HeartRateViewModel.swift */,
 				1B4BBCA4DE80CC664F1E42D7 /* MealPlanViewModel.swift */,
@@ -376,6 +390,8 @@
 				C2DC1DD233CA2C07D6C72EA2 /* ExerciseLog.swift in Sources */,
 				08B4BE9CEE414585E24DD136 /* ExerciseTrackerView.swift in Sources */,
 				6C1C7A2B2217555E2DE10287 /* ExerciseViewModel.swift in Sources */,
+				E012DEDAA384538950C5C143 /* FastingView.swift in Sources */,
+				2B82F700C4EF5722FA01E7EB /* FastingViewModel.swift in Sources */,
 				ED8C3E659B7DD9D171A46940 /* GroceryItem.swift in Sources */,
 				1B726DC68FE3146F2E019795 /* GroceryListView.swift in Sources */,
 				56686261133111892F60CCE7 /* GroceryViewModel.swift in Sources */,
