@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -66,7 +66,7 @@
 		33538D7BB307CF8D5E599FB2 /* HeartRateViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateViewModel.swift; sourceTree = "<group>"; };
 		44B529D7DB3D9C6E2055272F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4753D32E5B3D4CF8DFF9F345 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
-		4CE1FD1C85C4AAF8DCE452D6 /* Constants.example.swift.bak */ = {isa = PBXFileReference; path = Constants.example.swift.bak; sourceTree = "<group>"; };
+		4CE1FD1C85C4AAF8DCE452D6 /* Constants.example.swift.bak */ = {isa = PBXFileReference; lastKnownFileType = text; path = Constants.example.swift.bak; sourceTree = "<group>"; };
 		4EBD62DEFE6D8DC0F47B3B02 /* FastingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FastingViewModel.swift; sourceTree = "<group>"; };
 		50F534E69959C6A8D4C51CA9 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		5BAD8210976990DC1FF6BF4B /* OzempicAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OzempicAI.entitlements; sourceTree = "<group>"; };
@@ -79,7 +79,7 @@
 		83304A9C212AF9E29521F812 /* LogMealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogMealView.swift; sourceTree = "<group>"; };
 		83C60D9FD7696994F1C4ACCC /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 		87332710B068BDB72973DE12 /* WaterWaveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterWaveView.swift; sourceTree = "<group>"; };
-		8769F286036C487AAC223D0E /* OzempicAI.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OzempicAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8769F286036C487AAC223D0E /* OzempicAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OzempicAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		87A21DC3F6B20392C864E2CD /* CalorieLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieLog.swift; sourceTree = "<group>"; };
 		8A51E0CD789ED480A27A97CA /* GroceryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroceryListView.swift; sourceTree = "<group>"; };
 		8A6EAEAE7B1F5F7627011E72 /* ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifiers.swift; sourceTree = "<group>"; };
@@ -363,11 +363,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
-				TargetAttributes = {
-					0C33D225E4F8DFAE25C9A630 = {
-						DevelopmentTeam = "";
-					};
-				};
 			};
 			buildConfigurationList = 8C03BBC913E95A345F37A923 /* Build configuration list for PBXProject "OzempicAI" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -382,7 +377,6 @@
 			packageReferences = (
 				36015EBA291C7045AA43C240 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -583,7 +577,7 @@
 				CODE_SIGN_ENTITLEMENTS = OzempicAI/App/OzempicAI.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = FZR8D2KGW7;
 				INFOPLIST_FILE = OzempicAI/App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -604,7 +598,7 @@
 				CODE_SIGN_ENTITLEMENTS = OzempicAI/App/OzempicAI.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = FZR8D2KGW7;
 				INFOPLIST_FILE = OzempicAI/App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
