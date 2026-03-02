@@ -4,6 +4,7 @@ import SwiftUI
 struct OzempicAIMacApp: App {
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var themeManager = ThemeManager()
+    @State private var sidebarSelection: MacSidebarItem? = .workouts
 
     var body: some Scene {
         WindowGroup {
@@ -23,7 +24,7 @@ struct OzempicAIMacApp: App {
                         }
                     }
                 } else if authViewModel.isAuthenticated {
-                    MacMainView()
+                    MacMainView(selection: $sidebarSelection)
                         .environmentObject(authViewModel)
                         .environmentObject(themeManager)
                 } else {
@@ -39,6 +40,9 @@ struct OzempicAIMacApp: App {
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 1200, height: 800)
+        .commands {
+            NavigationCommands(selection: $sidebarSelection)
+        }
 
         Settings {
             MacSettingsView()

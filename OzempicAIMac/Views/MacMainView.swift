@@ -36,7 +36,7 @@ enum MacSidebarItem: String, CaseIterable, Identifiable {
 
 struct MacMainView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var selection: MacSidebarItem? = .workouts
+    @Binding var selection: MacSidebarItem?
 
     var body: some View {
         NavigationSplitView {
@@ -77,5 +77,28 @@ struct MacMainView: View {
             .frame(minWidth: 800, minHeight: 700)
         }
         .frame(minWidth: 1000, minHeight: 700)
+    }
+}
+
+// MARK: - Navigation Commands
+
+struct NavigationCommands: Commands {
+    @Binding var selection: MacSidebarItem?
+
+    var body: some Commands {
+        CommandMenu("Navigate") {
+            Button("Weekly Workouts") { selection = .workouts }
+                .keyboardShortcut("1", modifiers: .command)
+            Button("Meal Plan") { selection = .mealPlan }
+                .keyboardShortcut("2", modifiers: .command)
+            Button("Grocery List") { selection = .grocery }
+                .keyboardShortcut("3", modifiers: .command)
+            Button("Calories") { selection = .calories }
+                .keyboardShortcut("4", modifiers: .command)
+            Button("Exercise Log") { selection = .exerciseLog }
+                .keyboardShortcut("5", modifiers: .command)
+            Button("Weight") { selection = .weight }
+                .keyboardShortcut("6", modifiers: .command)
+        }
     }
 }
