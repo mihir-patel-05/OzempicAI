@@ -9,7 +9,8 @@ class HealthKitService {
     func requestAuthorization() async throws {
         guard isAvailable else { return }
         let heartRateType = HKQuantityType(.heartRate)
-        try await store.requestAuthorization(toShare: [], read: [heartRateType])
+        let workoutType = HKObjectType.workoutType()
+        try await store.requestAuthorization(toShare: [], read: [heartRateType, workoutType])
     }
 
     func fetchRestingHeartRate() async throws -> Double? {
