@@ -1,5 +1,5 @@
 import Foundation
-#if canImport(HealthKit)
+#if os(iOS)
 import HealthKit
 #endif
 
@@ -11,7 +11,7 @@ class ExerciseViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let client = SupabaseService.shared.client
-    #if canImport(HealthKit)
+    #if os(iOS)
     private let healthKitService = HealthKitService()
     #endif
 
@@ -153,7 +153,7 @@ class ExerciseViewModel: ObservableObject {
 
     // MARK: - HealthKit Sync
 
-    #if canImport(HealthKit)
+    #if os(iOS)
     func requestHealthKitAccess() async {
         try? await healthKitService.requestAuthorization()
     }
@@ -207,5 +207,5 @@ class ExerciseViewModel: ObservableObject {
         }
         isSyncing = false
     }
-    #endif
+    #endif // os(iOS)
 }
