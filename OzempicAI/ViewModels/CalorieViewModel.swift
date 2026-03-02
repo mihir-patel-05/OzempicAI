@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 class CalorieViewModel: ObservableObject {
     @Published var logs: [CalorieLog] = []
+    @Published var weekLogs: [CalorieLog] = []
     @Published var dailyGoal: Int = Constants.Health.defaultCalorieGoal
     @Published var selectedDate: Date = Date()
     @Published var isLoading = false
@@ -41,6 +42,27 @@ class CalorieViewModel: ObservableObject {
     }
 
     // MARK: - Load Data
+
+    func loadWeekLogs(for weekStart: Date) async {
+        errorMessage = nil
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+            let calendar = Calendar.current
+            let endOfWeek = calendar.date(byAdding: .day, value: 7, to: weekStart)!
+
+            weekLogs = try await client
+                .from("calorie_logs")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .gte("logged_at", value: weekStart.ISO8601Format())
+                .lt("logged_at", value: endOfWeek.ISO8601Format())
+                .order("logged_at", ascending: false)
+                .execute()
+                .value
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 
     func loadLogs() async {
         isLoading = true

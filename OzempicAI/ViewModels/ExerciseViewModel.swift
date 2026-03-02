@@ -1,5 +1,7 @@
 import Foundation
+#if os(iOS)
 import HealthKit
+#endif
 
 @MainActor
 class ExerciseViewModel: ObservableObject {
@@ -9,7 +11,9 @@ class ExerciseViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let client = SupabaseService.shared.client
+    #if os(iOS)
     private let healthKitService = HealthKitService()
+    #endif
 
     var totalCaloriesBurnedToday: Int {
         let today = Calendar.current.startOfDay(for: .now)
@@ -149,6 +153,7 @@ class ExerciseViewModel: ObservableObject {
 
     // MARK: - HealthKit Sync
 
+    #if os(iOS)
     func requestHealthKitAccess() async {
         try? await healthKitService.requestAuthorization()
     }
@@ -202,4 +207,5 @@ class ExerciseViewModel: ObservableObject {
         }
         isSyncing = false
     }
+    #endif // os(iOS)
 }
