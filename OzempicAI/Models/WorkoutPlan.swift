@@ -6,8 +6,8 @@ struct WorkoutPlan: Codable, Identifiable {
     var exerciseName: String
     var category: ExerciseLog.ExerciseCategory
     var plannedDate: Date
-    var durationMinutes: Int
-    var caloriesBurned: Int
+    var durationMinutes: Int?
+    var caloriesBurned: Int?
     var sets: Int?
     var repsPerSet: Int?
     var bodyPart: ExerciseLog.BodyPart?

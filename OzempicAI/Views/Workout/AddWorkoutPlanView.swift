@@ -22,7 +22,7 @@ struct AddWorkoutPlanView: View {
     var isStrength: Bool { category == .strength }
 
     var isFormValid: Bool {
-        guard !exerciseName.isEmpty && !durationText.isEmpty && !caloriesText.isEmpty else { return false }
+        guard !exerciseName.isEmpty else { return false }
         if isStrength { return !setsText.isEmpty && !repsText.isEmpty }
         return true
     }
@@ -200,10 +200,10 @@ struct AddWorkoutPlanView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    // Duration & Calories
+                    // Duration & Calories (optional)
                     HStack(spacing: AppSpacing.md) {
                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                            Text("Duration (min)")
+                            Text("Duration - optional (min)")
                                 .font(.caption.bold())
                                 .foregroundColor(Color.theme.secondaryText)
                             TextField("30", text: $durationText)
@@ -212,7 +212,7 @@ struct AddWorkoutPlanView: View {
                         }
 
                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                            Text("Calories")
+                            Text("Calories (optional)")
                                 .font(.caption.bold())
                                 .foregroundColor(Color.theme.secondaryText)
                             TextField("200", text: $caloriesText)
@@ -309,9 +309,9 @@ struct AddWorkoutPlanView: View {
 
                     // Add button
                     Button {
-                        guard let duration = Int(durationText),
-                              let calories = Int(caloriesText),
-                              !exerciseName.isEmpty else { return }
+                        guard !exerciseName.isEmpty else { return }
+                        let duration = Int(durationText)
+                        let calories = Int(caloriesText)
                         let sets = Int(setsText)
                         let reps = Int(repsText)
                         let weight = Double(weightText)

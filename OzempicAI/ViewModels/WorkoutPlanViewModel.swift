@@ -82,8 +82,8 @@ class WorkoutPlanViewModel: ObservableObject {
         exerciseName: String,
         category: ExerciseLog.ExerciseCategory,
         plannedDate: Date,
-        durationMinutes: Int,
-        caloriesBurned: Int,
+        durationMinutes: Int? = nil,
+        caloriesBurned: Int? = nil,
         sets: Int? = nil,
         repsPerSet: Int? = nil,
         bodyPart: ExerciseLog.BodyPart? = nil,
@@ -100,8 +100,8 @@ class WorkoutPlanViewModel: ObservableObject {
                 let exercise_name: String
                 let category: String
                 let planned_date: String
-                let duration_minutes: Int
-                let calories_burned: Int
+                let duration_minutes: Int?
+                let calories_burned: Int?
                 let sets: Int?
                 let reps_per_set: Int?
                 let body_part: String?

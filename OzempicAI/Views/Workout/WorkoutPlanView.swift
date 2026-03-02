@@ -102,10 +102,14 @@ struct WorkoutPlanView: View {
 
                                     HStack(spacing: 4) {
                                         Text(plan.category.rawValue.capitalized)
-                                        Text("·")
-                                        Text("\(plan.durationMinutes) min")
-                                        Text("·")
-                                        Text("\(plan.caloriesBurned) cal")
+                                        if let duration = plan.durationMinutes {
+                                            Text("·")
+                                            Text("\(duration) min")
+                                        }
+                                        if let calories = plan.caloriesBurned {
+                                            Text("·")
+                                            Text("\(calories) cal")
+                                        }
                                     }
                                     .font(.caption)
                                     .foregroundColor(Color.theme.secondaryText)
