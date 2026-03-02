@@ -15,6 +15,9 @@ struct DashboardView: View {
             ExerciseTrackerView()
                 .tabItem { Label("Exercise", systemImage: "figure.run") }
 
+            WorkoutPlanView()
+                .tabItem { Label("Workouts", systemImage: "dumbbell.fill") }
+
             HeartRateView()
                 .tabItem { Label("Heart Rate", systemImage: "heart.fill") }
 
