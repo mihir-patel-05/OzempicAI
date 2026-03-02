@@ -15,10 +15,16 @@ struct MacCalorieOverview: View {
         (0..<7).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: weekStart) }
     }
 
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     private func dailyTotal(for date: Date) -> Int {
-        let calendar = Calendar.current
+        let dateString = Self.dayFormatter.string(from: date)
         return viewModel.weekLogs
-            .filter { calendar.isDate($0.loggedAt, inSameDayAs: date) }
+            .filter { Self.dayFormatter.string(from: $0.loggedAt) == dateString }
             .reduce(0) { $0 + $1.calories }
     }
 
@@ -27,9 +33,9 @@ struct MacCalorieOverview: View {
     }
 
     private var displayDayLogs: [CalorieLog] {
-        let calendar = Calendar.current
+        let dateString = Self.dayFormatter.string(from: displayDay)
         return viewModel.weekLogs.filter {
-            calendar.isDate($0.loggedAt, inSameDayAs: displayDay)
+            Self.dayFormatter.string(from: $0.loggedAt) == dateString
         }
     }
 

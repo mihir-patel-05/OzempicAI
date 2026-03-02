@@ -15,17 +15,23 @@ struct MacMealPlannerView: View {
         (0..<7).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: weekStart) }
     }
 
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     private func meal(for date: Date, type: MealPlan.MealType) -> MealPlan? {
-        let calendar = Calendar.current
+        let dateString = Self.dayFormatter.string(from: date)
         return viewModel.weeklyPlans.first {
-            calendar.isDate($0.plannedDate, inSameDayAs: date) && $0.mealType == type
+            Self.dayFormatter.string(from: $0.plannedDate) == dateString && $0.mealType == type
         }
     }
 
     private func dailyTotal(for date: Date) -> Int {
-        let calendar = Calendar.current
+        let dateString = Self.dayFormatter.string(from: date)
         return viewModel.weeklyPlans
-            .filter { calendar.isDate($0.plannedDate, inSameDayAs: date) }
+            .filter { Self.dayFormatter.string(from: $0.plannedDate) == dateString }
             .reduce(0) { $0 + $1.calories }
     }
 

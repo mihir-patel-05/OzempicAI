@@ -11,10 +11,16 @@ struct MacWorkoutPlannerView: View {
         (0..<7).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: weekStart) }
     }
 
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     private func plans(for date: Date) -> [WorkoutPlan] {
-        let calendar = Calendar.current
+        let dateString = Self.dayFormatter.string(from: date)
         return viewModel.weeklyPlans.filter {
-            calendar.isDate($0.plannedDate, inSameDayAs: date)
+            Self.dayFormatter.string(from: $0.plannedDate) == dateString
         }
     }
 
