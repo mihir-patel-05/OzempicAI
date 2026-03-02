@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(HealthKit)
 import HealthKit
+#endif
 
 @MainActor
 class ExerciseViewModel: ObservableObject {
@@ -9,7 +11,9 @@ class ExerciseViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let client = SupabaseService.shared.client
+    #if canImport(HealthKit)
     private let healthKitService = HealthKitService()
+    #endif
 
     var totalCaloriesBurnedToday: Int {
         let today = Calendar.current.startOfDay(for: .now)
