@@ -13,6 +13,8 @@ struct ExerciseLog: Codable, Identifiable {
     var bodyPart: BodyPart?
     var weight: Double?
     var weightUnit: WeightUnit?
+    var source: Source?
+    var healthkitId: String?
     let loggedAt: Date
 
     enum ExerciseCategory: String, Codable, CaseIterable {
