@@ -186,7 +186,10 @@ struct ExerciseTrackerView: View {
             .sheet(item: $exerciseToEdit) { log in
                 LogExerciseView(viewModel: viewModel, existingLog: log)
             }
-            .task { await viewModel.loadLogs() }
+            .task {
+                await viewModel.requestHealthKitAccess()
+                await viewModel.loadLogs()
+            }
         }
     }
 }
