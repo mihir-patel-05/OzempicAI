@@ -1,0 +1,228 @@
+import SwiftUI
+
+struct MacExerciseLogView: View {
+    @StateObject private var viewModel = ExerciseViewModel()
+    @State private var sortOrder = [KeyPathComparator(\ExerciseLog.loggedAt, order: .reverse)]
+    @State private var selectedLogIds = Set<ExerciseLog.ID>()
+    @State private var showAddPanel = false
+    @State private var filterCategory: ExerciseLog.ExerciseCategory?
+
+    private var filteredLogs: [ExerciseLog] {
+        var logs = viewModel.logs
+        if let cat = filterCategory {
+            logs = logs.filter { $0.category == cat }
+        }
+        return logs.sorted(using: sortOrder)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Exercise Log")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Spacer()
+
+                Text("Today's Burn: \(viewModel.totalCaloriesBurnedToday) cal")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                // Filter
+                Picker("Category", selection: $filterCategory) {
+                    Text("All").tag(ExerciseLog.ExerciseCategory?.none)
+                    ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) { cat in
+                        Text(cat.rawValue.capitalized).tag(ExerciseLog.ExerciseCategory?.some(cat))
+                    }
+                }
+                .frame(width: 140)
+
+                Button {
+                    showAddPanel.toggle()
+                } label: {
+                    Label("Log Exercise", systemImage: "plus")
+                }
+            }
+            .padding()
+
+            Divider()
+
+            // Main content
+            HStack(spacing: 0) {
+                // Table
+                Table(filteredLogs, selection: $selectedLogIds, sortOrder: $sortOrder) {
+                    TableColumn("Date") { log in
+                        Text(log.loggedAt.formatted(.dateTime.month(.abbreviated).day()))
+                    }
+                    .width(min: 60, ideal: 80)
+
+                    TableColumn("Exercise", value: \.exerciseName)
+                        .width(min: 100, ideal: 150)
+
+                    TableColumn("Category") { log in
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(categoryColor(log.category))
+                                .frame(width: 8, height: 8)
+                            Text(log.category.rawValue.capitalized)
+                        }
+                    }
+                    .width(min: 80, ideal: 100)
+
+                    TableColumn("Duration") { log in
+                        Text("\(log.durationMinutes) min")
+                    }
+                    .width(min: 60, ideal: 80)
+
+                    TableColumn("Calories") { log in
+                        Text("\(log.caloriesBurned) cal")
+                    }
+                    .width(min: 60, ideal: 80)
+
+                    TableColumn("Details") { log in
+                        Text(detailText(for: log))
+                            .foregroundColor(.secondary)
+                    }
+                    .width(min: 80, ideal: 120)
+                }
+                .contextMenu(forSelectionType: ExerciseLog.ID.self) { ids in
+                    Button("Delete", role: .destructive) {
+                        Task {
+                            for id in ids {
+                                if let log = viewModel.logs.first(where: { $0.id == id }) {
+                                    await viewModel.deleteLog(log)
+                                }
+                            }
+                        }
+                    }
+                } primaryAction: { _ in }
+
+                // Add panel
+                if showAddPanel {
+                    Divider()
+                    AddExercisePanel(viewModel: viewModel, onDismiss: { showAddPanel = false })
+                        .frame(width: 280)
+                }
+            }
+        }
+        .screenBackground()
+        .task {
+            await viewModel.loadLogs()
+        }
+    }
+
+    private func categoryColor(_ category: ExerciseLog.ExerciseCategory) -> Color {
+        switch category {
+        case .cardio:      return Color.theme.mediumBlue
+        case .strength:    return Color.theme.orange
+        case .flexibility: return .green
+        case .sports:      return Color.theme.amber
+        case .other:       return .gray
+        }
+    }
+
+    private func detailText(for log: ExerciseLog) -> String {
+        var parts: [String] = []
+        if let sets = log.sets, let reps = log.repsPerSet {
+            parts.append("\(sets)x\(reps)")
+        }
+        if let w = log.weight, let unit = log.weightUnit {
+            parts.append("\(Int(w))\(unit.rawValue)")
+        }
+        return parts.joined(separator: " · ")
+    }
+}
+
+// MARK: - Add Exercise Panel
+
+private struct AddExercisePanel: View {
+    @ObservedObject var viewModel: ExerciseViewModel
+    let onDismiss: () -> Void
+
+    @State private var name = ""
+    @State private var category: ExerciseLog.ExerciseCategory = .strength
+    @State private var duration = ""
+    @State private var calories = ""
+    @State private var sets = ""
+    @State private var reps = ""
+    @State private var bodyPart: ExerciseLog.BodyPart = .fullBody
+    @State private var weight = ""
+    @State private var weightUnit: ExerciseLog.WeightUnit = .lb
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Log Exercise")
+                    .font(.headline)
+                Spacer()
+                Button { onDismiss() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Form {
+                TextField("Exercise Name", text: $name)
+
+                Picker("Category", selection: $category) {
+                    ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) { cat in
+                        Text(cat.rawValue.capitalized).tag(cat)
+                    }
+                }
+
+                TextField("Duration (min)", text: $duration)
+                TextField("Calories Burned", text: $calories)
+
+                Picker("Body Part", selection: $bodyPart) {
+                    ForEach(ExerciseLog.BodyPart.allCases, id: \.self) { part in
+                        Text(part.rawValue.replacingOccurrences(of: "_", with: " ").capitalized).tag(part)
+                    }
+                }
+
+                HStack {
+                    TextField("Sets", text: $sets)
+                    Text("x")
+                    TextField("Reps", text: $reps)
+                }
+
+                HStack {
+                    TextField("Weight", text: $weight)
+                    Picker("", selection: $weightUnit) {
+                        Text("lb").tag(ExerciseLog.WeightUnit.lb)
+                        Text("kg").tag(ExerciseLog.WeightUnit.kg)
+                    }
+                    .frame(width: 60)
+                }
+            }
+            .formStyle(.grouped)
+
+            Button("Log Exercise") {
+                Task {
+                    await viewModel.logExercise(
+                        name: name,
+                        category: category,
+                        duration: Int(duration) ?? 0,
+                        caloriesBurned: Int(calories) ?? 0,
+                        sets: Int(sets),
+                        repsPerSet: Int(reps),
+                        bodyPart: bodyPart,
+                        weight: Double(weight),
+                        weightUnit: weight.isEmpty ? nil : weightUnit
+                    )
+                    name = ""
+                    duration = ""
+                    calories = ""
+                    sets = ""
+                    reps = ""
+                    weight = ""
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color.theme.ctaButton)
+            .disabled(name.isEmpty || duration.isEmpty || calories.isEmpty)
+        }
+        .padding()
+    }
+}
