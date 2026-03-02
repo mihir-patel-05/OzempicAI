@@ -139,24 +139,26 @@ struct ExerciseTrackerView: View {
                                         }
                                     }
 
-                                    HStack(spacing: AppSpacing.sm) {
-                                        Button {
-                                            exerciseToEdit = log
-                                        } label: {
-                                            Image(systemName: "pencil")
-                                                .font(.caption)
-                                                .foregroundStyle(Color.theme.mediumBlue)
-                                        }
-                                        .buttonStyle(.plain)
+                                    if log.source != .healthkit {
+                                        HStack(spacing: AppSpacing.sm) {
+                                            Button {
+                                                exerciseToEdit = log
+                                            } label: {
+                                                Image(systemName: "pencil")
+                                                    .font(.caption)
+                                                    .foregroundStyle(Color.theme.mediumBlue)
+                                            }
+                                            .buttonStyle(.plain)
 
-                                        Button {
-                                            Task { await viewModel.deleteLog(log) }
-                                        } label: {
-                                            Image(systemName: "trash")
-                                                .font(.caption)
-                                                .foregroundStyle(.red.opacity(0.7))
+                                            Button {
+                                                Task { await viewModel.deleteLog(log) }
+                                            } label: {
+                                                Image(systemName: "trash")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.red.opacity(0.7))
+                                            }
+                                            .buttonStyle(.plain)
                                         }
-                                        .buttonStyle(.plain)
                                     }
                                 }
                                 .cardStyle()
