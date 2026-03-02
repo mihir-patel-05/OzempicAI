@@ -36,6 +36,10 @@ struct ExerciseLog: Codable, Identifiable {
         case lb, kg
     }
 
+    enum Source: String, Codable {
+        case manual, healthkit
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
@@ -48,6 +52,8 @@ struct ExerciseLog: Codable, Identifiable {
         case bodyPart = "body_part"
         case weight
         case weightUnit = "weight_unit"
+        case source
+        case healthkitId = "healthkit_id"
         case loggedAt = "logged_at"
     }
 }
