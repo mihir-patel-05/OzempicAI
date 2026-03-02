@@ -54,6 +54,27 @@ struct ExerciseTrackerView: View {
                     }
                     .padding(.top, AppSpacing.lg)
 
+                    // Import from Apple Watch
+                    Button {
+                        Task { await viewModel.syncFromHealthKit() }
+                    } label: {
+                        HStack(spacing: AppSpacing.sm) {
+                            if viewModel.isSyncing {
+                                ProgressView()
+                                    .tint(Color.theme.mediumBlue)
+                            } else {
+                                Image(systemName: "applewatch.radiowaves.left.and.right")
+                            }
+                            Text("Import from Apple Watch")
+                                .font(.subheadline.bold())
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(Color.theme.mediumBlue)
+                    .disabled(viewModel.isSyncing)
+
                     // History
                     if viewModel.logs.isEmpty {
                         VStack(spacing: AppSpacing.sm) {
@@ -90,6 +111,10 @@ struct ExerciseTrackerView: View {
                                             .foregroundColor(Color.theme.primaryText)
 
                                         HStack(spacing: 4) {
+                                            if log.source == .healthkit {
+                                                Image(systemName: "applewatch")
+                                                    .foregroundColor(Color.theme.mediumBlue)
+                                            }
                                             Text(log.category.rawValue.capitalized)
                                             Text("·")
                                             Text("\(log.durationMinutes) min")
