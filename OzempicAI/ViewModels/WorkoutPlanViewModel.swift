@@ -5,6 +5,7 @@ class WorkoutPlanViewModel: ObservableObject {
     @Published var selectedDate: Date = .now
     @Published var plansForSelectedDate: [WorkoutPlan] = []
     @Published var monthlyPlans: [WorkoutPlan] = []
+    @Published var weeklyPlans: [WorkoutPlan] = []
     @Published var pastExercises: [ExerciseLog] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -30,6 +31,29 @@ class WorkoutPlanViewModel: ObservableObject {
     func selectDate(_ date: Date) {
         selectedDate = date
         Task { await loadPlansForDate(date) }
+    }
+
+    func loadWeeklyPlans(for weekStart: Date) async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+            let calendar = Calendar.current
+            let endOfWeek = calendar.date(byAdding: .day, value: 7, to: weekStart)!
+
+            weeklyPlans = try await client
+                .from("workout_plans")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .gte("planned_date", value: Self.dateFormatter.string(from: weekStart))
+                .lt("planned_date", value: Self.dateFormatter.string(from: endOfWeek))
+                .order("planned_date", ascending: true)
+                .execute()
+                .value
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
     }
 
     func loadMonthlyPlans() async {

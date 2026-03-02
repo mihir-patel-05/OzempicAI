@@ -14,13 +14,13 @@ class MealPlanViewModel: ObservableObject {
         return f
     }()
 
-    func loadWeeklyPlans() async {
+    func loadWeeklyPlans(for weekStart: Date? = nil) async {
         isLoading = true
         errorMessage = nil
         do {
             let userId = try await SupabaseService.shared.currentUserId
             let calendar = Calendar.current
-            let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: .now)!.start
+            let startOfWeek = weekStart ?? calendar.dateInterval(of: .weekOfYear, for: .now)!.start
             let endOfWeek = calendar.date(byAdding: .day, value: 7, to: startOfWeek)!
 
             weeklyPlans = try await client
