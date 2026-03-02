@@ -1,12 +1,15 @@
 import Foundation
+import HealthKit
 
 @MainActor
 class ExerciseViewModel: ObservableObject {
     @Published var logs: [ExerciseLog] = []
     @Published var isLoading = false
+    @Published var isSyncing = false
     @Published var errorMessage: String?
 
     private let client = SupabaseService.shared.client
+    private let healthKitService = HealthKitService()
 
     var totalCaloriesBurnedToday: Int {
         let today = Calendar.current.startOfDay(for: .now)
@@ -142,5 +145,61 @@ class ExerciseViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // MARK: - HealthKit Sync
+
+    func requestHealthKitAccess() async {
+        try? await healthKitService.requestAuthorization()
+    }
+
+    func syncFromHealthKit() async {
+        isSyncing = true
+        errorMessage = nil
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+            let workouts = try await healthKitService.fetchWorkouts()
+
+            let existingIds = Set(logs.compactMap { $0.healthkitId })
+
+            for workout in workouts {
+                let hkId = workout.uuid.uuidString
+                guard !existingIds.contains(hkId) else { continue }
+
+                let durationMinutes = Int(workout.duration / 60)
+                let caloriesBurned = Int(
+                    workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0
+                )
+
+                struct HealthKitExerciseInsert: Encodable {
+                    let user_id: UUID
+                    let exercise_name: String
+                    let category: String
+                    let duration_minutes: Int
+                    let calories_burned: Int
+                    let source: String
+                    let healthkit_id: String
+                    let logged_at: Date
+                }
+
+                let entry = HealthKitExerciseInsert(
+                    user_id: userId,
+                    exercise_name: HealthKitService.displayName(for: workout.workoutActivityType),
+                    category: HealthKitService.mapCategory(workout.workoutActivityType).rawValue,
+                    duration_minutes: durationMinutes,
+                    calories_burned: caloriesBurned,
+                    source: "healthkit",
+                    healthkit_id: hkId,
+                    logged_at: workout.startDate
+                )
+
+                try await client.from("exercise_logs").insert(entry).execute()
+            }
+
+            await loadLogs()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSyncing = false
     }
 }

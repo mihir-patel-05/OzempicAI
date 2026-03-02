@@ -6,8 +6,11 @@ struct OzempicAIApp: App {
     @StateObject private var themeManager = ThemeManager()
 
     init() {
+        let bgColor = UIColor(Color.theme.background)
+
         let navAppearance = UINavigationBarAppearance()
         navAppearance.configureWithOpaqueBackground()
+        navAppearance.backgroundColor = bgColor
         navAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
         navAppearance.titleTextAttributes = [.foregroundColor: UIColor.label]
         UINavigationBar.appearance().standardAppearance = navAppearance
