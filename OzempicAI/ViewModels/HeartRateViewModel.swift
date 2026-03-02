@@ -8,8 +8,11 @@ class HeartRateViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let client = SupabaseService.shared.client
+    #if canImport(HealthKit)
     private let healthKitService = HealthKitService()
+    #endif
 
+    #if canImport(HealthKit)
     func requestHealthKitAccess() async {
         try? await healthKitService.requestAuthorization()
     }
@@ -17,6 +20,7 @@ class HeartRateViewModel: ObservableObject {
     func fetchFromHealthKit() async {
         restingHeartRate = try? await healthKitService.fetchRestingHeartRate()
     }
+    #endif
 
     func loadLogs() async {
         isLoading = true

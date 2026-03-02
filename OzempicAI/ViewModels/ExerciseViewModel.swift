@@ -153,6 +153,7 @@ class ExerciseViewModel: ObservableObject {
 
     // MARK: - HealthKit Sync
 
+    #if canImport(HealthKit)
     func requestHealthKitAccess() async {
         try? await healthKitService.requestAuthorization()
     }
@@ -206,4 +207,5 @@ class ExerciseViewModel: ObservableObject {
         }
         isSyncing = false
     }
+    #endif
 }
