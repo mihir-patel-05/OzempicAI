@@ -7,6 +7,7 @@ class WorkoutPlanViewModel: ObservableObject {
     @Published var monthlyPlans: [WorkoutPlan] = []
     @Published var weeklyPlans: [WorkoutPlan] = []
     @Published var pastExercises: [ExerciseLog] = []
+    @Published var mealsForSelectedDate: [MealPlan] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
 
@@ -32,7 +33,10 @@ class WorkoutPlanViewModel: ObservableObject {
 
     func selectDate(_ date: Date) {
         selectedDate = date
-        Task { await loadPlansForDate(date) }
+        Task {
+            await loadPlansForDate(date)
+            await loadMealsForDate(date)
+        }
     }
 
     func loadWeeklyPlans(for weekStart: Date) async {
@@ -184,6 +188,62 @@ class WorkoutPlanViewModel: ObservableObject {
                 .order("logged_at", ascending: false)
                 .execute()
                 .value
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Meals for Selected Date
+
+    private static let mealTypeOrder: [MealPlan.MealType: Int] = [
+        .breakfast: 0, .lunch: 1, .dinner: 2, .snack: 3
+    ]
+
+    func loadMealsForDate(_ date: Date) async {
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+            let dateString = Self.dateFormatter.string(from: date)
+
+            let fetched: [MealPlan] = try await client
+                .from("meal_plans")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .eq("planned_date", value: dateString)
+                .execute()
+                .value
+
+            mealsForSelectedDate = fetched.sorted {
+                (Self.mealTypeOrder[$0.mealType] ?? 4) < (Self.mealTypeOrder[$1.mealType] ?? 4)
+            }
+        } catch {
+            // Don't override workout error messages for meal loading failures
+        }
+    }
+
+    // MARK: - Workout Completion Toggle
+
+    func toggleWorkoutCompletion(_ plan: WorkoutPlan) async {
+        let newValue = !plan.isCompleted
+        do {
+            struct CompletionUpdate: Encodable {
+                let is_completed: Bool
+            }
+            try await client
+                .from("workout_plans")
+                .update(CompletionUpdate(is_completed: newValue))
+                .eq("id", value: plan.id.uuidString)
+                .execute()
+
+            // Update local state immediately
+            if let index = plansForSelectedDate.firstIndex(where: { $0.id == plan.id }) {
+                plansForSelectedDate[index].isCompleted = newValue
+            }
+            if let index = monthlyPlans.firstIndex(where: { $0.id == plan.id }) {
+                monthlyPlans[index].isCompleted = newValue
+            }
+            if let index = weeklyPlans.firstIndex(where: { $0.id == plan.id }) {
+                weeklyPlans[index].isCompleted = newValue
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
