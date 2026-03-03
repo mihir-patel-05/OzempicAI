@@ -8,6 +8,8 @@ class WorkoutPlanViewModel: ObservableObject {
     @Published var weeklyPlans: [WorkoutPlan] = []
     @Published var pastExercises: [ExerciseLog] = []
     @Published var mealsForSelectedDate: [MealPlan] = []
+    @Published var weeklyDayLabels: [String: String] = [:]  // "yyyy-MM-dd" -> label
+    @Published var selectedDayLabel: String?
     @Published var isLoading = false
     @Published var errorMessage: String?
 
@@ -36,6 +38,7 @@ class WorkoutPlanViewModel: ObservableObject {
         Task {
             await loadPlansForDate(date)
             await loadMealsForDate(date)
+            await loadDayLabel(for: date)
         }
     }
 
@@ -60,6 +63,90 @@ class WorkoutPlanViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    // MARK: - Day Labels
+
+    func loadDayLabel(for date: Date) async {
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+            let dateString = Self.dateFormatter.string(from: date)
+
+            let labels: [DayLabel] = try await client
+                .from("day_labels")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .eq("label_date", value: dateString)
+                .execute()
+                .value
+
+            selectedDayLabel = labels.first?.label
+        } catch {
+            selectedDayLabel = nil
+        }
+    }
+
+    func loadWeeklyDayLabels(for weekStart: Date) async {
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+            let calendar = Calendar.current
+            let endOfWeek = calendar.date(byAdding: .day, value: 7, to: weekStart)!
+
+            let labels: [DayLabel] = try await client
+                .from("day_labels")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .gte("label_date", value: Self.dateFormatter.string(from: weekStart))
+                .lt("label_date", value: Self.dateFormatter.string(from: endOfWeek))
+                .execute()
+                .value
+
+            var map: [String: String] = [:]
+            for label in labels {
+                map[label.labelDate] = label.label
+            }
+            weeklyDayLabels = map
+        } catch {
+            // Don't override other error messages for label loading failures
+        }
+    }
+
+    func saveDayLabel(date: Date, label: String) async {
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+            let dateString = Self.dateFormatter.string(from: date)
+
+            struct UpsertDayLabel: Encodable {
+                let user_id: UUID
+                let label_date: String
+                let label: String
+            }
+
+            let entry = UpsertDayLabel(
+                user_id: userId,
+                label_date: dateString,
+                label: label
+            )
+
+            if label.isEmpty {
+                // Delete label if empty
+                try await client
+                    .from("day_labels")
+                    .delete()
+                    .eq("user_id", value: userId.uuidString)
+                    .eq("label_date", value: dateString)
+                    .execute()
+                weeklyDayLabels.removeValue(forKey: dateString)
+            } else {
+                try await client
+                    .from("day_labels")
+                    .upsert(entry, onConflict: "user_id,label_date")
+                    .execute()
+                weeklyDayLabels[dateString] = label
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     func loadMonthlyPlans() async {

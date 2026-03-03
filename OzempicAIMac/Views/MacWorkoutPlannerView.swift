@@ -6,6 +6,9 @@ struct MacWorkoutPlannerView: View {
     @State private var showAddPopover = false
     @State private var addingForDate: Date = .now
     @State private var editingPlan: WorkoutPlan?
+    @State private var editingLabelDate: Date?
+    @State private var editingLabelText: String = ""
+    @FocusState private var labelFieldFocused: Bool
 
     private var daysOfWeek: [Date] {
         (0..<7).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: weekStart) }
@@ -60,10 +63,14 @@ struct MacWorkoutPlannerView: View {
         }
         .screenBackground()
         .onChange(of: weekStart) { _ in
-            Task { await viewModel.loadWeeklyPlans(for: weekStart) }
+            Task {
+                await viewModel.loadWeeklyPlans(for: weekStart)
+                await viewModel.loadWeeklyDayLabels(for: weekStart)
+            }
         }
         .task {
             await viewModel.loadWeeklyPlans(for: weekStart)
+            await viewModel.loadWeeklyDayLabels(for: weekStart)
             await viewModel.loadPastExercises()
         }
         .sheet(item: $editingPlan) { plan in
@@ -95,28 +102,24 @@ struct MacWorkoutPlannerView: View {
 
             Divider()
 
+            // Day label
+            dayLabelView(for: date)
+
             // Workout cards
             ScrollView {
                 VStack(spacing: 6) {
-                    if dayPlans.isEmpty {
-                        Text("Rest Day")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.top, 20)
-                    } else {
-                        ForEach(dayPlans) { plan in
-                            WorkoutCard(plan: plan)
-                                .onTapGesture {
-                                    editingPlan = plan
-                                }
-                                .contextMenu {
-                                    Button("Delete", role: .destructive) {
-                                        Task { await viewModel.deleteWorkoutPlan(plan)
-                                            await viewModel.loadWeeklyPlans(for: weekStart)
-                                        }
+                    ForEach(dayPlans) { plan in
+                        WorkoutCard(plan: plan)
+                            .onTapGesture {
+                                editingPlan = plan
+                            }
+                            .contextMenu {
+                                Button("Delete", role: .destructive) {
+                                    Task { await viewModel.deleteWorkoutPlan(plan)
+                                        await viewModel.loadWeeklyPlans(for: weekStart)
                                     }
                                 }
-                        }
+                            }
                     }
                 }
                 .padding(.horizontal, 4)
@@ -138,6 +141,51 @@ struct MacWorkoutPlannerView: View {
         .frame(maxWidth: .infinity)
         .background(isToday ? Color.theme.mediumBlue.opacity(0.05) : Color.clear)
         .cornerRadius(AppRadius.small)
+    }
+    @ViewBuilder
+    private func dayLabelView(for date: Date) -> some View {
+        let dateString = Self.dayFormatter.string(from: date)
+        let savedLabel = viewModel.weeklyDayLabels[dateString]
+        let isEditing = editingLabelDate == date
+
+        if isEditing {
+            TextField("Rest Day", text: $editingLabelText)
+                .font(.caption)
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 4)
+                .focused($labelFieldFocused)
+                .onSubmit {
+                    commitLabelEdit(for: date)
+                }
+                .onExitCommand {
+                    editingLabelDate = nil
+                }
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        labelFieldFocused = true
+                    }
+                }
+        } else {
+            Text(savedLabel ?? "Rest Day")
+                .font(.caption)
+                .foregroundColor(savedLabel != nil ? Color.theme.mediumBlue : .secondary)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    editingLabelText = savedLabel ?? ""
+                    editingLabelDate = date
+                }
+        }
+    }
+
+    private func commitLabelEdit(for date: Date) {
+        let trimmed = editingLabelText.trimmingCharacters(in: .whitespacesAndNewlines)
+        labelFieldFocused = false
+        editingLabelDate = nil
+        Task {
+            await viewModel.saveDayLabel(date: date, label: trimmed)
+        }
     }
 }
 

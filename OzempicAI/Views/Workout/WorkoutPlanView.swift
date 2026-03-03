@@ -63,6 +63,17 @@ struct WorkoutPlanView: View {
                         Text(formatSelectedDate(viewModel.selectedDate))
                             .font(.headline)
                             .foregroundColor(Color.theme.primaryText)
+
+                        if let dayLabel = viewModel.selectedDayLabel {
+                            Text(dayLabel)
+                                .font(.caption.bold())
+                                .foregroundColor(Color.theme.mediumBlue)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Color.theme.mediumBlue.opacity(0.15))
+                                .clipShape(Capsule())
+                        }
+
                         Spacer()
 
                         // Workout count badge
@@ -257,6 +268,7 @@ struct WorkoutPlanView: View {
                 await viewModel.loadMonthlyPlans()
                 await viewModel.loadPlansForDate(viewModel.selectedDate)
                 await viewModel.loadMealsForDate(viewModel.selectedDate)
+                await viewModel.loadDayLabel(for: viewModel.selectedDate)
             }
         }
     }
