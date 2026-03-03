@@ -220,6 +220,19 @@ class WorkoutPlanViewModel: ObservableObject {
         }
     }
 
+    func deleteMeal(_ meal: MealPlan) async {
+        do {
+            try await client
+                .from("meal_plans")
+                .delete()
+                .eq("id", value: meal.id.uuidString)
+                .execute()
+            await loadMealsForDate(selectedDate)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Workout Completion Toggle
 
     func toggleWorkoutCompletion(_ plan: WorkoutPlan) async {

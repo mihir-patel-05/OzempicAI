@@ -221,6 +221,15 @@ struct WorkoutPlanView: View {
                                         .padding(.vertical, 4)
                                         .background(Color.theme.amber.opacity(0.2))
                                         .clipShape(Capsule())
+
+                                    Button {
+                                        Task { await viewModel.deleteMeal(meal) }
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .font(.caption)
+                                            .foregroundStyle(.red.opacity(0.7))
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                                 .cardStyle()
                             }
