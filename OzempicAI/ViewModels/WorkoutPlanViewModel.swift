@@ -22,8 +22,10 @@ class WorkoutPlanViewModel: ObservableObject {
         let calendar = Calendar.current
         var result = Set<DateComponents>()
         for plan in monthlyPlans {
-            let comps = calendar.dateComponents([.year, .month, .day], from: plan.plannedDate)
-            result.insert(comps)
+            if let date = plan.plannedDateValue {
+                let comps = calendar.dateComponents([.year, .month, .day], from: date)
+                result.insert(comps)
+            }
         }
         return result
     }
