@@ -8,6 +8,7 @@ struct MacWorkoutPlannerView: View {
     @State private var editingPlan: WorkoutPlan?
     @State private var editingLabelDate: Date?
     @State private var editingLabelText: String = ""
+    @FocusState private var labelFieldFocused: Bool
 
     private var daysOfWeek: [Date] {
         (0..<7).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: weekStart) }
@@ -150,16 +151,27 @@ struct MacWorkoutPlannerView: View {
         if isEditing {
             TextField("Rest Day", text: $editingLabelText)
                 .font(.caption)
-                .textFieldStyle(.plain)
+                .textFieldStyle(.roundedBorder)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 4)
+                .focused($labelFieldFocused)
                 .onSubmit {
                     commitLabelEdit(for: date)
+                }
+                .onExitCommand {
+                    editingLabelDate = nil
+                }
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        labelFieldFocused = true
+                    }
                 }
         } else {
             Text(savedLabel ?? "Rest Day")
                 .font(.caption)
                 .foregroundColor(savedLabel != nil ? Color.theme.mediumBlue : .secondary)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
                 .onTapGesture {
                     editingLabelText = savedLabel ?? ""
                     editingLabelDate = date
@@ -169,6 +181,7 @@ struct MacWorkoutPlannerView: View {
 
     private func commitLabelEdit(for date: Date) {
         let trimmed = editingLabelText.trimmingCharacters(in: .whitespacesAndNewlines)
+        labelFieldFocused = false
         editingLabelDate = nil
         Task {
             await viewModel.saveDayLabel(date: date, label: trimmed)
