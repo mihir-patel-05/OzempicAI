@@ -4,10 +4,10 @@ struct MealPlan: Codable, Identifiable {
     let id: UUID
     let userId: UUID
     var name: String
-    var plannedDate: Date
+    var plannedDate: String
     var mealType: MealType
     var calories: Int
-    let createdAt: Date
+    let createdAt: String
 
     enum MealType: String, Codable, CaseIterable {
         case breakfast, lunch, dinner, snack
@@ -19,5 +19,15 @@ struct MealPlan: Codable, Identifiable {
         case plannedDate = "planned_date"
         case mealType = "meal_type"
         case createdAt = "created_at"
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    var plannedDateValue: Date? {
+        Self.dateFormatter.date(from: plannedDate)
     }
 }

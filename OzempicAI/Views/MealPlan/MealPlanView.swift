@@ -15,7 +15,7 @@ struct MealPlanView: View {
 
     private var plansByDate: [(Date, [MealPlan])] {
         let grouped = Dictionary(grouping: viewModel.weeklyPlans) { plan in
-            Calendar.current.startOfDay(for: plan.plannedDate)
+            plan.plannedDateValue.map { Calendar.current.startOfDay(for: $0) } ?? .distantPast
         }
         return grouped.sorted { $0.key < $1.key }
     }
