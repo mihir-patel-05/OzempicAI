@@ -5,7 +5,7 @@ struct WorkoutPlan: Codable, Identifiable {
     let userId: UUID
     var exerciseName: String
     var category: ExerciseLog.ExerciseCategory
-    var plannedDate: Date
+    var plannedDate: String
     var durationMinutes: Int?
     var caloriesBurned: Int?
     var sets: Int?
@@ -14,7 +14,8 @@ struct WorkoutPlan: Codable, Identifiable {
     var weight: Double?
     var weightUnit: ExerciseLog.WeightUnit?
     var notes: String?
-    let createdAt: Date
+    var isCompleted: Bool
+    let createdAt: String
 
     enum CodingKeys: String, CodingKey {
         case id, category, sets, weight, notes
@@ -26,6 +27,17 @@ struct WorkoutPlan: Codable, Identifiable {
         case repsPerSet = "reps_per_set"
         case bodyPart = "body_part"
         case weightUnit = "weight_unit"
+        case isCompleted = "is_completed"
         case createdAt = "created_at"
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    var plannedDateValue: Date? {
+        Self.dateFormatter.date(from: plannedDate)
     }
 }

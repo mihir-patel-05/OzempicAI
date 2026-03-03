@@ -24,14 +24,14 @@ struct MacMealPlannerView: View {
     private func meal(for date: Date, type: MealPlan.MealType) -> MealPlan? {
         let dateString = Self.dayFormatter.string(from: date)
         return viewModel.weeklyPlans.first {
-            Self.dayFormatter.string(from: $0.plannedDate) == dateString && $0.mealType == type
+            $0.plannedDate == dateString && $0.mealType == type
         }
     }
 
     private func dailyTotal(for date: Date) -> Int {
         let dateString = Self.dayFormatter.string(from: date)
         return viewModel.weeklyPlans
-            .filter { Self.dayFormatter.string(from: $0.plannedDate) == dateString }
+            .filter { $0.plannedDate == dateString }
             .reduce(0) { $0 + $1.calories }
     }
 
@@ -167,7 +167,7 @@ struct MacMealPlannerView: View {
         let nextWeekStart = calendar.date(byAdding: .weekOfYear, value: 1, to: weekStart)!
 
         for plan in viewModel.weeklyPlans {
-            let dayOffset = calendar.dateComponents([.day], from: weekStart, to: plan.plannedDate).day ?? 0
+            let dayOffset = calendar.dateComponents([.day], from: weekStart, to: plan.plannedDateValue ?? weekStart).day ?? 0
             let newDate = calendar.date(byAdding: .day, value: dayOffset, to: nextWeekStart)!
             await viewModel.addMeal(name: plan.name, date: newDate, mealType: plan.mealType, calories: plan.calories)
         }
@@ -265,7 +265,7 @@ private struct EditMealSheet: View {
                         await viewModel.deleteMeal(meal)
                         await viewModel.addMeal(
                             name: name,
-                            date: meal.plannedDate,
+                            date: meal.plannedDateValue ?? .now,
                             mealType: meal.mealType,
                             calories: Int(calories) ?? 0
                         )

@@ -20,7 +20,7 @@ struct MacWorkoutPlannerView: View {
     private func plans(for date: Date) -> [WorkoutPlan] {
         let dateString = Self.dayFormatter.string(from: date)
         return viewModel.weeklyPlans.filter {
-            Self.dayFormatter.string(from: $0.plannedDate) == dateString
+            $0.plannedDate == dateString
         }
     }
 
@@ -351,7 +351,7 @@ private struct EditWorkoutSheet: View {
                         await viewModel.addWorkoutPlan(
                             exerciseName: exerciseName,
                             category: category,
-                            plannedDate: plan.plannedDate,
+                            plannedDate: plan.plannedDateValue ?? .now,
                             durationMinutes: Int(duration),
                             sets: Int(sets),
                             repsPerSet: Int(reps),
