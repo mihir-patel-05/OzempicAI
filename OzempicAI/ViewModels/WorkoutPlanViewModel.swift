@@ -9,6 +9,7 @@ class WorkoutPlanViewModel: ObservableObject {
     @Published var pastExercises: [ExerciseLog] = []
     @Published var mealsForSelectedDate: [MealPlan] = []
     @Published var weeklyDayLabels: [String: String] = [:]  // "yyyy-MM-dd" -> label
+    @Published var selectedDayLabel: String?
     @Published var isLoading = false
     @Published var errorMessage: String?
 
@@ -37,6 +38,7 @@ class WorkoutPlanViewModel: ObservableObject {
         Task {
             await loadPlansForDate(date)
             await loadMealsForDate(date)
+            await loadDayLabel(for: date)
         }
     }
 
@@ -64,6 +66,25 @@ class WorkoutPlanViewModel: ObservableObject {
     }
 
     // MARK: - Day Labels
+
+    func loadDayLabel(for date: Date) async {
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+            let dateString = Self.dateFormatter.string(from: date)
+
+            let labels: [DayLabel] = try await client
+                .from("day_labels")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .eq("label_date", value: dateString)
+                .execute()
+                .value
+
+            selectedDayLabel = labels.first?.label
+        } catch {
+            selectedDayLabel = nil
+        }
+    }
 
     func loadWeeklyDayLabels(for weekStart: Date) async {
         do {
