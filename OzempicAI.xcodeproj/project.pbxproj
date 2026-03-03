@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -45,6 +45,7 @@
 		67376CF2562C69CBA57C7AB7 /* WeightViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C562C89900AD823ABF6E05CB /* WeightViewModel.swift */; };
 		68008613C3C684603B01657E /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A6EAEAE7B1F5F7627011E72 /* ViewModifiers.swift */; };
 		68E2E02EA10782504673C9D0 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 10C61031BA892B3D8EA53FD5 /* Supabase */; };
+		692102A6F3235E985A73FDC6 /* DayLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D598A315A64BA97A48718D29 /* DayLabel.swift */; };
 		6C1C7A2B2217555E2DE10287 /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F68592A9ACB97DAFC747C95 /* ExerciseViewModel.swift */; };
 		7102335A75DC73138A5F3322 /* MealPlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4BBCA4DE80CC664F1E42D7 /* MealPlanViewModel.swift */; };
 		71BFDF62726589F1DB05DB95 /* MacWeightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93FEFC85D2A253672041A689 /* MacWeightView.swift */; };
@@ -58,6 +59,7 @@
 		83A49BABAB3C9B9B48C3B7CB /* HeartRateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C38F7BF5B8ECE4D186B1F2 /* HeartRateView.swift */; };
 		844EF4AC69BEAA4910DDE770 /* Constants.example.swift.bak in Resources */ = {isa = PBXBuildFile; fileRef = 4CE1FD1C85C4AAF8DCE452D6 /* Constants.example.swift.bak */; };
 		851C9BF81EF197700115355D /* WaterLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 659340A170EAA5780622710E /* WaterLog.swift */; };
+		858B61B8DFA37AF25F214829 /* DayLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D598A315A64BA97A48718D29 /* DayLabel.swift */; };
 		85C5818F084AD2FE3A42A42B /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90DD768B9AE50C1C6B58CA26 /* LoginView.swift */; };
 		88D5B72854F7D0696E3334AE /* HeartRateViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33538D7BB307CF8D5E599FB2 /* HeartRateViewModel.swift */; };
 		8A3135B27F43452D4AD53B42 /* ExerciseLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9735EB01A5BA29365A26FD /* ExerciseLog.swift */; };
@@ -116,7 +118,7 @@
 		44B529D7DB3D9C6E2055272F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4753D32E5B3D4CF8DFF9F345 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		487FF1C2E122C68AD1CFE251 /* WorkoutPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlan.swift; sourceTree = "<group>"; };
-		4CE1FD1C85C4AAF8DCE452D6 /* Constants.example.swift.bak */ = {isa = PBXFileReference; lastKnownFileType = text; path = Constants.example.swift.bak; sourceTree = "<group>"; };
+		4CE1FD1C85C4AAF8DCE452D6 /* Constants.example.swift.bak */ = {isa = PBXFileReference; path = Constants.example.swift.bak; sourceTree = "<group>"; };
 		4EBD62DEFE6D8DC0F47B3B02 /* FastingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FastingViewModel.swift; sourceTree = "<group>"; };
 		50F534E69959C6A8D4C51CA9 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		5BAD8210976990DC1FF6BF4B /* OzempicAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OzempicAI.entitlements; sourceTree = "<group>"; };
@@ -133,7 +135,7 @@
 		83304A9C212AF9E29521F812 /* LogMealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogMealView.swift; sourceTree = "<group>"; };
 		83C60D9FD7696994F1C4ACCC /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 		87332710B068BDB72973DE12 /* WaterWaveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterWaveView.swift; sourceTree = "<group>"; };
-		8769F286036C487AAC223D0E /* OzempicAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OzempicAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8769F286036C487AAC223D0E /* OzempicAI.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OzempicAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		87A21DC3F6B20392C864E2CD /* CalorieLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieLog.swift; sourceTree = "<group>"; };
 		8A3D83CE7E2BECCB40C11E7D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8A51E0CD789ED480A27A97CA /* GroceryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroceryListView.swift; sourceTree = "<group>"; };
@@ -148,7 +150,7 @@
 		A398B420C3EFFABDB65FF9CF /* FastingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FastingView.swift; sourceTree = "<group>"; };
 		A4F10EFDF473F8A881938B92 /* WeightLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightLog.swift; sourceTree = "<group>"; };
 		A6C38F7BF5B8ECE4D186B1F2 /* HeartRateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateView.swift; sourceTree = "<group>"; };
-		B5B60805595BF185F22A91F7 /* OzempicAIMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = OzempicAIMac.app; path = OzempicAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B5B60805595BF185F22A91F7 /* OzempicAIMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OzempicAIMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B83933A2481D8DB3654CDE71 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		BA9735EB01A5BA29365A26FD /* ExerciseLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLog.swift; sourceTree = "<group>"; };
 		BB8D854AEE829A15D13C14AF /* WorkoutPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlanView.swift; sourceTree = "<group>"; };
@@ -159,6 +161,7 @@
 		CDB6B3EF8FF5B7E86AEC9267 /* ExerciseTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseTrackerView.swift; sourceTree = "<group>"; };
 		CE62CFEB683C43A24D7517CA /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		D58C77667FF6C3BFF7DD92B0 /* MacLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacLoginView.swift; sourceTree = "<group>"; };
+		D598A315A64BA97A48718D29 /* DayLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayLabel.swift; sourceTree = "<group>"; };
 		D6F26B6CE7FE614D3A6A0386 /* MealPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPlan.swift; sourceTree = "<group>"; };
 		D872A3B56234294349146A2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DBCCBD597557C1D605767FF9 /* HeartRateLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateLog.swift; sourceTree = "<group>"; };
@@ -298,6 +301,7 @@
 			isa = PBXGroup;
 			children = (
 				87A21DC3F6B20392C864E2CD /* CalorieLog.swift */,
+				D598A315A64BA97A48718D29 /* DayLabel.swift */,
 				BA9735EB01A5BA29365A26FD /* ExerciseLog.swift */,
 				F3C0BFC2F997827C4ADA1EC6 /* GroceryItem.swift */,
 				DBCCBD597557C1D605767FF9 /* HeartRateLog.swift */,
@@ -519,6 +523,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
+					0C33D225E4F8DFAE25C9A630 = {
+						DevelopmentTeam = "";
+					};
 					2D46EFF96131B5F2A94E5153 = {
 						DevelopmentTeam = "";
 					};
@@ -537,6 +544,7 @@
 			packageReferences = (
 				36015EBA291C7045AA43C240 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -577,6 +585,7 @@
 				4C09A75F2C6529A8D69AE847 /* CalorieLog.swift in Sources */,
 				FFFAA9F93C1D06BF61E87A62 /* CalorieViewModel.swift in Sources */,
 				CBD682028C83040C01C03755 /* Constants.swift in Sources */,
+				692102A6F3235E985A73FDC6 /* DayLabel.swift in Sources */,
 				8A3135B27F43452D4AD53B42 /* ExerciseLog.swift in Sources */,
 				820FED08E80CD76958105BD1 /* ExerciseViewModel.swift in Sources */,
 				F216B2108B9E640905CA76D9 /* FastingViewModel.swift in Sources */,
@@ -627,6 +636,7 @@
 				1566CCF67173E440D1063391 /* CircularProgressView.swift in Sources */,
 				C5E6FBBABB2AF020E5F8A445 /* Constants.swift in Sources */,
 				5866C812E9F147D28D10AA80 /* DashboardView.swift in Sources */,
+				858B61B8DFA37AF25F214829 /* DayLabel.swift in Sources */,
 				5ADB8DAB38F28DC9E3A7C8F5 /* EmailConfirmationView.swift in Sources */,
 				C2DC1DD233CA2C07D6C72EA2 /* ExerciseLog.swift in Sources */,
 				08B4BE9CEE414585E24DD136 /* ExerciseTrackerView.swift in Sources */,
@@ -838,7 +848,7 @@
 				CODE_SIGN_ENTITLEMENTS = OzempicAI/App/OzempicAI.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = FZR8D2KGW7;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = OzempicAI/App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -859,7 +869,7 @@
 				CODE_SIGN_ENTITLEMENTS = OzempicAI/App/OzempicAI.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = FZR8D2KGW7;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = OzempicAI/App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
