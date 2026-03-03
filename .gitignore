@@ -34,3 +34,15 @@ OzempicAI/Utilities/Constants.swift
 supabase/.env
 supabase/logs/
 *.env.local
+
+# Broader env protection
+**/.env
+!**/.env.example
+
+# Certificates and keys
+*.p8
+*.p12
+*.pem
+*.key
+*.cer
+*.pfx
