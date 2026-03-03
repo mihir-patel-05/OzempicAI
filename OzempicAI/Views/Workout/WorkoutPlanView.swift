@@ -24,6 +24,15 @@ struct WorkoutPlanView: View {
         }
     }
 
+    private func mealIcon(for type: MealPlan.MealType) -> String {
+        switch type {
+        case .breakfast: return "sunrise.fill"
+        case .lunch: return "sun.max.fill"
+        case .dinner: return "moon.fill"
+        case .snack: return "leaf.fill"
+        }
+    }
+
     private func formatSelectedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, MMM d"
@@ -87,6 +96,16 @@ struct WorkoutPlanView: View {
                     } else {
                         ForEach(viewModel.plansForSelectedDate) { plan in
                             HStack(spacing: AppSpacing.md) {
+                                // Completion checkbox
+                                Button {
+                                    Task { await viewModel.toggleWorkoutCompletion(plan) }
+                                } label: {
+                                    Image(systemName: plan.isCompleted ? "checkmark.circle.fill" : "circle")
+                                        .font(.title3)
+                                        .foregroundStyle(plan.isCompleted ? .green : Color.theme.secondaryText.opacity(0.5))
+                                }
+                                .buttonStyle(.plain)
+
                                 // Category icon
                                 Image(systemName: categoryIcon(for: plan.category))
                                     .font(.title3)
@@ -98,7 +117,8 @@ struct WorkoutPlanView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(plan.exerciseName)
                                         .font(.subheadline.bold())
-                                        .foregroundColor(Color.theme.primaryText)
+                                        .foregroundColor(plan.isCompleted ? Color.theme.secondaryText : Color.theme.primaryText)
+                                        .strikethrough(plan.isCompleted, color: Color.theme.secondaryText)
 
                                     HStack(spacing: 4) {
                                         Text(plan.category.rawValue.capitalized)
@@ -148,6 +168,62 @@ struct WorkoutPlanView: View {
                                 .buttonStyle(.plain)
                             }
                             .cardStyle()
+                            .opacity(plan.isCompleted ? 0.7 : 1.0)
+                        }
+                    }
+
+                    // Meals for selected date
+                    if !viewModel.mealsForSelectedDate.isEmpty {
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            // Section header
+                            HStack {
+                                Image(systemName: "fork.knife")
+                                    .foregroundStyle(Color.theme.amber)
+                                Text("Meals")
+                                    .font(.headline)
+                                    .foregroundColor(Color.theme.primaryText)
+                                Spacer()
+                                Text("\(viewModel.mealsForSelectedDate.reduce(0) { $0 + $1.calories }) cal total")
+                                    .font(.caption.bold())
+                                    .foregroundColor(Color.theme.amber)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(Color.theme.amber.opacity(0.15))
+                                    .clipShape(Capsule())
+                            }
+
+                            ForEach(viewModel.mealsForSelectedDate) { meal in
+                                HStack(spacing: AppSpacing.md) {
+                                    // Meal type icon
+                                    Image(systemName: mealIcon(for: meal.mealType))
+                                        .font(.body)
+                                        .foregroundStyle(Color.theme.amber)
+                                        .frame(width: 36, height: 36)
+                                        .background(Color.theme.amber.opacity(0.12))
+                                        .clipShape(Circle())
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(meal.name)
+                                            .font(.subheadline.bold())
+                                            .foregroundColor(Color.theme.primaryText)
+                                        Text(meal.mealType.rawValue.capitalized)
+                                            .font(.caption)
+                                            .foregroundColor(Color.theme.secondaryText)
+                                    }
+
+                                    Spacer()
+
+                                    // Calorie badge
+                                    Text("\(meal.calories) cal")
+                                        .font(.caption.bold())
+                                        .foregroundColor(Color.theme.darkNavy)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 4)
+                                        .background(Color.theme.amber.opacity(0.2))
+                                        .clipShape(Capsule())
+                                }
+                                .cardStyle()
+                            }
                         }
                     }
                 }
@@ -171,6 +247,7 @@ struct WorkoutPlanView: View {
             .task {
                 await viewModel.loadMonthlyPlans()
                 await viewModel.loadPlansForDate(viewModel.selectedDate)
+                await viewModel.loadMealsForDate(viewModel.selectedDate)
             }
         }
     }
