@@ -14,6 +14,7 @@ struct WorkoutPlan: Codable, Identifiable {
     var weight: Double?
     var weightUnit: ExerciseLog.WeightUnit?
     var notes: String?
+    var isCompleted: Bool
     let createdAt: String
 
     enum CodingKeys: String, CodingKey {
@@ -26,6 +27,7 @@ struct WorkoutPlan: Codable, Identifiable {
         case repsPerSet = "reps_per_set"
         case bodyPart = "body_part"
         case weightUnit = "weight_unit"
+        case isCompleted = "is_completed"
         case createdAt = "created_at"
     }
 
