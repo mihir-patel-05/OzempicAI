@@ -27,33 +27,33 @@ struct AddWorkoutPlanView: View {
         return true
     }
 
-    private var uniquePastExercises: [ExerciseLog] {
+    private var uniquePastExercises: [WorkoutPlanViewModel.HistoryExercise] {
         var seen = Set<String>()
-        return viewModel.pastExercises.filter { log in
-            let key = log.exerciseName.lowercased()
+        return viewModel.allPastExercises.filter { item in
+            let key = item.exerciseName.lowercased()
             guard !seen.contains(key) else { return false }
             seen.insert(key)
             return true
         }
     }
 
-    private var filteredPastExercises: [ExerciseLog] {
+    private var filteredPastExercises: [WorkoutPlanViewModel.HistoryExercise] {
         if searchText.isEmpty { return uniquePastExercises }
         return uniquePastExercises.filter {
             $0.exerciseName.localizedCaseInsensitiveContains(searchText)
         }
     }
 
-    private func selectPastExercise(_ log: ExerciseLog) {
-        exerciseName = log.exerciseName
-        category = log.category
-        durationText = "\(log.durationMinutes)"
-        caloriesText = "\(log.caloriesBurned)"
-        if let s = log.sets { setsText = "\(s)" }
-        if let r = log.repsPerSet { repsText = "\(r)" }
-        if let bp = log.bodyPart { bodyPart = bp }
-        if let w = log.weight { weightText = "\(w)" }
-        if let wu = log.weightUnit { weightUnit = wu }
+    private func selectPastExercise(_ item: WorkoutPlanViewModel.HistoryExercise) {
+        exerciseName = item.exerciseName
+        category = item.category
+        if let d = item.durationMinutes { durationText = "\(d)" }
+        if let c = item.caloriesBurned { caloriesText = "\(c)" }
+        if let s = item.sets { setsText = "\(s)" }
+        if let r = item.repsPerSet { repsText = "\(r)" }
+        if let bp = item.bodyPart { bodyPart = bp }
+        if let w = item.weight { weightText = "\(w)" }
+        if let wu = item.weightUnit { weightUnit = wu }
     }
 
     private func categoryIcon(for category: ExerciseLog.ExerciseCategory) -> String {
