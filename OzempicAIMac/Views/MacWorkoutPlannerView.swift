@@ -395,9 +395,8 @@ private struct EditWorkoutSheet: View {
 
                 Button("Save") {
                     Task {
-                        // Delete old and add updated
-                        await viewModel.deleteWorkoutPlan(plan)
-                        await viewModel.addWorkoutPlan(
+                        await viewModel.updateWorkoutPlan(
+                            id: plan.id,
                             exerciseName: exerciseName,
                             category: category,
                             plannedDate: plan.plannedDateValue ?? .now,
