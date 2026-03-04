@@ -7,6 +7,7 @@ class WorkoutPlanViewModel: ObservableObject {
     @Published var monthlyPlans: [WorkoutPlan] = []
     @Published var weeklyPlans: [WorkoutPlan] = []
     @Published var pastExercises: [ExerciseLog] = []
+    @Published var pastWorkoutPlans: [WorkoutPlan] = []
     @Published var mealsForSelectedDate: [MealPlan] = []
     @Published var weeklyDayLabels: [String: String] = [:]  // "yyyy-MM-dd" -> label
     @Published var selectedDayLabel: String?
