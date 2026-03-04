@@ -16,6 +16,59 @@ class WorkoutPlanViewModel: ObservableObject {
 
     private let client = SupabaseService.shared.client
 
+    // MARK: - Unified History
+
+    struct HistoryExercise: Identifiable {
+        let id: UUID
+        let exerciseName: String
+        let category: ExerciseLog.ExerciseCategory
+        let durationMinutes: Int?
+        let caloriesBurned: Int?
+        let sets: Int?
+        let repsPerSet: Int?
+        let bodyPart: ExerciseLog.BodyPart?
+        let weight: Double?
+        let weightUnit: ExerciseLog.WeightUnit?
+    }
+
+    var allPastExercises: [HistoryExercise] {
+        var items: [HistoryExercise] = []
+
+        // Exercise logs first (actual completions take priority)
+        for log in pastExercises {
+            items.append(HistoryExercise(
+                id: log.id,
+                exerciseName: log.exerciseName,
+                category: log.category,
+                durationMinutes: log.durationMinutes,
+                caloriesBurned: log.caloriesBurned,
+                sets: log.sets,
+                repsPerSet: log.repsPerSet,
+                bodyPart: log.bodyPart,
+                weight: log.weight,
+                weightUnit: log.weightUnit
+            ))
+        }
+
+        // Workout plans second
+        for plan in pastWorkoutPlans {
+            items.append(HistoryExercise(
+                id: plan.id,
+                exerciseName: plan.exerciseName,
+                category: plan.category,
+                durationMinutes: plan.durationMinutes,
+                caloriesBurned: plan.caloriesBurned,
+                sets: plan.sets,
+                repsPerSet: plan.repsPerSet,
+                bodyPart: plan.bodyPart,
+                weight: plan.weight,
+                weightUnit: plan.weightUnit
+            ))
+        }
+
+        return items
+    }
+
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
