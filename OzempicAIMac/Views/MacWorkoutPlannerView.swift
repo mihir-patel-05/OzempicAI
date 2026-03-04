@@ -72,6 +72,7 @@ struct MacWorkoutPlannerView: View {
             await viewModel.loadWeeklyPlans(for: weekStart)
             await viewModel.loadWeeklyDayLabels(for: weekStart)
             await viewModel.loadPastExercises()
+            await viewModel.loadPastWorkoutPlans()
         }
         .sheet(item: $editingPlan) { plan in
             EditWorkoutSheet(viewModel: viewModel, plan: plan, weekStart: weekStart)
@@ -209,7 +210,7 @@ private struct AddWorkoutSheet: View {
     @State private var suggestions: [String] = []
 
     private var pastNames: [String] {
-        Array(Set(viewModel.pastExercises.map(\.exerciseName))).sorted()
+        Array(Set(viewModel.allPastExercises.map(\.exerciseName))).sorted()
     }
 
     var body: some View {
@@ -235,7 +236,7 @@ private struct AddWorkoutSheet: View {
                             Button(name) {
                                 exerciseName = name
                                 // Auto-fill category from past exercise
-                                if let past = viewModel.pastExercises.first(where: { $0.exerciseName == name }) {
+                                if let past = viewModel.allPastExercises.first(where: { $0.exerciseName == name }) {
                                     category = past.category
                                     if let bp = past.bodyPart { bodyPart = bp }
                                 }

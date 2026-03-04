@@ -125,29 +125,33 @@ struct AddWorkoutPlanView: View {
                                 .padding(.vertical, AppSpacing.md)
                             } else {
                                 VStack(spacing: AppSpacing.xs) {
-                                    ForEach(filteredPastExercises) { log in
+                                    ForEach(filteredPastExercises) { item in
                                         Button {
-                                            selectPastExercise(log)
+                                            selectPastExercise(item)
                                         } label: {
                                             HStack(spacing: AppSpacing.sm) {
-                                                Image(systemName: categoryIcon(for: log.category))
+                                                Image(systemName: categoryIcon(for: item.category))
                                                     .font(.caption)
-                                                    .foregroundStyle(categoryColor(for: log.category))
+                                                    .foregroundStyle(categoryColor(for: item.category))
                                                     .frame(width: 28, height: 28)
-                                                    .background(categoryColor(for: log.category).opacity(0.12))
+                                                    .background(categoryColor(for: item.category).opacity(0.12))
                                                     .clipShape(Circle())
 
                                                 VStack(alignment: .leading, spacing: 1) {
-                                                    Text(log.exerciseName)
+                                                    Text(item.exerciseName)
                                                         .font(.subheadline.bold())
                                                         .foregroundColor(Color.theme.primaryText)
 
                                                     HStack(spacing: 4) {
-                                                        Text(log.category.rawValue.capitalized)
-                                                        Text("·")
-                                                        Text("\(log.durationMinutes) min")
-                                                        Text("·")
-                                                        Text("\(log.caloriesBurned) cal")
+                                                        Text(item.category.rawValue.capitalized)
+                                                        if let dur = item.durationMinutes {
+                                                            Text("·")
+                                                            Text("\(dur) min")
+                                                        }
+                                                        if let cal = item.caloriesBurned {
+                                                            Text("·")
+                                                            Text("\(cal) cal")
+                                                        }
                                                     }
                                                     .font(.caption2)
                                                     .foregroundColor(Color.theme.secondaryText)
@@ -155,14 +159,14 @@ struct AddWorkoutPlanView: View {
 
                                                 Spacer()
 
-                                                if exerciseName == log.exerciseName {
+                                                if exerciseName == item.exerciseName {
                                                     Image(systemName: "checkmark.circle.fill")
                                                         .foregroundStyle(Color.theme.mediumBlue)
                                                 }
                                             }
                                             .padding(AppSpacing.sm)
                                             .background(
-                                                exerciseName == log.exerciseName
+                                                exerciseName == item.exerciseName
                                                     ? Color.theme.mediumBlue.opacity(0.1)
                                                     : Color.theme.cardBackground
                                             )
@@ -363,6 +367,7 @@ struct AddWorkoutPlanView: View {
             }
             .task {
                 await viewModel.loadPastExercises()
+                await viewModel.loadPastWorkoutPlans()
             }
         }
     }
