@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -82,6 +82,7 @@
 		C2DC1DD233CA2C07D6C72EA2 /* ExerciseLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9735EB01A5BA29365A26FD /* ExerciseLog.swift */; };
 		C5E6FBBABB2AF020E5F8A445 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDDFA90D59ADE3F6D30BAB66 /* Constants.swift */; };
 		C6DBA7641BA35AD6C4117FC6 /* WaterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D74ABA9637E546B4DE914E /* WaterViewModel.swift */; };
+		C8F2E6F1A126935910158B21 /* EditWorkoutPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA78CA846577E4FC19CE78B9 /* EditWorkoutPlanView.swift */; };
 		CBD682028C83040C01C03755 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDDFA90D59ADE3F6D30BAB66 /* Constants.swift */; };
 		CCB9F89F418A50D8D3E7EAA8 /* GroceryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26956EAA906A7FA9B7A07321 /* GroceryViewModel.swift */; };
 		CD63CD9D904615D224FC3225 /* MealPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F26B6CE7FE614D3A6A0386 /* MealPlan.swift */; };
@@ -118,7 +119,7 @@
 		44B529D7DB3D9C6E2055272F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4753D32E5B3D4CF8DFF9F345 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		487FF1C2E122C68AD1CFE251 /* WorkoutPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlan.swift; sourceTree = "<group>"; };
-		4CE1FD1C85C4AAF8DCE452D6 /* Constants.example.swift.bak */ = {isa = PBXFileReference; lastKnownFileType = text; path = Constants.example.swift.bak; sourceTree = "<group>"; };
+		4CE1FD1C85C4AAF8DCE452D6 /* Constants.example.swift.bak */ = {isa = PBXFileReference; path = Constants.example.swift.bak; sourceTree = "<group>"; };
 		4EBD62DEFE6D8DC0F47B3B02 /* FastingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FastingViewModel.swift; sourceTree = "<group>"; };
 		50F534E69959C6A8D4C51CA9 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		5BAD8210976990DC1FF6BF4B /* OzempicAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OzempicAI.entitlements; sourceTree = "<group>"; };
@@ -135,7 +136,7 @@
 		83304A9C212AF9E29521F812 /* LogMealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogMealView.swift; sourceTree = "<group>"; };
 		83C60D9FD7696994F1C4ACCC /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 		87332710B068BDB72973DE12 /* WaterWaveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterWaveView.swift; sourceTree = "<group>"; };
-		8769F286036C487AAC223D0E /* OzempicAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OzempicAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8769F286036C487AAC223D0E /* OzempicAI.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OzempicAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		87A21DC3F6B20392C864E2CD /* CalorieLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalorieLog.swift; sourceTree = "<group>"; };
 		8A3D83CE7E2BECCB40C11E7D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8A51E0CD789ED480A27A97CA /* GroceryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroceryListView.swift; sourceTree = "<group>"; };
@@ -150,7 +151,7 @@
 		A398B420C3EFFABDB65FF9CF /* FastingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FastingView.swift; sourceTree = "<group>"; };
 		A4F10EFDF473F8A881938B92 /* WeightLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightLog.swift; sourceTree = "<group>"; };
 		A6C38F7BF5B8ECE4D186B1F2 /* HeartRateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateView.swift; sourceTree = "<group>"; };
-		B5B60805595BF185F22A91F7 /* OzempicAIMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = OzempicAIMac.app; path = OzempicAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B5B60805595BF185F22A91F7 /* OzempicAIMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OzempicAIMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B83933A2481D8DB3654CDE71 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		BA9735EB01A5BA29365A26FD /* ExerciseLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLog.swift; sourceTree = "<group>"; };
 		BB8D854AEE829A15D13C14AF /* WorkoutPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlanView.swift; sourceTree = "<group>"; };
@@ -173,6 +174,7 @@
 		F3C0BFC2F997827C4ADA1EC6 /* GroceryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroceryItem.swift; sourceTree = "<group>"; };
 		F90A6F5E883F701058F65483 /* MacGroceryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacGroceryListView.swift; sourceTree = "<group>"; };
 		F96898553289FEDA471B1278 /* MealPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPlanView.swift; sourceTree = "<group>"; };
+		FA78CA846577E4FC19CE78B9 /* EditWorkoutPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditWorkoutPlanView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -438,6 +440,7 @@
 			isa = PBXGroup;
 			children = (
 				02FB611A0A0E839126E471C0 /* AddWorkoutPlanView.swift */,
+				FA78CA846577E4FC19CE78B9 /* EditWorkoutPlanView.swift */,
 				BB8D854AEE829A15D13C14AF /* WorkoutPlanView.swift */,
 			);
 			path = Workout;
@@ -523,6 +526,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
+					0C33D225E4F8DFAE25C9A630 = {
+						DevelopmentTeam = "";
+					};
 					2D46EFF96131B5F2A94E5153 = {
 						DevelopmentTeam = "";
 					};
@@ -541,6 +547,7 @@
 			packageReferences = (
 				36015EBA291C7045AA43C240 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -633,6 +640,7 @@
 				C5E6FBBABB2AF020E5F8A445 /* Constants.swift in Sources */,
 				5866C812E9F147D28D10AA80 /* DashboardView.swift in Sources */,
 				858B61B8DFA37AF25F214829 /* DayLabel.swift in Sources */,
+				C8F2E6F1A126935910158B21 /* EditWorkoutPlanView.swift in Sources */,
 				5ADB8DAB38F28DC9E3A7C8F5 /* EmailConfirmationView.swift in Sources */,
 				C2DC1DD233CA2C07D6C72EA2 /* ExerciseLog.swift in Sources */,
 				08B4BE9CEE414585E24DD136 /* ExerciseTrackerView.swift in Sources */,
@@ -844,7 +852,7 @@
 				CODE_SIGN_ENTITLEMENTS = OzempicAI/App/OzempicAI.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = FZR8D2KGW7;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = OzempicAI/App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -865,7 +873,7 @@
 				CODE_SIGN_ENTITLEMENTS = OzempicAI/App/OzempicAI.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = FZR8D2KGW7;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = OzempicAI/App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
