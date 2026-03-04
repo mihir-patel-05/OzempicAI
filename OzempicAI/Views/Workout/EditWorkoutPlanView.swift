@@ -1,11 +1,10 @@
 import SwiftUI
 
-struct AddWorkoutPlanView: View {
+struct EditWorkoutPlanView: View {
     @ObservedObject var viewModel: WorkoutPlanViewModel
+    let plan: WorkoutPlan
     @Environment(\.dismiss) private var dismiss
 
-    @State private var isFromHistory = false
-    @State private var searchText = ""
     @State private var exerciseName = ""
     @State private var category = ExerciseLog.ExerciseCategory.cardio
     @State private var durationText = ""
@@ -27,60 +26,10 @@ struct AddWorkoutPlanView: View {
         return true
     }
 
-    private var uniquePastExercises: [WorkoutPlanViewModel.HistoryExercise] {
-        var seen = Set<String>()
-        return viewModel.allPastExercises.filter { item in
-            let key = item.exerciseName.lowercased()
-            guard !seen.contains(key) else { return false }
-            seen.insert(key)
-            return true
-        }
-    }
-
-    private var filteredPastExercises: [WorkoutPlanViewModel.HistoryExercise] {
-        if searchText.isEmpty { return uniquePastExercises }
-        return uniquePastExercises.filter {
-            $0.exerciseName.localizedCaseInsensitiveContains(searchText)
-        }
-    }
-
-    private func selectPastExercise(_ item: WorkoutPlanViewModel.HistoryExercise) {
-        exerciseName = item.exerciseName
-        category = item.category
-        if let d = item.durationMinutes { durationText = "\(d)" }
-        if let c = item.caloriesBurned { caloriesText = "\(c)" }
-        if let s = item.sets { setsText = "\(s)" }
-        if let r = item.repsPerSet { repsText = "\(r)" }
-        if let bp = item.bodyPart { bodyPart = bp }
-        if let w = item.weight { weightText = "\(w)" }
-        if let wu = item.weightUnit { weightUnit = wu }
-    }
-
-    private func categoryIcon(for category: ExerciseLog.ExerciseCategory) -> String {
-        switch category {
-        case .cardio: return "figure.run"
-        case .strength: return "figure.strengthtraining.traditional"
-        case .flexibility: return "figure.mind.and.body"
-        case .sports: return "sportscourt.fill"
-        case .other: return "ellipsis.circle.fill"
-        }
-    }
-
-    private func categoryColor(for category: ExerciseLog.ExerciseCategory) -> Color {
-        switch category {
-        case .cardio: return Color.theme.orange
-        case .strength: return Color.theme.amber
-        case .flexibility: return Color.theme.mediumBlue
-        case .sports: return Color.theme.mediumBlue
-        case .other: return Color.theme.lightBlue
-        }
-    }
-
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: AppSpacing.md) {
-                    // Error display
                     if let error = viewModel.errorMessage {
                         HStack(spacing: AppSpacing.sm) {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -94,95 +43,7 @@ struct AddWorkoutPlanView: View {
                         .cornerRadius(AppRadius.small)
                     }
 
-                    // Source toggle
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text("Workout Source")
-                            .font(.caption.bold())
-                            .foregroundColor(Color.theme.secondaryText)
-                        Picker("Source", selection: $isFromHistory) {
-                            Text("New Workout").tag(false)
-                            Text("From History").tag(true)
-                        }
-                        .pickerStyle(.segmented)
-                    }
-
-                    // From History picker
-                    if isFromHistory {
-                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                            TextField("Search exercises...", text: $searchText)
-                                .textFieldStyle(ThemedTextFieldStyle())
-
-                            if filteredPastExercises.isEmpty {
-                                VStack(spacing: AppSpacing.sm) {
-                                    Image(systemName: "figure.run.circle")
-                                        .font(.system(size: 30))
-                                        .foregroundStyle(Color.theme.lightBlue)
-                                    Text("No past exercises found")
-                                        .font(.caption)
-                                        .foregroundColor(Color.theme.secondaryText)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, AppSpacing.md)
-                            } else {
-                                VStack(spacing: AppSpacing.xs) {
-                                    ForEach(filteredPastExercises) { item in
-                                        Button {
-                                            selectPastExercise(item)
-                                        } label: {
-                                            HStack(spacing: AppSpacing.sm) {
-                                                Image(systemName: categoryIcon(for: item.category))
-                                                    .font(.caption)
-                                                    .foregroundStyle(categoryColor(for: item.category))
-                                                    .frame(width: 28, height: 28)
-                                                    .background(categoryColor(for: item.category).opacity(0.12))
-                                                    .clipShape(Circle())
-
-                                                VStack(alignment: .leading, spacing: 1) {
-                                                    Text(item.exerciseName)
-                                                        .font(.subheadline.bold())
-                                                        .foregroundColor(Color.theme.primaryText)
-
-                                                    HStack(spacing: 4) {
-                                                        Text(item.category.rawValue.capitalized)
-                                                        if let dur = item.durationMinutes {
-                                                            Text("·")
-                                                            Text("\(dur) min")
-                                                        }
-                                                        if let cal = item.caloriesBurned {
-                                                            Text("·")
-                                                            Text("\(cal) cal")
-                                                        }
-                                                    }
-                                                    .font(.caption2)
-                                                    .foregroundColor(Color.theme.secondaryText)
-                                                }
-
-                                                Spacer()
-
-                                                if exerciseName == item.exerciseName {
-                                                    Image(systemName: "checkmark.circle.fill")
-                                                        .foregroundStyle(Color.theme.mediumBlue)
-                                                }
-                                            }
-                                            .padding(AppSpacing.sm)
-                                            .background(
-                                                exerciseName == item.exerciseName
-                                                    ? Color.theme.mediumBlue.opacity(0.1)
-                                                    : Color.theme.cardBackground
-                                            )
-                                            .cornerRadius(AppRadius.small)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(AppSpacing.md)
-                        .background(Color.theme.lightBlue.opacity(0.1))
-                        .cornerRadius(AppRadius.medium)
-                    }
-
-                    // Exercise name (editable in both modes)
+                    // Exercise name
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("Exercise Name")
                             .font(.caption.bold())
@@ -204,7 +65,7 @@ struct AddWorkoutPlanView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    // Duration & Calories (optional)
+                    // Duration & Calories
                     HStack(spacing: AppSpacing.md) {
                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
                             Text("Duration - optional (min)")
@@ -311,7 +172,7 @@ struct AddWorkoutPlanView: View {
 
                     Spacer().frame(height: AppSpacing.md)
 
-                    // Add button
+                    // Save button
                     Button {
                         guard !exerciseName.isEmpty else { return }
                         let duration = Int(durationText)
@@ -321,7 +182,8 @@ struct AddWorkoutPlanView: View {
                         let weight = Double(weightText)
                         isSaving = true
                         Task {
-                            await viewModel.addWorkoutPlan(
+                            await viewModel.updateWorkoutPlan(
+                                id: plan.id,
                                 exerciseName: exerciseName,
                                 category: category,
                                 plannedDate: plannedDate,
@@ -344,7 +206,7 @@ struct AddWorkoutPlanView: View {
                             ProgressView()
                                 .tint(.white)
                         } else {
-                            Text("Add Workout")
+                            Text("Save Changes")
                         }
                     }
                     .buttonStyle(PrimaryButtonStyle())
@@ -354,7 +216,7 @@ struct AddWorkoutPlanView: View {
                 .padding(AppSpacing.lg)
             }
             .screenBackground()
-            .navigationTitle("Plan Workout")
+            .navigationTitle("Edit Workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -363,11 +225,17 @@ struct AddWorkoutPlanView: View {
                 }
             }
             .onAppear {
-                plannedDate = viewModel.selectedDate
-            }
-            .task {
-                await viewModel.loadPastExercises()
-                await viewModel.loadPastWorkoutPlans()
+                exerciseName = plan.exerciseName
+                category = plan.category
+                plannedDate = plan.plannedDateValue ?? .now
+                if let d = plan.durationMinutes { durationText = "\(d)" }
+                if let c = plan.caloriesBurned { caloriesText = "\(c)" }
+                if let s = plan.sets { setsText = "\(s)" }
+                if let r = plan.repsPerSet { repsText = "\(r)" }
+                if let bp = plan.bodyPart { bodyPart = bp }
+                if let w = plan.weight { weightText = "\(w)" }
+                if let wu = plan.weightUnit { weightUnit = wu }
+                notes = plan.notes ?? ""
             }
         }
     }

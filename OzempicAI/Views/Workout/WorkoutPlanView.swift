@@ -3,6 +3,7 @@ import SwiftUI
 struct WorkoutPlanView: View {
     @StateObject private var viewModel = WorkoutPlanViewModel()
     @State private var showAddWorkout = false
+    @State private var editingPlan: WorkoutPlan?
 
     private func categoryIcon(for category: ExerciseLog.ExerciseCategory) -> String {
         switch category {
@@ -170,6 +171,15 @@ struct WorkoutPlanView: View {
                                 Spacer()
 
                                 Button {
+                                    editingPlan = plan
+                                } label: {
+                                    Image(systemName: "pencil")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.theme.mediumBlue.opacity(0.7))
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
                                     Task { await viewModel.deleteWorkoutPlan(plan) }
                                 } label: {
                                     Image(systemName: "trash")
@@ -180,6 +190,7 @@ struct WorkoutPlanView: View {
                             }
                             .cardStyle()
                             .opacity(plan.isCompleted ? 0.7 : 1.0)
+                            .onTapGesture { editingPlan = plan }
                         }
                     }
 
@@ -263,6 +274,9 @@ struct WorkoutPlanView: View {
             }
             .sheet(isPresented: $showAddWorkout) {
                 AddWorkoutPlanView(viewModel: viewModel)
+            }
+            .sheet(item: $editingPlan) { plan in
+                EditWorkoutPlanView(viewModel: viewModel, plan: plan)
             }
             .task {
                 await viewModel.loadMonthlyPlans()

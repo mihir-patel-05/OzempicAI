@@ -7,6 +7,7 @@ class WorkoutPlanViewModel: ObservableObject {
     @Published var monthlyPlans: [WorkoutPlan] = []
     @Published var weeklyPlans: [WorkoutPlan] = []
     @Published var pastExercises: [ExerciseLog] = []
+    @Published var pastWorkoutPlans: [WorkoutPlan] = []
     @Published var mealsForSelectedDate: [MealPlan] = []
     @Published var weeklyDayLabels: [String: String] = [:]  // "yyyy-MM-dd" -> label
     @Published var selectedDayLabel: String?
@@ -14,6 +15,59 @@ class WorkoutPlanViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let client = SupabaseService.shared.client
+
+    // MARK: - Unified History
+
+    struct HistoryExercise: Identifiable {
+        let id: UUID
+        let exerciseName: String
+        let category: ExerciseLog.ExerciseCategory
+        let durationMinutes: Int?
+        let caloriesBurned: Int?
+        let sets: Int?
+        let repsPerSet: Int?
+        let bodyPart: ExerciseLog.BodyPart?
+        let weight: Double?
+        let weightUnit: ExerciseLog.WeightUnit?
+    }
+
+    var allPastExercises: [HistoryExercise] {
+        var items: [HistoryExercise] = []
+
+        // Exercise logs first (actual completions take priority)
+        for log in pastExercises {
+            items.append(HistoryExercise(
+                id: log.id,
+                exerciseName: log.exerciseName,
+                category: log.category,
+                durationMinutes: log.durationMinutes,
+                caloriesBurned: log.caloriesBurned,
+                sets: log.sets,
+                repsPerSet: log.repsPerSet,
+                bodyPart: log.bodyPart,
+                weight: log.weight,
+                weightUnit: log.weightUnit
+            ))
+        }
+
+        // Workout plans second
+        for plan in pastWorkoutPlans {
+            items.append(HistoryExercise(
+                id: plan.id,
+                exerciseName: plan.exerciseName,
+                category: plan.category,
+                durationMinutes: plan.durationMinutes,
+                caloriesBurned: plan.caloriesBurned,
+                sets: plan.sets,
+                repsPerSet: plan.repsPerSet,
+                bodyPart: plan.bodyPart,
+                weight: plan.weight,
+                weightUnit: plan.weightUnit
+            ))
+        }
+
+        return items
+    }
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -250,6 +304,62 @@ class WorkoutPlanViewModel: ObservableObject {
         }
     }
 
+    func updateWorkoutPlan(
+        id: UUID,
+        exerciseName: String,
+        category: ExerciseLog.ExerciseCategory,
+        plannedDate: Date,
+        durationMinutes: Int? = nil,
+        caloriesBurned: Int? = nil,
+        sets: Int? = nil,
+        repsPerSet: Int? = nil,
+        bodyPart: ExerciseLog.BodyPart? = nil,
+        weight: Double? = nil,
+        weightUnit: ExerciseLog.WeightUnit? = nil,
+        notes: String? = nil
+    ) async {
+        errorMessage = nil
+        do {
+            struct UpdateWorkoutPlan: Encodable {
+                let exercise_name: String
+                let category: String
+                let planned_date: String
+                let duration_minutes: Int?
+                let calories_burned: Int?
+                let sets: Int?
+                let reps_per_set: Int?
+                let body_part: String?
+                let weight: Double?
+                let weight_unit: String?
+                let notes: String?
+            }
+
+            let entry = UpdateWorkoutPlan(
+                exercise_name: exerciseName,
+                category: category.rawValue,
+                planned_date: Self.dateFormatter.string(from: plannedDate),
+                duration_minutes: durationMinutes,
+                calories_burned: caloriesBurned,
+                sets: sets,
+                reps_per_set: repsPerSet,
+                body_part: bodyPart?.rawValue,
+                weight: weight,
+                weight_unit: weightUnit?.rawValue,
+                notes: notes
+            )
+
+            try await client
+                .from("workout_plans")
+                .update(entry)
+                .eq("id", value: id.uuidString)
+                .execute()
+            await loadMonthlyPlans()
+            await loadPlansForDate(selectedDate)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func deleteWorkoutPlan(_ plan: WorkoutPlan) async {
         do {
             try await client
@@ -277,6 +387,22 @@ class WorkoutPlanViewModel: ObservableObject {
                 .value
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func loadPastWorkoutPlans() async {
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+
+            pastWorkoutPlans = try await client
+                .from("workout_plans")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+        } catch {
+            // Don't override other error messages
         }
     }
 
