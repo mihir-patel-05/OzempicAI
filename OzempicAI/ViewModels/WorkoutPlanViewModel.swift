@@ -334,6 +334,22 @@ class WorkoutPlanViewModel: ObservableObject {
         }
     }
 
+    func loadPastWorkoutPlans() async {
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+
+            pastWorkoutPlans = try await client
+                .from("workout_plans")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+        } catch {
+            // Don't override other error messages
+        }
+    }
+
     // MARK: - Meals for Selected Date
 
     private static let mealTypeOrder: [MealPlan.MealType: Int] = [
