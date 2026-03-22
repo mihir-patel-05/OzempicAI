@@ -4,12 +4,14 @@ struct FastingView: View {
     @StateObject private var viewModel = FastingViewModel()
 
     private let presets = [12, 14, 16, 18, 20, 24]
+    @State private var showStartTimePicker = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: AppSpacing.lg) {
                     durationPicker
+                    startTimeSection
                     fastingRing
                     if viewModel.isActive || viewModel.isComplete {
                         statsRow
@@ -55,6 +57,64 @@ struct FastingView: View {
                             .cornerRadius(AppRadius.small)
                     }
                     .disabled(viewModel.isActive)
+                }
+            }
+        }
+        .cardStyle()
+    }
+
+    // MARK: - Start Time
+
+    private var startTimeSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("Start Time")
+                .font(.subheadline.bold())
+                .foregroundColor(Color.theme.secondaryText)
+
+            if viewModel.isComplete {
+                HStack {
+                    Image(systemName: "clock")
+                        .foregroundColor(Color.theme.mediumBlue)
+                    Text(viewModel.customStartTime, style: .date)
+                    Text(viewModel.customStartTime, style: .time)
+                    Spacer()
+                }
+                .font(.subheadline)
+                .foregroundColor(Color.theme.primaryText)
+            } else {
+                Button {
+                    showStartTimePicker.toggle()
+                } label: {
+                    HStack {
+                        Image(systemName: "clock")
+                            .foregroundColor(Color.theme.mediumBlue)
+                        Text(viewModel.customStartTime, style: .date)
+                        Text(viewModel.customStartTime, style: .time)
+                        Spacer()
+                        Image(systemName: "pencil")
+                            .foregroundColor(Color.theme.mediumBlue)
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(Color.theme.primaryText)
+                }
+
+                if showStartTimePicker {
+                    DatePicker(
+                        "Started at",
+                        selection: Binding(
+                            get: { viewModel.customStartTime },
+                            set: { newDate in
+                                viewModel.customStartTime = newDate
+                                if viewModel.isActive {
+                                    viewModel.updateStartTime(newDate)
+                                }
+                            }
+                        ),
+                        in: ...Date(),
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .datePickerStyle(.graphical)
+                    .labelsHidden()
                 }
             }
         }
