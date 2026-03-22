@@ -102,7 +102,7 @@ struct MacExerciseLogView: View {
                 if showAddPanel {
                     Divider()
                     AddExercisePanel(viewModel: viewModel, onDismiss: { showAddPanel = false })
-                        .frame(width: 280)
+                        .frame(width: 360)
                 }
             }
         }
@@ -151,7 +151,8 @@ private struct AddExercisePanel: View {
     @State private var weightUnit: ExerciseLog.WeightUnit = .lb
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
             HStack {
                 Text("Log Exercise")
                     .font(.headline)
@@ -162,43 +163,99 @@ private struct AddExercisePanel: View {
                 }
                 .buttonStyle(.plain)
             }
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.top, AppSpacing.md)
+            .padding(.bottom, AppSpacing.sm)
 
-            Form {
-                TextField("Exercise Name", text: $name)
+            Divider()
 
-                Picker("Category", selection: $category) {
-                    ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) { cat in
-                        Text(cat.rawValue.capitalized).tag(cat)
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                    // Basic Info
+                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                        sectionHeader("EXERCISE")
+
+                        TextField("Exercise Name", text: $name)
+                            .textFieldStyle(.roundedBorder)
+
+                        Picker("Category", selection: $category) {
+                            ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) { cat in
+                                Text(cat.rawValue.capitalized).tag(cat)
+                            }
+                        }
+                    }
+
+                    // Activity
+                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                        sectionHeader("ACTIVITY")
+
+                        HStack(spacing: AppSpacing.sm) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Duration").font(.caption).foregroundColor(.secondary)
+                                TextField("min", text: $duration)
+                                    .textFieldStyle(.roundedBorder)
+                            }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Calories").font(.caption).foregroundColor(.secondary)
+                                TextField("cal", text: $calories)
+                                    .textFieldStyle(.roundedBorder)
+                            }
+                        }
+                    }
+
+                    // Strength Details (conditional)
+                    if category == .strength {
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            sectionHeader("STRENGTH DETAILS")
+
+                            Picker("Body Part", selection: $bodyPart) {
+                                ForEach(ExerciseLog.BodyPart.allCases, id: \.self) { part in
+                                    Text(part.displayName).tag(part)
+                                }
+                            }
+
+                            HStack(spacing: AppSpacing.sm) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Sets").font(.caption).foregroundColor(.secondary)
+                                    TextField("#", text: $sets)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+                                Text("\u00d7")
+                                    .foregroundColor(.secondary)
+                                    .padding(.top, 16)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Reps").font(.caption).foregroundColor(.secondary)
+                                    TextField("#", text: $reps)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+                            }
+
+                            HStack(spacing: AppSpacing.sm) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Weight").font(.caption).foregroundColor(.secondary)
+                                    TextField("0", text: $weight)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Unit").font(.caption).foregroundColor(.secondary)
+                                    Picker("", selection: $weightUnit) {
+                                        Text("lb").tag(ExerciseLog.WeightUnit.lb)
+                                        Text("kg").tag(ExerciseLog.WeightUnit.kg)
+                                    }
+                                    .labelsHidden()
+                                }
+                                .frame(width: 70)
+                            }
+                        }
                     }
                 }
-
-                TextField("Duration (min)", text: $duration)
-                TextField("Calories Burned", text: $calories)
-
-                Picker("Body Part", selection: $bodyPart) {
-                    ForEach(ExerciseLog.BodyPart.allCases, id: \.self) { part in
-                        Text(part.rawValue.replacingOccurrences(of: "_", with: " ").capitalized).tag(part)
-                    }
-                }
-
-                HStack {
-                    TextField("Sets", text: $sets)
-                    Text("x")
-                    TextField("Reps", text: $reps)
-                }
-
-                HStack {
-                    TextField("Weight", text: $weight)
-                    Picker("", selection: $weightUnit) {
-                        Text("lb").tag(ExerciseLog.WeightUnit.lb)
-                        Text("kg").tag(ExerciseLog.WeightUnit.kg)
-                    }
-                    .frame(width: 60)
-                }
+                .padding(AppSpacing.md)
             }
-            .formStyle(.grouped)
 
-            Button("Log Exercise") {
+            Divider()
+
+            // Action
+            Button {
                 Task {
                     await viewModel.logExercise(
                         name: name,
@@ -207,7 +264,7 @@ private struct AddExercisePanel: View {
                         caloriesBurned: Int(calories) ?? 0,
                         sets: Int(sets),
                         repsPerSet: Int(reps),
-                        bodyPart: bodyPart,
+                        bodyPart: category == .strength ? bodyPart : nil,
                         weight: Double(weight),
                         weightUnit: weight.isEmpty ? nil : weightUnit
                     )
@@ -218,11 +275,22 @@ private struct AddExercisePanel: View {
                     reps = ""
                     weight = ""
                 }
+            } label: {
+                Text("Log Exercise")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(Color.theme.ctaButton)
             .disabled(name.isEmpty || duration.isEmpty || calories.isEmpty)
+            .padding(AppSpacing.md)
         }
-        .padding()
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.bold())
+            .foregroundColor(Color.theme.secondaryText)
+            .tracking(0.5)
     }
 }
