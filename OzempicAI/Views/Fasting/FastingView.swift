@@ -16,6 +16,9 @@ struct FastingView: View {
                     if viewModel.isActive || viewModel.isComplete {
                         statsRow
                     }
+                    if viewModel.isActive, let endTime = viewModel.endTime {
+                        endTimeCard(endTime)
+                    }
                     if viewModel.isActive {
                         phaseCard
                     }
@@ -211,6 +214,31 @@ struct FastingView: View {
                 .foregroundColor(Color.theme.primaryText)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - End Time Card
+
+    private func endTimeCard(_ endTime: Date) -> some View {
+        HStack(spacing: AppSpacing.md) {
+            Image(systemName: "bell.fill")
+                .font(.title2)
+                .foregroundStyle(Color.theme.mediumBlue)
+                .frame(width: 40)
+
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text("Fast Ends At")
+                    .font(.caption.bold())
+                    .foregroundColor(Color.theme.secondaryText)
+                HStack(spacing: AppSpacing.xs) {
+                    Text(endTime, style: .date)
+                    Text(endTime, style: .time)
+                }
+                .font(.headline)
+                .foregroundColor(Color.theme.primaryText)
+            }
+            Spacer()
+        }
+        .cardStyle()
     }
 
     // MARK: - Phase Card

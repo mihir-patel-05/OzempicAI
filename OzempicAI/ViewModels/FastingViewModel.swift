@@ -29,6 +29,11 @@ final class FastingViewModel: ObservableObject {
     var elapsedString: String   { formatInterval(timeElapsed) }
     var remainingString: String { formatInterval(timeRemaining) }
 
+    var endTime: Date? {
+        guard let start = startTime else { return nil }
+        return start.addingTimeInterval(targetDuration)
+    }
+
     var fastingPhase: String {
         let hours = timeElapsed / 3600
         switch hours {
