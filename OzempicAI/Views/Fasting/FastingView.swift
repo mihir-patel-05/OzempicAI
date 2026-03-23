@@ -16,6 +16,9 @@ struct FastingView: View {
                     if viewModel.isActive || viewModel.isComplete {
                         statsRow
                     }
+                    if viewModel.isActive, let endTime = viewModel.endTime {
+                        endTimeCard(endTime)
+                    }
                     if viewModel.isActive {
                         phaseCard
                     }
