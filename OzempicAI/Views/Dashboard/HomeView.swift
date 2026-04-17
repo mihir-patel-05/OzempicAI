@@ -1,10 +1,9 @@
-//  HomeView.swift
-//  New Home/Dashboard — drop into OzempicAI/Views/Dashboard/
-
 import SwiftUI
 
+// New Home screen for the iOS redesign.
+// Values here are placeholders — wire to real view models in a follow-up.
+
 struct HomeView: View {
-    // Replace with your real view models
     let eaten = 1420, goal = 2100, burned = 380
     var remaining: Int { goal - eaten + burned }
     var calsPct: Double { Double(eaten) / Double(goal) }
@@ -13,7 +12,6 @@ struct HomeView: View {
         ScrollView {
             VStack(spacing: AppSpacing.md) {
 
-                // Greeting
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         CapsLabel(text: "Friday, April 17")
@@ -36,7 +34,6 @@ struct HomeView: View {
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.top, AppSpacing.sm)
 
-                // Hero calorie card
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 8) {
@@ -84,7 +81,6 @@ struct HomeView: View {
                 .shadow(color: Color.theme.shadow, radius: 24, x: 0, y: 8)
                 .padding(.horizontal, AppSpacing.md + 4)
 
-                // Stat grid
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())],
                           spacing: 12) {
                     StatCard(label: "Water", value: "1.4L", sub: "of 2.5L",
@@ -98,7 +94,6 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, AppSpacing.md + 4)
 
-                // Today's plate
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .firstTextBaseline) {
                         Text("Today's plate")
@@ -127,7 +122,6 @@ struct HomeView: View {
                 .padding(.horizontal, AppSpacing.md + 4)
                 .padding(.top, AppSpacing.sm)
 
-                // Insight
                 insightCard
                     .padding(.horizontal, AppSpacing.md + 4)
 
