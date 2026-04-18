@@ -62,9 +62,12 @@ struct SecondaryButtonStyle: ButtonStyle {
 struct ThemedTextFieldStyle: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
+            .font(AppFont.ui(15))
+            .foregroundColor(Color.theme.espresso)
+            .tint(Color.theme.terracotta)
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.sm + 2)
-            .background(Color.theme.creamDim.opacity(0.6))
+            .background(Color.theme.paper)
             .cornerRadius(AppRadius.small)
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.small)

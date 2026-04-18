@@ -297,6 +297,8 @@ struct AddWorkoutPlanView: View {
                             .foregroundColor(Color.theme.secondaryText)
                         DatePicker("Date", selection: $plannedDate, displayedComponents: .date)
                             .datePickerStyle(.compact)
+                            .tint(Color.theme.terracotta)
+                            .environment(\.colorScheme, .light)
                             .labelsHidden()
                     }
 

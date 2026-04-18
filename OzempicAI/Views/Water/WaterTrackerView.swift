@@ -31,7 +31,11 @@ struct WaterTrackerView: View {
             .padding(.bottom, 100)
         }
         .screenBackground()
-        .task { await viewModel.loadTodaysLogs() }
+        .task {
+            if viewModel.todaysLogs.isEmpty {
+                await viewModel.loadTodaysLogs()
+            }
+        }
         .refreshable { await viewModel.loadTodaysLogs() }
     }
 

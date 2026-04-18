@@ -62,8 +62,10 @@ struct ExerciseTrackerView: View {
             LogExerciseView(viewModel: viewModel, existingLog: log)
         }
         .task {
-            await viewModel.requestHealthKitAccess()
-            await viewModel.loadLogs()
+            if viewModel.logs.isEmpty {
+                await viewModel.requestHealthKitAccess()
+                await viewModel.loadLogs()
+            }
         }
     }
 

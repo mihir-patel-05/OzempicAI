@@ -106,6 +106,7 @@ struct WorkoutPlanView: View {
         .datePickerStyle(.graphical)
         .labelsHidden()
         .accentColor(Color.theme.terracotta)
+        .environment(\.colorScheme, .light)
         .padding(AppSpacing.md)
         .background(Color.theme.paper)
         .cornerRadius(AppRadius.large)
