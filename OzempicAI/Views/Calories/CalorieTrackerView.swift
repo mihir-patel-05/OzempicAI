@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct CalorieTrackerView: View {
-    @StateObject private var viewModel = CalorieViewModel()
+    @EnvironmentObject var viewModel: CalorieViewModel
     @State private var showLogMeal = false
     @State private var showGoalSheet = false
     @State private var goalText = ""
@@ -9,9 +9,18 @@ struct CalorieTrackerView: View {
     private func mealIcon(for type: CalorieLog.MealType) -> String {
         switch type {
         case .breakfast: return "sunrise.fill"
-        case .lunch: return "sun.max.fill"
-        case .dinner: return "moon.fill"
-        case .snack: return "leaf.fill"
+        case .lunch:     return "sun.max.fill"
+        case .dinner:    return "moon.fill"
+        case .snack:     return "leaf.fill"
+        }
+    }
+
+    private func mealAccent(for type: CalorieLog.MealType) -> Color {
+        switch type {
+        case .breakfast: return Color.theme.amber
+        case .lunch:     return Color.theme.terracotta
+        case .dinner:    return Color.theme.plum
+        case .snack:     return Color.theme.sage
         }
     }
 
@@ -20,200 +29,229 @@ struct CalorieTrackerView: View {
     }
 
     private var dateLabel: String {
-        if Calendar.current.isDateInToday(viewModel.selectedDate) {
-            return "Today"
-        } else if Calendar.current.isDateInYesterday(viewModel.selectedDate) {
-            return "Yesterday"
-        } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MMM d, yyyy"
-            return formatter.string(from: viewModel.selectedDate)
+        if Calendar.current.isDateInToday(viewModel.selectedDate) { return "Today" }
+        if Calendar.current.isDateInYesterday(viewModel.selectedDate) { return "Yesterday" }
+        let f = DateFormatter()
+        f.dateFormat = "MMM d, yyyy"
+        return f.string(from: viewModel.selectedDate)
+    }
+
+    private var progress: Double {
+        guard viewModel.dailyGoal > 0 else { return 0 }
+        return min(Double(viewModel.totalCalories) / Double(viewModel.dailyGoal), 1.0)
+    }
+
+    private var remaining: Int { max(viewModel.dailyGoal - viewModel.totalCalories, 0) }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: AppSpacing.md) {
+                ScreenHeader(title: "Calories", subtitle: dateLabel) {
+                    showLogMeal = true
+                }
+
+                if let error = viewModel.errorMessage {
+                    errorBanner(error)
+                        .padding(.horizontal, AppSpacing.md + 4)
+                }
+
+                dateNav
+                heroRing
+                mealList
+                Spacer(minLength: 40)
+            }
+            .padding(.bottom, 100)
+        }
+        .screenBackground()
+        .sheet(isPresented: $showLogMeal) {
+            LogMealView(viewModel: viewModel)
+        }
+        .alert("Set Daily Calorie Goal", isPresented: $showGoalSheet) {
+            TextField("Calories", text: $goalText)
+                .keyboardType(.numberPad)
+            Button("Save") {
+                if let goal = Int(goalText), goal > 0 {
+                    Task { await viewModel.updateDailyGoal(goal) }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Enter your daily calorie target")
+        }
+        .task {
+            await viewModel.loadUserGoal()
+            await viewModel.loadLogs()
         }
     }
 
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: AppSpacing.lg) {
-                    // Error display
-                    if let error = viewModel.errorMessage {
-                        HStack(spacing: AppSpacing.sm) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                            Text(error)
-                        }
-                        .font(.caption.bold())
-                        .foregroundColor(Color.theme.darkNavy)
-                        .padding(AppSpacing.sm)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.theme.amber.opacity(0.2))
-                        .cornerRadius(AppRadius.small)
-                    }
+    // MARK: - Date nav
 
-                    // Date navigation
-                    HStack {
-                        Button { viewModel.goToPreviousDay() } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.title3.bold())
-                                .foregroundStyle(Color.theme.mediumBlue)
-                        }
-
-                        Spacer()
-
-                        VStack(spacing: 2) {
-                            Text(dateLabel)
-                                .font(.headline)
-                                .foregroundColor(Color.theme.primaryText)
-
-                            if !viewModel.isToday {
-                                Button("Go to Today") {
-                                    viewModel.goToToday()
-                                }
-                                .font(.caption)
-                                .foregroundStyle(Color.theme.mediumBlue)
-                            }
-                        }
-
-                        Spacer()
-
-                        Button { viewModel.goToNextDay() } label: {
-                            Image(systemName: "chevron.right")
-                                .font(.title3.bold())
-                                .foregroundStyle(viewModel.isToday
-                                    ? Color.theme.lightBlue.opacity(0.4)
-                                    : Color.theme.mediumBlue)
-                        }
-                        .disabled(viewModel.isToday)
-                    }
-                    .padding(.horizontal, AppSpacing.sm)
-
-                    // Hero: circular progress
-                    ZStack {
-                        CircularProgressView(
-                            progress: viewModel.dailyGoal > 0
-                                ? Double(viewModel.totalCalories) / Double(viewModel.dailyGoal)
-                                : 0,
-                            size: 180,
-                            lineWidth: 18,
-                            progressColor: Color.theme.amber
-                        )
-
-                        VStack(spacing: AppSpacing.xs) {
-                            Image(systemName: "flame.fill")
-                                .font(.title2)
-                                .foregroundStyle(Color.theme.orange)
-
-                            Text("\(viewModel.totalCalories)")
-                                .font(.system(size: 36, weight: .bold, design: .rounded))
-                                .foregroundColor(Color.theme.primaryText)
-
-                            // Tappable goal
-                            Button {
-                                goalText = "\(viewModel.dailyGoal)"
-                                showGoalSheet = true
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text("/ \(viewModel.dailyGoal) cal")
-                                        .font(.subheadline)
-                                    Image(systemName: "pencil.circle.fill")
-                                        .font(.caption)
-                                }
-                                .foregroundColor(Color.theme.secondaryText)
-                            }
-                        }
-                    }
-
-                    // Remaining label
-                    let remaining = max(viewModel.dailyGoal - viewModel.totalCalories, 0)
-                    Text("\(remaining) cal remaining")
-                        .font(.subheadline.bold())
-                        .foregroundColor(Color.theme.mediumBlue)
-
-                    // Meal type cards
-                    ForEach(CalorieLog.MealType.allCases, id: \.self) { mealType in
-                        let logs = viewModel.logsByMeal[mealType] ?? []
-
-                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                            // Header
-                            HStack(spacing: AppSpacing.sm) {
-                                Image(systemName: mealIcon(for: mealType))
-                                    .font(.title3)
-                                    .foregroundStyle(Color.theme.amber)
-                                    .frame(width: 32)
-
-                                Text(mealType.rawValue.capitalized)
-                                    .font(.headline)
-                                    .foregroundColor(Color.theme.primaryText)
-
-                                Spacer()
-
-                                Text("\(mealCalories(for: mealType)) cal")
-                                    .font(.subheadline.bold())
-                                    .foregroundColor(Color.theme.secondaryText)
-                            }
-
-                            // Food items
-                            if !logs.isEmpty {
-                                Divider()
-                                    .background(Color.theme.lightBlue)
-
-                                ForEach(logs) { log in
-                                    HStack {
-                                        Text(log.foodName)
-                                            .font(.subheadline)
-                                            .foregroundColor(Color.theme.primaryText)
-                                        Spacer()
-                                        Text("\(log.calories) cal")
-                                            .font(.caption)
-                                            .foregroundColor(Color.theme.secondaryText)
-                                        Button {
-                                            Task { await viewModel.deleteLog(log) }
-                                        } label: {
-                                            Image(systemName: "trash")
-                                                .font(.caption)
-                                                .foregroundStyle(.red.opacity(0.7))
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .padding(.vertical, 2)
-                                }
-                            }
-                        }
-                        .cardStyle()
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.bottom, AppSpacing.lg)
+    private var dateNav: some View {
+        HStack {
+            Button { viewModel.goToPreviousDay() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(Color.theme.coffee)
+                    .frame(width: 36, height: 36)
+                    .background(Color.theme.paper)
+                    .clipShape(Circle())
+                    .shadow(color: Color.theme.shadow, radius: 4, x: 0, y: 1)
             }
-            .screenBackground()
-            .navigationTitle("Calories")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { showLogMeal = true } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(Color.theme.orange)
-                            .font(.title3)
+            Spacer()
+            VStack(spacing: 2) {
+                Text(dateLabel)
+                    .font(AppFont.display(18, weight: .medium))
+                    .foregroundColor(Color.theme.espresso)
+                if !viewModel.isToday {
+                    Button("Jump to today") { viewModel.goToToday() }
+                        .font(AppFont.ui(12, weight: .semibold))
+                        .foregroundColor(Color.theme.terracotta)
+                }
+            }
+            Spacer()
+            Button { viewModel.goToNextDay() } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(viewModel.isToday ? Color.theme.dust : Color.theme.coffee)
+                    .frame(width: 36, height: 36)
+                    .background(Color.theme.paper)
+                    .clipShape(Circle())
+                    .shadow(color: Color.theme.shadow, radius: 4, x: 0, y: 1)
+            }
+            .disabled(viewModel.isToday)
+        }
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    // MARK: - Hero ring
+
+    private var heroRing: some View {
+        VStack(spacing: AppSpacing.md) {
+            ZStack {
+                ProgressRing(
+                    progress: progress,
+                    size: 220,
+                    lineWidth: 16,
+                    gradient: [Color.theme.terracotta, Color.theme.amber]
+                )
+                VStack(spacing: 4) {
+                    CapsLabel(text: "Eaten")
+                    Text("\(viewModel.totalCalories)")
+                        .font(AppFont.display(52, weight: .regular))
+                        .foregroundColor(Color.theme.espresso)
+                        .kerning(-1)
+                    Button {
+                        goalText = "\(viewModel.dailyGoal)"
+                        showGoalSheet = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("of \(viewModel.dailyGoal) cal")
+                                .font(AppFont.ui(13))
+                            Image(systemName: "pencil")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundColor(Color.theme.coffee)
                     }
                 }
             }
-            .sheet(isPresented: $showLogMeal) {
-                LogMealView(viewModel: viewModel)
-            }
-            .alert("Set Daily Calorie Goal", isPresented: $showGoalSheet) {
-                TextField("Calories", text: $goalText)
-                    .keyboardType(.numberPad)
-                Button("Save") {
-                    if let goal = Int(goalText), goal > 0 {
-                        Task { await viewModel.updateDailyGoal(goal) }
-                    }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Enter your daily calorie target")
-            }
-            .task {
-                await viewModel.loadUserGoal()
-                await viewModel.loadLogs()
+            .padding(.top, AppSpacing.sm)
+
+            Text(remaining > 0 ? "\(remaining) cal remaining" : "Goal hit — nice work")
+                .font(AppFont.display(16, weight: .regular, italic: true))
+                .foregroundColor(Color.theme.terracottaDeep)
+        }
+        .padding(.vertical, AppSpacing.lg)
+        .frame(maxWidth: .infinity)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 10, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    // MARK: - Meal list
+
+    private var mealList: some View {
+        VStack(spacing: 12) {
+            ForEach(CalorieLog.MealType.allCases, id: \.self) { type in
+                mealCard(type)
             }
         }
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    private func mealCard(_ type: CalorieLog.MealType) -> some View {
+        let logs = viewModel.logsByMeal[type] ?? []
+        let accent = mealAccent(for: type)
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(accent.opacity(0.15))
+                    Image(systemName: mealIcon(for: type))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(accent)
+                }
+                .frame(width: 32, height: 32)
+
+                Text(type.rawValue.capitalized)
+                    .font(AppFont.display(18, weight: .medium))
+                    .foregroundColor(Color.theme.espresso)
+
+                Spacer()
+
+                Text("\(mealCalories(for: type)) cal")
+                    .font(AppFont.ui(13, weight: .semibold))
+                    .foregroundColor(Color.theme.coffee)
+            }
+
+            if logs.isEmpty {
+                Text("Nothing logged")
+                    .font(AppFont.ui(13))
+                    .foregroundColor(Color.theme.dust)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(logs) { log in
+                        HStack {
+                            Text(log.foodName)
+                                .font(AppFont.ui(14))
+                                .foregroundColor(Color.theme.espresso)
+                            Spacer()
+                            Text("\(log.calories) cal")
+                                .font(AppFont.ui(12))
+                                .foregroundColor(Color.theme.dust)
+                            Button {
+                                Task { await viewModel.deleteLog(log) }
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color.theme.ember.opacity(0.8))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(AppSpacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 8, x: 0, y: 2)
+    }
+
+    // MARK: - Error
+
+    private func errorBanner(_ text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(Color.theme.ember)
+            Text(text)
+                .font(AppFont.ui(13, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.theme.ember.opacity(0.12))
+        .cornerRadius(AppRadius.small)
     }
 }

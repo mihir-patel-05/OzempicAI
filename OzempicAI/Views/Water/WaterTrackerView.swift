@@ -1,126 +1,184 @@
 import SwiftUI
 
 struct WaterTrackerView: View {
-    @StateObject private var viewModel = WaterViewModel()
+    @EnvironmentObject var viewModel: WaterViewModel
 
-    let quickAddOptions = [240, 360, 480, 600]
+    private let quickAddOptions = [240, 360, 480, 600]
+
+    private var liters: String {
+        String(format: "%.2fL", Double(viewModel.totalMlToday) / 1000.0)
+    }
+
+    private var goalLiters: String {
+        String(format: "%.1fL", Double(viewModel.dailyGoalMl) / 1000.0)
+    }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: AppSpacing.lg) {
-                    // Error display
-                    if let error = viewModel.errorMessage {
-                        HStack(spacing: AppSpacing.sm) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                            Text(error)
-                        }
-                        .font(.caption.bold())
-                        .foregroundColor(Color.theme.darkNavy)
-                        .padding(AppSpacing.sm)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.theme.amber.opacity(0.2))
-                        .cornerRadius(AppRadius.small)
-                        .padding(.horizontal)
-                    }
+        ScrollView {
+            VStack(spacing: AppSpacing.md) {
+                ScreenHeader(title: "Water", subtitle: "Hydration")
 
-                    // Wave visualization
-                    WaterWaveView(progress: viewModel.progressFraction)
-                        .frame(width: 200, height: 280)
-                        .overlay(
-                            VStack(spacing: AppSpacing.xs) {
-                                Image(systemName: "drop.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(.white.opacity(0.8))
-
-                                Text("\(viewModel.totalMlToday)")
-                                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-
-                                Text("/ \(viewModel.dailyGoalMl) ml")
-                                    .font(.subheadline)
-                                    .foregroundColor(.white.opacity(0.8))
-                            }
-                        )
-                        .padding(.top, AppSpacing.xl)
-
-                    // Percentage
-                    Text("\(Int(viewModel.progressFraction * 100))% of daily goal")
-                        .font(.title3.bold())
-                        .foregroundColor(Color.theme.mediumBlue)
-
-                    // Quick add buttons
-                    HStack(spacing: 12) {
-                        ForEach(quickAddOptions, id: \.self) { ml in
-                            Button {
-                                Task { await viewModel.logWater(amountMl: ml) }
-                            } label: {
-                                VStack(spacing: 4) {
-                                    Image(systemName: "drop.fill")
-                                        .font(.caption)
-                                    Text("+\(ml)")
-                                        .font(.caption.bold())
-                                    Text("ml")
-                                        .font(.caption2)
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color.theme.mediumBlue)
-                                .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-
-                    // Today's entries
-                    if !viewModel.todaysLogs.isEmpty {
-                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                            Text("Today's Entries")
-                                .font(.headline)
-                                .foregroundColor(Color.theme.primaryText)
-                                .padding(.horizontal)
-
-                            ForEach(viewModel.todaysLogs) { log in
-                                HStack {
-                                    Image(systemName: "drop.fill")
-                                        .foregroundStyle(Color.theme.mediumBlue)
-                                        .font(.caption)
-
-                                    Text("\(log.amountMl) ml")
-                                        .font(.subheadline)
-                                        .foregroundColor(Color.theme.primaryText)
-
-                                    Spacer()
-
-                                    Text(log.loggedAt, style: .time)
-                                        .font(.caption)
-                                        .foregroundColor(Color.theme.secondaryText)
-
-                                    Button {
-                                        Task { await viewModel.deleteLog(log) }
-                                    } label: {
-                                        Image(systemName: "trash")
-                                            .font(.caption)
-                                            .foregroundStyle(.red.opacity(0.7))
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                                .padding(.horizontal, AppSpacing.md)
-                                .padding(.vertical, AppSpacing.xs)
-                            }
-                        }
-                        .cardStyle()
-                        .padding(.horizontal)
-                    }
-
-                    Spacer().frame(height: AppSpacing.lg)
+                if let error = viewModel.errorMessage {
+                    errorBanner(error)
+                        .padding(.horizontal, AppSpacing.md + 4)
                 }
-                .padding(.horizontal)
+
+                heroCard
+                quickAdd
+                if !viewModel.todaysLogs.isEmpty { historySection }
+                Spacer(minLength: 40)
             }
-            .screenBackground()
-            .navigationTitle("Water")
-            .task { await viewModel.loadTodaysLogs() }
+            .padding(.bottom, 100)
         }
+        .screenBackground()
+        .task {
+            if viewModel.todaysLogs.isEmpty {
+                await viewModel.loadTodaysLogs()
+            }
+        }
+        .refreshable { await viewModel.loadTodaysLogs() }
+    }
+
+    // MARK: - Hero
+
+    private var heroCard: some View {
+        VStack(spacing: AppSpacing.md) {
+            ZStack {
+                ProgressRing(
+                    progress: viewModel.progressFraction,
+                    size: 220,
+                    lineWidth: 16,
+                    gradient: [Color.theme.sage, Color.theme.sageDeep]
+                )
+                VStack(spacing: 4) {
+                    Image(systemName: "drop.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(Color.theme.sageDeep)
+                    Text(liters)
+                        .font(AppFont.display(44, weight: .regular))
+                        .foregroundColor(Color.theme.espresso)
+                        .kerning(-0.8)
+                    Text("of \(goalLiters)")
+                        .font(AppFont.ui(13))
+                        .foregroundColor(Color.theme.coffee)
+                }
+            }
+            Text("\(Int(viewModel.progressFraction * 100))% of daily goal")
+                .font(AppFont.display(15, weight: .regular, italic: true))
+                .foregroundColor(Color.theme.sageDeep)
+        }
+        .padding(.vertical, AppSpacing.lg)
+        .frame(maxWidth: .infinity)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 10, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    // MARK: - Quick add
+
+    private var quickAdd: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            CapsLabel(text: "Log a glass")
+                .padding(.horizontal, 4)
+            HStack(spacing: 10) {
+                ForEach(quickAddOptions, id: \.self) { ml in
+                    Button {
+                        Task { await viewModel.logWater(amountMl: ml) }
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("\(ml)")
+                                .font(AppFont.display(18, weight: .medium))
+                            Text("ml")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(Color.theme.sageDeep.opacity(0.7))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.theme.sage, Color.theme.sageDeep],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                        .cornerRadius(AppRadius.medium)
+                        .shadow(color: Color.theme.sage.opacity(0.3), radius: 8, x: 0, y: 3)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    // MARK: - History
+
+    private var historySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Today's entries")
+                    .font(AppFont.display(20, weight: .medium))
+                    .foregroundColor(Color.theme.espresso)
+                Spacer()
+                Text("\(viewModel.todaysLogs.count)")
+                    .font(AppFont.ui(12, weight: .semibold))
+                    .foregroundColor(Color.theme.coffee)
+            }
+            .padding(.horizontal, 4)
+
+            VStack(spacing: 0) {
+                ForEach(Array(viewModel.todaysLogs.enumerated()), id: \.element.id) { idx, log in
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle().fill(Color.theme.sage.opacity(0.15))
+                            Image(systemName: "drop.fill")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color.theme.sageDeep)
+                        }
+                        .frame(width: 32, height: 32)
+                        Text("\(log.amountMl) ml")
+                            .font(AppFont.ui(14, weight: .medium))
+                            .foregroundColor(Color.theme.espresso)
+                        Spacer()
+                        Text(log.loggedAt, style: .time)
+                            .font(AppFont.ui(12))
+                            .foregroundColor(Color.theme.dust)
+                        Button {
+                            Task { await viewModel.deleteLog(log) }
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color.theme.ember.opacity(0.8))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, 12)
+                    if idx < viewModel.todaysLogs.count - 1 {
+                        Divider().background(Color.theme.divider).padding(.leading, 60)
+                    }
+                }
+            }
+            .background(Color.theme.paper)
+            .cornerRadius(AppRadius.large)
+            .shadow(color: Color.theme.shadow, radius: 8, x: 0, y: 2)
+        }
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    private func errorBanner(_ text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(Color.theme.ember)
+            Text(text)
+                .font(AppFont.ui(13, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.theme.ember.opacity(0.12))
+        .cornerRadius(AppRadius.small)
     }
 }

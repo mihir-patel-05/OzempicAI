@@ -7,283 +7,309 @@ struct WorkoutPlanView: View {
 
     private func categoryIcon(for category: ExerciseLog.ExerciseCategory) -> String {
         switch category {
-        case .cardio: return "figure.run"
-        case .strength: return "figure.strengthtraining.traditional"
+        case .cardio:      return "figure.run"
+        case .strength:    return "figure.strengthtraining.traditional"
         case .flexibility: return "figure.mind.and.body"
-        case .sports: return "sportscourt.fill"
-        case .other: return "ellipsis.circle.fill"
+        case .sports:      return "sportscourt.fill"
+        case .other:       return "ellipsis.circle.fill"
         }
     }
 
     private func categoryColor(for category: ExerciseLog.ExerciseCategory) -> Color {
         switch category {
-        case .cardio: return Color.theme.orange
-        case .strength: return Color.theme.amber
-        case .flexibility: return Color.theme.mediumBlue
-        case .sports: return Color.theme.mediumBlue
-        case .other: return Color.theme.lightBlue
+        case .cardio:      return Color.theme.ember
+        case .strength:    return Color.theme.terracotta
+        case .flexibility: return Color.theme.sage
+        case .sports:      return Color.theme.saffron
+        case .other:       return Color.theme.plum
         }
     }
 
     private func mealIcon(for type: MealPlan.MealType) -> String {
         switch type {
         case .breakfast: return "sunrise.fill"
-        case .lunch: return "sun.max.fill"
-        case .dinner: return "moon.fill"
-        case .snack: return "leaf.fill"
+        case .lunch:     return "sun.max.fill"
+        case .dinner:    return "moon.fill"
+        case .snack:     return "leaf.fill"
+        }
+    }
+
+    private func mealAccent(for type: MealPlan.MealType) -> Color {
+        switch type {
+        case .breakfast: return Color.theme.amber
+        case .lunch:     return Color.theme.terracotta
+        case .dinner:    return Color.theme.plum
+        case .snack:     return Color.theme.sage
         }
     }
 
     private func formatSelectedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMM d"
-        return formatter.string(from: date)
+        if Calendar.current.isDateInToday(date) { return "Today" }
+        if Calendar.current.isDateInTomorrow(date) { return "Tomorrow" }
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, MMM d"
+        return f.string(from: date)
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: AppSpacing.lg) {
-                    // Calendar
-                    DatePicker(
-                        "Select Date",
-                        selection: $viewModel.selectedDate,
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.graphical)
-                    .tint(Color.theme.mediumBlue)
-                    .padding(AppSpacing.sm)
-                    .background(Color.theme.cardBackground)
-                    .cornerRadius(AppRadius.medium)
-                    .onChange(of: viewModel.selectedDate) { newDate in
-                        viewModel.selectDate(newDate)
+        ScrollView {
+            VStack(spacing: AppSpacing.md) {
+                ScreenHeader(title: "Workouts", subtitle: formatSelectedDate(viewModel.selectedDate)) {
+                    showAddWorkout = true
+                }
+
+                calendarCard
+                selectedDateHeader
+
+                if viewModel.plansForSelectedDate.isEmpty {
+                    emptyWorkoutsState
+                } else {
+                    VStack(spacing: 10) {
+                        ForEach(viewModel.plansForSelectedDate) { plan in
+                            workoutCard(plan)
+                        }
                     }
+                    .padding(.horizontal, AppSpacing.md + 4)
+                }
 
-                    // Selected date header
-                    HStack {
-                        Text(formatSelectedDate(viewModel.selectedDate))
-                            .font(.headline)
-                            .foregroundColor(Color.theme.primaryText)
+                if !viewModel.mealsForSelectedDate.isEmpty {
+                    mealsSection
+                }
 
-                        if let dayLabel = viewModel.selectedDayLabel {
-                            Text(dayLabel)
-                                .font(.caption.bold())
-                                .foregroundColor(Color.theme.mediumBlue)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Color.theme.mediumBlue.opacity(0.15))
-                                .clipShape(Capsule())
+                Spacer(minLength: 40)
+            }
+            .padding(.bottom, 100)
+        }
+        .screenBackground()
+        .sheet(isPresented: $showAddWorkout) {
+            AddWorkoutPlanView(viewModel: viewModel)
+        }
+        .sheet(item: $editingPlan) { plan in
+            EditWorkoutPlanView(viewModel: viewModel, plan: plan)
+        }
+        .task {
+            await viewModel.loadMonthlyPlans()
+            await viewModel.loadPlansForDate(viewModel.selectedDate)
+            await viewModel.loadMealsForDate(viewModel.selectedDate)
+            await viewModel.loadDayLabel(for: viewModel.selectedDate)
+        }
+    }
+
+    // MARK: - Calendar
+
+    private var calendarCard: some View {
+        DatePicker(
+            "Select date",
+            selection: $viewModel.selectedDate,
+            displayedComponents: .date
+        )
+        .datePickerStyle(.graphical)
+        .labelsHidden()
+        .accentColor(Color.theme.terracotta)
+        .environment(\.colorScheme, .light)
+        .padding(AppSpacing.md)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 8, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
+        .onChange(of: viewModel.selectedDate) { newDate in
+            viewModel.selectDate(newDate)
+        }
+    }
+
+    private var selectedDateHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(formatSelectedDate(viewModel.selectedDate))
+                .font(AppFont.display(20, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+            if let dayLabel = viewModel.selectedDayLabel {
+                Text(dayLabel)
+                    .font(AppFont.ui(11, weight: .semibold))
+                    .foregroundColor(Color.theme.terracotta)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.theme.terracotta.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            Spacer()
+            if !viewModel.plansForSelectedDate.isEmpty {
+                CapsLabel(text: "\(viewModel.plansForSelectedDate.count) workout\(viewModel.plansForSelectedDate.count == 1 ? "" : "s")")
+            }
+        }
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    private var emptyWorkoutsState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 36))
+                .foregroundColor(Color.theme.dust)
+            Text("No workouts planned")
+                .font(AppFont.display(16, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+            Text("Tap + to plan one.")
+                .font(AppFont.ui(12))
+                .foregroundColor(Color.theme.coffee)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, AppSpacing.xl)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 6, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    private func workoutCard(_ plan: WorkoutPlan) -> some View {
+        let accent = categoryColor(for: plan.category)
+        return HStack(spacing: 12) {
+            Button {
+                Task { await viewModel.toggleWorkoutCompletion(plan) }
+            } label: {
+                Image(systemName: plan.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundColor(plan.isCompleted ? Color.theme.sageDeep : Color.theme.dust.opacity(0.5))
+            }
+            .buttonStyle(.plain)
+
+            ZStack {
+                Circle().fill(accent.opacity(0.15))
+                Image(systemName: categoryIcon(for: plan.category))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(accent)
+            }
+            .frame(width: 36, height: 36)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(plan.exerciseName)
+                    .font(AppFont.ui(14, weight: .semibold))
+                    .strikethrough(plan.isCompleted)
+                    .foregroundColor(plan.isCompleted ? Color.theme.dust : Color.theme.espresso)
+
+                HStack(spacing: 4) {
+                    Text(plan.category.rawValue.capitalized)
+                    if let d = plan.durationMinutes { Text("·"); Text("\(d) min") }
+                    if let c = plan.caloriesBurned { Text("·"); Text("\(c) cal") }
+                }
+                .font(AppFont.ui(11))
+                .foregroundColor(Color.theme.dust)
+
+                if plan.category == .strength, let sets = plan.sets, let reps = plan.repsPerSet {
+                    HStack(spacing: 4) {
+                        Text("\(sets) × \(reps) reps")
+                        if let w = plan.weight {
+                            Text("·")
+                            Text("\(w, specifier: "%g") \(plan.weightUnit?.rawValue ?? "lb")")
+                        }
+                    }
+                    .font(AppFont.ui(11, weight: .medium))
+                    .foregroundColor(Color.theme.terracottaDeep)
+                }
+
+                if let notes = plan.notes, !notes.isEmpty {
+                    Text(notes)
+                        .font(AppFont.display(11, weight: .regular, italic: true))
+                        .foregroundColor(Color.theme.coffee)
+                }
+            }
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                Button { editingPlan = plan } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color.theme.coffee)
+                }
+                .buttonStyle(.plain)
+                Button {
+                    Task { await viewModel.deleteWorkoutPlan(plan) }
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color.theme.ember.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(AppSpacing.md)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 6, x: 0, y: 2)
+        .opacity(plan.isCompleted ? 0.75 : 1.0)
+        .onTapGesture { editingPlan = plan }
+    }
+
+    // MARK: - Meals section
+
+    private var mealsSection: some View {
+        let total = viewModel.mealsForSelectedDate.reduce(0) { $0 + $1.calories }
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                HStack(spacing: 8) {
+                    Image(systemName: "fork.knife")
+                        .foregroundColor(Color.theme.amber)
+                    Text("Meals")
+                        .font(AppFont.display(20, weight: .medium))
+                        .foregroundColor(Color.theme.espresso)
+                }
+                Spacer()
+                Text("\(total) cal")
+                    .font(AppFont.ui(12, weight: .semibold))
+                    .foregroundColor(Color.theme.amber)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.theme.amber.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 4)
+
+            VStack(spacing: 10) {
+                ForEach(viewModel.mealsForSelectedDate) { meal in
+                    let accent = mealAccent(for: meal.mealType)
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle().fill(accent.opacity(0.15))
+                            Image(systemName: mealIcon(for: meal.mealType))
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(accent)
+                        }
+                        .frame(width: 36, height: 36)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(meal.name)
+                                .font(AppFont.ui(14, weight: .semibold))
+                                .foregroundColor(Color.theme.espresso)
+                            Text(meal.mealType.rawValue.capitalized)
+                                .font(AppFont.ui(11))
+                                .foregroundColor(Color.theme.dust)
                         }
 
                         Spacer()
 
-                        // Workout count badge
-                        if !viewModel.plansForSelectedDate.isEmpty {
-                            Text("\(viewModel.plansForSelectedDate.count) workout\(viewModel.plansForSelectedDate.count == 1 ? "" : "s")")
-                                .font(.caption.bold())
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Color.theme.mediumBlue)
-                                .clipShape(Capsule())
+                        Text("\(meal.calories) cal")
+                            .font(AppFont.ui(12, weight: .semibold))
+                            .foregroundColor(accent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(accent.opacity(0.15))
+                            .clipShape(Capsule())
+
+                        Button {
+                            Task { await viewModel.deleteMeal(meal) }
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color.theme.ember.opacity(0.8))
                         }
+                        .buttonStyle(.plain)
                     }
-
-                    // Workout cards for selected date
-                    if viewModel.plansForSelectedDate.isEmpty {
-                        VStack(spacing: AppSpacing.md) {
-                            Image(systemName: "dumbbell.fill")
-                                .font(.system(size: 50))
-                                .foregroundStyle(Color.theme.mediumBlue)
-
-                            Text("No Workouts Planned")
-                                .font(.title3.bold())
-                                .foregroundColor(Color.theme.primaryText)
-
-                            Text("Tap + to plan a workout for this day")
-                                .font(.subheadline)
-                                .foregroundColor(Color.theme.secondaryText)
-                        }
-                        .padding(.top, AppSpacing.xl)
-                    } else {
-                        ForEach(viewModel.plansForSelectedDate) { plan in
-                            HStack(spacing: AppSpacing.md) {
-                                // Completion checkbox
-                                Button {
-                                    Task { await viewModel.toggleWorkoutCompletion(plan) }
-                                } label: {
-                                    Image(systemName: plan.isCompleted ? "checkmark.circle.fill" : "circle")
-                                        .font(.title3)
-                                        .foregroundStyle(plan.isCompleted ? .green : Color.theme.secondaryText.opacity(0.5))
-                                }
-                                .buttonStyle(.plain)
-
-                                // Category icon
-                                Image(systemName: categoryIcon(for: plan.category))
-                                    .font(.title3)
-                                    .foregroundStyle(categoryColor(for: plan.category))
-                                    .frame(width: 36, height: 36)
-                                    .background(categoryColor(for: plan.category).opacity(0.12))
-                                    .clipShape(Circle())
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(plan.exerciseName)
-                                        .font(.subheadline.bold())
-                                        .foregroundColor(plan.isCompleted ? Color.theme.secondaryText : Color.theme.primaryText)
-                                        .strikethrough(plan.isCompleted, color: Color.theme.secondaryText)
-
-                                    HStack(spacing: 4) {
-                                        Text(plan.category.rawValue.capitalized)
-                                        if let duration = plan.durationMinutes {
-                                            Text("·")
-                                            Text("\(duration) min")
-                                        }
-                                        if let calories = plan.caloriesBurned {
-                                            Text("·")
-                                            Text("\(calories) cal")
-                                        }
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(Color.theme.secondaryText)
-
-                                    if plan.category == .strength,
-                                       let sets = plan.sets,
-                                       let reps = plan.repsPerSet {
-                                        HStack(spacing: 4) {
-                                            Text("\(sets) sets × \(reps) reps")
-                                            if let weight = plan.weight {
-                                                Text("·")
-                                                Text("\(weight, specifier: "%g") \(plan.weightUnit?.rawValue ?? "lb")")
-                                            }
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(Color.theme.mediumBlue)
-                                    }
-
-                                    if let notes = plan.notes, !notes.isEmpty {
-                                        Text(notes)
-                                            .font(.caption)
-                                            .foregroundColor(Color.theme.secondaryText)
-                                            .italic()
-                                    }
-                                }
-
-                                Spacer()
-
-                                Button {
-                                    editingPlan = plan
-                                } label: {
-                                    Image(systemName: "pencil")
-                                        .font(.caption)
-                                        .foregroundStyle(Color.theme.mediumBlue.opacity(0.7))
-                                }
-                                .buttonStyle(.plain)
-
-                                Button {
-                                    Task { await viewModel.deleteWorkoutPlan(plan) }
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .font(.caption)
-                                        .foregroundStyle(.red.opacity(0.7))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .cardStyle()
-                            .opacity(plan.isCompleted ? 0.7 : 1.0)
-                            .onTapGesture { editingPlan = plan }
-                        }
-                    }
-
-                    // Meals for selected date
-                    if !viewModel.mealsForSelectedDate.isEmpty {
-                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                            // Section header
-                            HStack {
-                                Image(systemName: "fork.knife")
-                                    .foregroundStyle(Color.theme.amber)
-                                Text("Meals")
-                                    .font(.headline)
-                                    .foregroundColor(Color.theme.primaryText)
-                                Spacer()
-                                Text("\(viewModel.mealsForSelectedDate.reduce(0) { $0 + $1.calories }) cal total")
-                                    .font(.caption.bold())
-                                    .foregroundColor(Color.theme.amber)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 4)
-                                    .background(Color.theme.amber.opacity(0.15))
-                                    .clipShape(Capsule())
-                            }
-
-                            ForEach(viewModel.mealsForSelectedDate) { meal in
-                                HStack(spacing: AppSpacing.md) {
-                                    // Meal type icon
-                                    Image(systemName: mealIcon(for: meal.mealType))
-                                        .font(.body)
-                                        .foregroundStyle(Color.theme.amber)
-                                        .frame(width: 36, height: 36)
-                                        .background(Color.theme.amber.opacity(0.12))
-                                        .clipShape(Circle())
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(meal.name)
-                                            .font(.subheadline.bold())
-                                            .foregroundColor(Color.theme.primaryText)
-                                        Text(meal.mealType.rawValue.capitalized)
-                                            .font(.caption)
-                                            .foregroundColor(Color.theme.secondaryText)
-                                    }
-
-                                    Spacer()
-
-                                    // Calorie badge
-                                    Text("\(meal.calories) cal")
-                                        .font(.caption.bold())
-                                        .foregroundColor(Color.theme.darkNavy)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 4)
-                                        .background(Color.theme.amber.opacity(0.2))
-                                        .clipShape(Capsule())
-
-                                    Button {
-                                        Task { await viewModel.deleteMeal(meal) }
-                                    } label: {
-                                        Image(systemName: "trash")
-                                            .font(.caption)
-                                            .foregroundStyle(.red.opacity(0.7))
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                                .cardStyle()
-                            }
-                        }
-                    }
+                    .padding(AppSpacing.md)
+                    .background(Color.theme.paper)
+                    .cornerRadius(AppRadius.large)
+                    .shadow(color: Color.theme.shadow, radius: 6, x: 0, y: 2)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, AppSpacing.lg)
-            }
-            .screenBackground()
-            .navigationTitle("Workout Plan")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { showAddWorkout = true } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(Color.theme.orange)
-                            .font(.title3)
-                    }
-                }
-            }
-            .sheet(isPresented: $showAddWorkout) {
-                AddWorkoutPlanView(viewModel: viewModel)
-            }
-            .sheet(item: $editingPlan) { plan in
-                EditWorkoutPlanView(viewModel: viewModel, plan: plan)
-            }
-            .task {
-                await viewModel.loadMonthlyPlans()
-                await viewModel.loadPlansForDate(viewModel.selectedDate)
-                await viewModel.loadMealsForDate(viewModel.selectedDate)
-                await viewModel.loadDayLabel(for: viewModel.selectedDate)
             }
         }
+        .padding(.horizontal, AppSpacing.md + 4)
     }
 }

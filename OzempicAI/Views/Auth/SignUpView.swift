@@ -12,87 +12,114 @@ struct SignUpView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [Color.theme.darkNavy, Color.theme.mediumBlue],
-                startPoint: .top,
-                endPoint: .bottom
+                colors: [Color.theme.cream, Color.theme.paper],
+                startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
 
-            VStack(spacing: AppSpacing.lg) {
-                Spacer()
+            ScrollView {
+                VStack(spacing: AppSpacing.lg) {
+                    Spacer(minLength: 40)
 
-                // Header
-                VStack(spacing: 8) {
-                    Image(systemName: "person.badge.plus")
-                        .font(.system(size: 50))
-                        .foregroundStyle(Color.theme.amber)
-
-                    Text("Create Account")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                }
-
-                // Fields card
-                VStack(spacing: 12) {
-                    TextField("Email", text: $email)
-                        .textContentType(.emailAddress)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .textFieldStyle(AuthTextFieldStyle())
-
-                    SecureField("Password", text: $password)
-                        .textContentType(.newPassword)
-                        .textFieldStyle(AuthTextFieldStyle())
-
-                    SecureField("Confirm Password", text: $confirmPassword)
-                        .textContentType(.newPassword)
-                        .textFieldStyle(AuthTextFieldStyle())
-
-                    if !confirmPassword.isEmpty && !passwordsMatch {
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                            Text("Passwords do not match")
+                    VStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.theme.saffron, Color.theme.terracotta],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 72, height: 72)
+                                .shadow(color: Color.theme.terracotta.opacity(0.3), radius: 14, x: 0, y: 5)
+                            Image(systemName: "person.badge.plus")
+                                .font(.system(size: 30, weight: .semibold))
+                                .foregroundColor(.white)
                         }
-                        .font(.caption.bold())
-                        .foregroundColor(Color.theme.darkNavy)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.theme.amber.opacity(0.9))
+
+                        Text("Create account")
+                            .font(AppFont.display(32, weight: .regular))
+                            .foregroundColor(Color.theme.espresso)
+                            .kerning(-0.8)
+
+                        Text("Start tracking in seconds")
+                            .font(AppFont.display(14, weight: .regular, italic: true))
+                            .foregroundColor(Color.theme.coffee)
+                    }
+
+                    VStack(spacing: 14) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            CapsLabel(text: "Email")
+                            TextField("you@example.com", text: $email)
+                                .textContentType(.emailAddress)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                                .textFieldStyle(ThemedTextFieldStyle())
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            CapsLabel(text: "Password")
+                            SecureField("••••••••", text: $password)
+                                .textContentType(.newPassword)
+                                .textFieldStyle(ThemedTextFieldStyle())
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            CapsLabel(text: "Confirm password")
+                            SecureField("••••••••", text: $confirmPassword)
+                                .textContentType(.newPassword)
+                                .textFieldStyle(ThemedTextFieldStyle())
+                        }
+
+                        if !confirmPassword.isEmpty && !passwordsMatch {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(Color.theme.ember)
+                                Text("Passwords do not match")
+                                    .font(AppFont.ui(12, weight: .medium))
+                                    .foregroundColor(Color.theme.espresso)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(10)
+                            .background(Color.theme.ember.opacity(0.12))
+                            .cornerRadius(AppRadius.small)
+                        }
+                    }
+                    .padding(AppSpacing.md)
+                    .background(Color.theme.paper)
+                    .cornerRadius(AppRadius.large)
+                    .shadow(color: Color.theme.shadow, radius: 10, x: 0, y: 4)
+
+                    if let error = authViewModel.errorMessage {
+                        HStack(spacing: 10) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(Color.theme.ember)
+                            Text(error)
+                                .font(AppFont.ui(13, weight: .medium))
+                                .foregroundColor(Color.theme.espresso)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.theme.ember.opacity(0.12))
                         .cornerRadius(AppRadius.small)
                     }
-                }
-                .padding(AppSpacing.lg)
-                .background(.ultraThinMaterial)
-                .cornerRadius(AppRadius.large)
 
-                // Error
-                if let error = authViewModel.errorMessage {
-                    Text(error)
-                        .font(.caption.bold())
-                        .foregroundColor(Color.theme.darkNavy)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.theme.amber.opacity(0.9))
-                        .cornerRadius(AppRadius.small)
-                }
-
-                // Sign Up button
-                Button {
-                    Task { await authViewModel.signUp(email: email, password: password) }
-                } label: {
-                    if authViewModel.isLoading {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Text("Sign Up")
+                    Button {
+                        Task { await authViewModel.signUp(email: email, password: password) }
+                    } label: {
+                        if authViewModel.isLoading {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text("Create account")
+                        }
                     }
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(authViewModel.isLoading || !passwordsMatch || email.isEmpty)
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(authViewModel.isLoading || !passwordsMatch || email.isEmpty)
 
-                Spacer()
+                    Spacer(minLength: 40)
+                }
+                .padding(.horizontal, AppSpacing.lg)
             }
-            .padding()
         }
         .navigationBarTitleDisplayMode(.inline)
     }

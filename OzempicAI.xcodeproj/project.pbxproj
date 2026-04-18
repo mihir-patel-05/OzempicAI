@@ -49,6 +49,7 @@
 		6C1C7A2B2217555E2DE10287 /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F68592A9ACB97DAFC747C95 /* ExerciseViewModel.swift */; };
 		7102335A75DC73138A5F3322 /* MealPlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4BBCA4DE80CC664F1E42D7 /* MealPlanViewModel.swift */; };
 		71BFDF62726589F1DB05DB95 /* MacWeightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93FEFC85D2A253672041A689 /* MacWeightView.swift */; };
+		71E2C1EEAA8846A2E16BA204 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1910FAD45AF1174979F93B64 /* AccountView.swift */; };
 		76179802971E560A71260DA4 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F534E69959C6A8D4C51CA9 /* AuthViewModel.swift */; };
 		7A2A31A6CDDF71BF5FD84FA2 /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A6EAEAE7B1F5F7627011E72 /* ViewModifiers.swift */; };
 		7DF31685806C3D6FA82CD7DB /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE62CFEB683C43A24D7517CA /* AuthService.swift */; };
@@ -77,6 +78,8 @@
 		A1E2B1F36B12CC7CE714001D /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE62CFEB683C43A24D7517CA /* AuthService.swift */; };
 		A3339BBDA35332418CEFD68C /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F534E69959C6A8D4C51CA9 /* AuthViewModel.swift */; };
 		B293381514DCB662CFDCB4E2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8A3D83CE7E2BECCB40C11E7D /* Assets.xcassets */; };
+		B35DF28543F9AB567FD95FB5 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187B7270D8F9C58BEEC207C5 /* Components.swift */; };
+		BB2C6A6506BB87BB854899E5 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F36501958FCA9EE0E32D251 /* HomeView.swift */; };
 		BB4FB92E9489FA8163FA0F8A /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44B529D7DB3D9C6E2055272F /* Theme.swift */; };
 		C2B4903DE8490B7F68B848FA /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44B529D7DB3D9C6E2055272F /* Theme.swift */; };
 		C2DC1DD233CA2C07D6C72EA2 /* ExerciseLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9735EB01A5BA29365A26FD /* ExerciseLog.swift */; };
@@ -107,6 +110,9 @@
 		02FB611A0A0E839126E471C0 /* AddWorkoutPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWorkoutPlanView.swift; sourceTree = "<group>"; };
 		06B69C58B4DDAE253A36A136 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		0EF4723E6BD053B74F11EFA2 /* OzempicAIMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OzempicAIMac.entitlements; sourceTree = "<group>"; };
+		0F36501958FCA9EE0E32D251 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		187B7270D8F9C58BEEC207C5 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		1910FAD45AF1174979F93B64 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		1B4BBCA4DE80CC664F1E42D7 /* MealPlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPlanViewModel.swift; sourceTree = "<group>"; };
 		1E58633E13887BDC6E85598B /* WeekNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekNavigator.swift; sourceTree = "<group>"; };
 		1F68592A9ACB97DAFC747C95 /* ExerciseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
@@ -237,6 +243,7 @@
 			isa = PBXGroup;
 			children = (
 				4753D32E5B3D4CF8DFF9F345 /* DashboardView.swift */,
+				0F36501958FCA9EE0E32D251 /* HomeView.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -279,9 +286,18 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		6DD48E1264555875D2909FC9 /* Account */ = {
+			isa = PBXGroup;
+			children = (
+				1910FAD45AF1174979F93B64 /* AccountView.swift */,
+			);
+			path = Account;
+			sourceTree = "<group>";
+		};
 		715CFF7C1F85B548A7D37A9C /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				6DD48E1264555875D2909FC9 /* Account */,
 				49092AF5DE0B342385016EE5 /* Auth */,
 				46BE925B6785EDEC9E540ECD /* Calories */,
 				F09ED1E618C366CD55FFCD88 /* Components */,
@@ -459,6 +475,7 @@
 			isa = PBXGroup;
 			children = (
 				7779418811613AFB262AF001 /* CircularProgressView.swift */,
+				187B7270D8F9C58BEEC207C5 /* Components.swift */,
 				87332710B068BDB72973DE12 /* WaterWaveView.swift */,
 			);
 			path = Components;
@@ -625,6 +642,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				71E2C1EEAA8846A2E16BA204 /* AccountView.swift in Sources */,
 				502118B864C4F53AF339DCA9 /* AddMealView.swift in Sources */,
 				E940E1D4BEB5C1BB5C40E608 /* AddWorkoutPlanView.swift in Sources */,
 				7DF31685806C3D6FA82CD7DB /* AuthService.swift in Sources */,
@@ -633,6 +651,7 @@
 				0D39ED5B58638F413315EAB9 /* CalorieTrackerView.swift in Sources */,
 				015D8D10F8D5246B76578925 /* CalorieViewModel.swift in Sources */,
 				1566CCF67173E440D1063391 /* CircularProgressView.swift in Sources */,
+				B35DF28543F9AB567FD95FB5 /* Components.swift in Sources */,
 				C5E6FBBABB2AF020E5F8A445 /* Constants.swift in Sources */,
 				5866C812E9F147D28D10AA80 /* DashboardView.swift in Sources */,
 				858B61B8DFA37AF25F214829 /* DayLabel.swift in Sources */,
@@ -650,6 +669,7 @@
 				9379C518314A045ED2995286 /* HeartRateLog.swift in Sources */,
 				83A49BABAB3C9B9B48C3B7CB /* HeartRateView.swift in Sources */,
 				9A66C92B9787E454F60C9302 /* HeartRateViewModel.swift in Sources */,
+				BB2C6A6506BB87BB854899E5 /* HomeView.swift in Sources */,
 				670A1F7B31A3F5277BB82AEF /* LogExerciseView.swift in Sources */,
 				9DE4D07D095B8A6C1F68E3A8 /* LogMealView.swift in Sources */,
 				85C5818F084AD2FE3A42A42B /* LoginView.swift in Sources */,
