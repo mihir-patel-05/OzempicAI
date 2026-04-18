@@ -1,105 +1,127 @@
 import SwiftUI
 
 struct FastingView: View {
-    @StateObject private var viewModel = FastingViewModel()
+    @EnvironmentObject var viewModel: FastingViewModel
 
     private let presets = [12, 14, 16, 18, 20, 24]
     @State private var showStartTimePicker = false
 
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: AppSpacing.lg) {
-                    durationPicker
-                    startTimeSection
-                    fastingRing
-                    if viewModel.isActive || viewModel.isComplete {
-                        statsRow
-                    }
-                    if viewModel.isActive, let endTime = viewModel.endTime {
-                        endTimeCard(endTime)
-                    }
-                    if viewModel.isActive {
-                        phaseCard
-                    }
-                    actionButton
-                }
-                .padding(.horizontal)
-                .padding(.bottom, AppSpacing.lg)
-            }
-            .screenBackground()
-            .navigationTitle("Fasting")
-        }
+    private var subtitle: String {
+        if viewModel.isComplete { return "Complete" }
+        if viewModel.isActive   { return "In progress" }
+        return "Ready to start"
     }
 
-    // MARK: - Duration Picker
+    var body: some View {
+        ScrollView {
+            VStack(spacing: AppSpacing.md) {
+                ScreenHeader(title: "Fasting", subtitle: subtitle)
+                durationPicker
+                startTimeSection
+                fastingRing
+                if viewModel.isActive || viewModel.isComplete {
+                    statsRow
+                }
+                if viewModel.isActive, let endTime = viewModel.endTime {
+                    endTimeCard(endTime)
+                }
+                if viewModel.isActive {
+                    phaseCard
+                }
+                actionButton
+                Spacer(minLength: 40)
+            }
+            .padding(.bottom, 100)
+        }
+        .screenBackground()
+    }
+
+    // MARK: - Duration picker
 
     private var durationPicker: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            Text("Fast Duration")
-                .font(.subheadline.bold())
-                .foregroundColor(Color.theme.secondaryText)
-
-            HStack(spacing: AppSpacing.sm) {
+        VStack(alignment: .leading, spacing: 12) {
+            CapsLabel(text: "Fast duration")
+                .padding(.horizontal, 4)
+            HStack(spacing: 8) {
                 ForEach(presets, id: \.self) { hours in
                     Button {
                         viewModel.selectedHours = hours
                     } label: {
                         Text("\(hours)h")
-                            .font(.subheadline.bold())
+                            .font(AppFont.display(15, weight: .medium))
                             .foregroundColor(
-                                viewModel.selectedHours == hours ? .white : Color.theme.mediumBlue
+                                viewModel.selectedHours == hours
+                                    ? .white
+                                    : Color.theme.coffee
                             )
-                            .padding(.vertical, AppSpacing.sm)
                             .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
                             .background(
                                 viewModel.selectedHours == hours
-                                    ? Color.theme.mediumBlue
-                                    : Color.theme.mediumBlue.opacity(0.12)
+                                    ? AnyShapeStyle(
+                                        LinearGradient(
+                                            colors: [Color.theme.saffron, Color.theme.terracotta],
+                                            startPoint: .topLeading, endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    : AnyShapeStyle(Color.theme.creamDim)
                             )
                             .cornerRadius(AppRadius.small)
                     }
+                    .buttonStyle(.plain)
                     .disabled(viewModel.isActive)
                 }
             }
         }
-        .cardStyle()
+        .padding(AppSpacing.md)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 8, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
     }
 
-    // MARK: - Start Time
+    // MARK: - Start time
 
     private var startTimeSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            Text("Start Time")
-                .font(.subheadline.bold())
-                .foregroundColor(Color.theme.secondaryText)
+        VStack(alignment: .leading, spacing: 8) {
+            CapsLabel(text: "Start time")
+                .padding(.horizontal, 4)
 
             if viewModel.isComplete {
-                HStack {
-                    Image(systemName: "clock")
-                        .foregroundColor(Color.theme.mediumBlue)
+                HStack(spacing: 10) {
+                    Image(systemName: "clock.fill")
+                        .foregroundColor(Color.theme.terracotta)
                     Text(viewModel.customStartTime, style: .date)
                     Text(viewModel.customStartTime, style: .time)
                     Spacer()
                 }
-                .font(.subheadline)
-                .foregroundColor(Color.theme.primaryText)
+                .font(AppFont.ui(14, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+                .padding(AppSpacing.md)
+                .background(Color.theme.paper)
+                .cornerRadius(AppRadius.large)
+                .shadow(color: Color.theme.shadow, radius: 6, x: 0, y: 2)
             } else {
                 Button {
                     showStartTimePicker.toggle()
                 } label: {
-                    HStack {
-                        Image(systemName: "clock")
-                            .foregroundColor(Color.theme.mediumBlue)
+                    HStack(spacing: 10) {
+                        Image(systemName: "clock.fill")
+                            .foregroundColor(Color.theme.terracotta)
                         Text(viewModel.customStartTime, style: .date)
                         Text(viewModel.customStartTime, style: .time)
                         Spacer()
                         Image(systemName: "pencil")
-                            .foregroundColor(Color.theme.mediumBlue)
+                            .foregroundColor(Color.theme.coffee)
                     }
-                    .font(.subheadline)
-                    .foregroundColor(Color.theme.primaryText)
+                    .font(AppFont.ui(14, weight: .medium))
+                    .foregroundColor(Color.theme.espresso)
+                    .padding(AppSpacing.md)
+                    .background(Color.theme.paper)
+                    .cornerRadius(AppRadius.large)
+                    .shadow(color: Color.theme.shadow, radius: 6, x: 0, y: 2)
                 }
+                .buttonStyle(.plain)
 
                 if showStartTimePicker {
                     DatePicker(
@@ -118,73 +140,63 @@ struct FastingView: View {
                     )
                     .datePickerStyle(.graphical)
                     .labelsHidden()
+                    .accentColor(Color.theme.terracotta)
+                    .padding(AppSpacing.md)
+                    .background(Color.theme.paper)
+                    .cornerRadius(AppRadius.large)
+                    .shadow(color: Color.theme.shadow, radius: 6, x: 0, y: 2)
                 }
             }
         }
-        .cardStyle()
+        .padding(.horizontal, AppSpacing.md + 4)
     }
 
-    // MARK: - Fasting Ring
+    // MARK: - Ring
 
     private var fastingRing: some View {
         ZStack {
-            // Track
-            Circle()
-                .stroke(Color.theme.darkNavy.opacity(0.08), lineWidth: 22)
-
-            // Progress arc
-            Circle()
-                .trim(from: 0, to: viewModel.progress)
-                .stroke(
-                    LinearGradient(
-                        colors: viewModel.isComplete
-                            ? [Color.theme.amber, Color.theme.orange]
-                            : [Color.theme.mediumBlue, Color.theme.lightBlue],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    style: StrokeStyle(lineWidth: 22, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(.linear(duration: 1.0), value: viewModel.progress)
-
-            // Center content
-            VStack(spacing: AppSpacing.xs) {
+            ProgressRing(
+                progress: viewModel.progress,
+                size: 260,
+                lineWidth: 20,
+                gradient: viewModel.isComplete
+                    ? [Color.theme.amber, Color.theme.terracotta]
+                    : [Color.theme.saffron, Color.theme.terracotta]
+            )
+            VStack(spacing: 6) {
                 Image(systemName: centerIcon)
-                    .font(.title)
-                    .foregroundStyle(
-                        viewModel.isComplete ? Color.theme.amber : Color.theme.mediumBlue
+                    .font(.system(size: 26))
+                    .foregroundColor(
+                        viewModel.isComplete ? Color.theme.terracotta : Color.theme.saffron
                     )
-
                 if viewModel.isComplete {
                     Text("Done!")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundColor(Color.theme.primaryText)
+                        .font(AppFont.display(34, weight: .regular))
+                        .foregroundColor(Color.theme.espresso)
                     Text("\(viewModel.selectedHours)h fast complete")
-                        .font(.caption)
-                        .foregroundColor(Color.theme.secondaryText)
-                        .multilineTextAlignment(.center)
+                        .font(AppFont.ui(12))
+                        .foregroundColor(Color.theme.coffee)
                 } else if viewModel.isActive {
                     Text(viewModel.elapsedString)
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(Color.theme.primaryText)
+                        .font(AppFont.display(32, weight: .regular))
+                        .foregroundColor(Color.theme.espresso)
                         .monospacedDigit()
-                    Text("/ \(viewModel.selectedHours)h")
-                        .font(.subheadline)
-                        .foregroundColor(Color.theme.secondaryText)
+                        .kerning(-0.8)
+                    Text("of \(viewModel.selectedHours)h")
+                        .font(AppFont.ui(12))
+                        .foregroundColor(Color.theme.coffee)
                 } else {
                     Text("\(viewModel.selectedHours)h")
-                        .font(.system(size: 42, weight: .bold, design: .rounded))
-                        .foregroundColor(Color.theme.primaryText)
+                        .font(AppFont.display(48, weight: .regular))
+                        .foregroundColor(Color.theme.espresso)
                     Text("ready to start")
-                        .font(.caption)
-                        .foregroundColor(Color.theme.secondaryText)
+                        .font(AppFont.display(13, weight: .regular, italic: true))
+                        .foregroundColor(Color.theme.coffee)
                 }
             }
             .padding(AppSpacing.lg)
         }
-        .frame(width: 260, height: 260)
-        .padding(.vertical, AppSpacing.md)
+        .padding(.vertical, AppSpacing.sm)
     }
 
     private var centerIcon: String {
@@ -193,96 +205,99 @@ struct FastingView: View {
         return "moon.fill"
     }
 
-    // MARK: - Stats Row
+    // MARK: - Stats row
 
     private var statsRow: some View {
-        HStack(spacing: 0) {
-            statItem(label: "Elapsed", value: viewModel.elapsedString)
-            Divider().frame(height: 44)
-            statItem(label: "Remaining", value: viewModel.remainingString)
+        HStack(spacing: 12) {
+            statChip(label: "Elapsed", value: viewModel.elapsedString)
+            statChip(label: "Remaining", value: viewModel.remainingString)
         }
-        .cardStyle()
+        .padding(.horizontal, AppSpacing.md + 4)
     }
 
-    private func statItem(label: String, value: String) -> some View {
-        VStack(spacing: AppSpacing.xs) {
-            Text(label)
-                .font(.caption.bold())
-                .foregroundColor(Color.theme.secondaryText)
+    private func statChip(label: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            CapsLabel(text: label)
             Text(value)
-                .font(.system(.body, design: .monospaced).bold())
-                .foregroundColor(Color.theme.primaryText)
+                .font(AppFont.display(18, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+                .monospacedDigit()
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 6, x: 0, y: 2)
     }
 
-    // MARK: - End Time Card
+    // MARK: - End time / phase
 
     private func endTimeCard(_ endTime: Date) -> some View {
-        HStack(spacing: AppSpacing.md) {
-            Image(systemName: "bell.fill")
-                .font(.title2)
-                .foregroundStyle(Color.theme.mediumBlue)
-                .frame(width: 40)
-
-            VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text("Fast Ends At")
-                    .font(.caption.bold())
-                    .foregroundColor(Color.theme.secondaryText)
-                HStack(spacing: AppSpacing.xs) {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Color.theme.terracotta.opacity(0.15))
+                Image(systemName: "bell.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color.theme.terracotta)
+            }
+            .frame(width: 36, height: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                CapsLabel(text: "Fast ends at")
+                HStack(spacing: 6) {
                     Text(endTime, style: .date)
                     Text(endTime, style: .time)
                 }
-                .font(.headline)
-                .foregroundColor(Color.theme.primaryText)
+                .font(AppFont.ui(14, weight: .semibold))
+                .foregroundColor(Color.theme.espresso)
             }
             Spacer()
         }
-        .cardStyle()
+        .padding(14)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 6, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
     }
-
-    // MARK: - Phase Card
 
     private var phaseCard: some View {
-        HStack(spacing: AppSpacing.md) {
-            Image(systemName: viewModel.fastingPhaseIcon)
-                .font(.title2)
-                .foregroundStyle(Color.theme.mediumBlue)
-                .frame(width: 40)
-
-            VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text("Current Phase")
-                    .font(.caption.bold())
-                    .foregroundColor(Color.theme.secondaryText)
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Color.theme.saffron.opacity(0.15))
+                Image(systemName: viewModel.fastingPhaseIcon)
+                    .font(.system(size: 14))
+                    .foregroundColor(Color.theme.saffron)
+            }
+            .frame(width: 36, height: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                CapsLabel(text: "Current phase")
                 Text(viewModel.fastingPhase)
-                    .font(.headline)
-                    .foregroundColor(Color.theme.primaryText)
+                    .font(AppFont.ui(14, weight: .semibold))
+                    .foregroundColor(Color.theme.espresso)
             }
             Spacer()
         }
-        .cardStyle()
+        .padding(14)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 6, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
     }
 
-    // MARK: - Action Button
+    // MARK: - Action
 
     private var actionButton: some View {
         Group {
             if viewModel.isComplete {
-                Button("Start New Fast") {
-                    viewModel.resetAfterComplete()
-                }
-                .buttonStyle(PrimaryButtonStyle())
+                Button("Start new fast") { viewModel.resetAfterComplete() }
+                    .buttonStyle(PrimaryButtonStyle())
             } else if viewModel.isActive {
-                Button("Stop Fast") {
-                    viewModel.stopFast()
-                }
-                .buttonStyle(SecondaryButtonStyle())
+                Button("Stop fast") { viewModel.stopFast() }
+                    .buttonStyle(SecondaryButtonStyle())
             } else {
-                Button("Start \(viewModel.selectedHours)-Hour Fast") {
-                    viewModel.startFast()
-                }
-                .buttonStyle(PrimaryButtonStyle())
+                Button("Start \(viewModel.selectedHours)-hour fast") { viewModel.startFast() }
+                    .buttonStyle(PrimaryButtonStyle())
             }
         }
+        .padding(.horizontal, AppSpacing.md + 4)
     }
 }

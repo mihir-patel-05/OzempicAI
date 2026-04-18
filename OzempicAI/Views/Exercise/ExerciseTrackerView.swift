@@ -1,195 +1,264 @@
 import SwiftUI
 
 struct ExerciseTrackerView: View {
-    @StateObject private var viewModel = ExerciseViewModel()
+    @EnvironmentObject var viewModel: ExerciseViewModel
     @State private var showLogExercise = false
     @State private var exerciseToEdit: ExerciseLog?
 
+    private let burnTarget: Double = 500
+
     private func categoryIcon(for category: ExerciseLog.ExerciseCategory) -> String {
         switch category {
-        case .cardio: return "figure.run"
-        case .strength: return "figure.strengthtraining.traditional"
+        case .cardio:      return "figure.run"
+        case .strength:    return "figure.strengthtraining.traditional"
         case .flexibility: return "figure.mind.and.body"
-        case .sports: return "sportscourt.fill"
-        case .other: return "ellipsis.circle.fill"
+        case .sports:      return "sportscourt.fill"
+        case .other:       return "ellipsis.circle.fill"
         }
     }
 
     private func categoryColor(for category: ExerciseLog.ExerciseCategory) -> Color {
         switch category {
-        case .cardio: return Color.theme.orange
-        case .strength: return Color.theme.amber
-        case .flexibility: return Color.theme.mediumBlue
-        case .sports: return Color.theme.mediumBlue
-        case .other: return Color.theme.lightBlue
+        case .cardio:      return Color.theme.ember
+        case .strength:    return Color.theme.terracotta
+        case .flexibility: return Color.theme.sage
+        case .sports:      return Color.theme.saffron
+        case .other:       return Color.theme.plum
         }
     }
 
+    private var progress: Double {
+        min(Double(viewModel.totalCaloriesBurnedToday) / burnTarget, 1.0)
+    }
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: AppSpacing.lg) {
-                    // Hero: progress ring
-                    ZStack {
-                        CircularProgressView(
-                            progress: min(Double(viewModel.totalCaloriesBurnedToday) / 500.0, 1.0),
-                            size: 180,
-                            lineWidth: 18,
-                            progressColor: Color.theme.orange
-                        )
+        ScrollView {
+            VStack(spacing: AppSpacing.md) {
+                ScreenHeader(title: "Exercise", subtitle: "Movement") {
+                    showLogExercise = true
+                }
 
-                        VStack(spacing: AppSpacing.xs) {
-                            Image(systemName: "flame.fill")
-                                .font(.title2)
-                                .foregroundStyle(Color.theme.orange)
+                if let error = viewModel.errorMessage {
+                    errorBanner(error)
+                        .padding(.horizontal, AppSpacing.md + 4)
+                }
 
-                            Text("\(viewModel.totalCaloriesBurnedToday)")
-                                .font(.system(size: 36, weight: .bold, design: .rounded))
-                                .foregroundColor(Color.theme.primaryText)
+                heroCard
+                importCard
+                if viewModel.logs.isEmpty {
+                    emptyState
+                } else {
+                    history
+                }
+                Spacer(minLength: 40)
+            }
+            .padding(.bottom, 100)
+        }
+        .screenBackground()
+        .sheet(isPresented: $showLogExercise) {
+            LogExerciseView(viewModel: viewModel)
+        }
+        .sheet(item: $exerciseToEdit) { log in
+            LogExerciseView(viewModel: viewModel, existingLog: log)
+        }
+        .task {
+            await viewModel.requestHealthKitAccess()
+            await viewModel.loadLogs()
+        }
+    }
 
-                            Text("cal burned")
-                                .font(.subheadline)
-                                .foregroundColor(Color.theme.secondaryText)
-                        }
-                    }
-                    .padding(.top, AppSpacing.lg)
+    // MARK: - Hero
 
-                    // Import from Apple Watch
-                    Button {
-                        Task { await viewModel.syncFromHealthKit() }
-                    } label: {
-                        HStack(spacing: AppSpacing.sm) {
-                            if viewModel.isSyncing {
-                                ProgressView()
-                                    .tint(Color.theme.mediumBlue)
-                            } else {
-                                Image(systemName: "applewatch.radiowaves.left.and.right")
-                            }
-                            Text("Import from Apple Watch")
-                                .font(.subheadline.bold())
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, AppSpacing.sm)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(Color.theme.mediumBlue)
-                    .disabled(viewModel.isSyncing)
+    private var heroCard: some View {
+        VStack(spacing: AppSpacing.md) {
+            ZStack {
+                ProgressRing(
+                    progress: progress,
+                    size: 220,
+                    lineWidth: 16,
+                    gradient: [Color.theme.terracotta, Color.theme.ember]
+                )
+                VStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(Color.theme.ember)
+                    Text("\(viewModel.totalCaloriesBurnedToday)")
+                        .font(AppFont.display(52, weight: .regular))
+                        .foregroundColor(Color.theme.espresso)
+                        .kerning(-1)
+                    Text("cal burned")
+                        .font(AppFont.ui(13))
+                        .foregroundColor(Color.theme.coffee)
+                }
+            }
+            Text("target \(Int(burnTarget)) cal today")
+                .font(AppFont.display(14, weight: .regular, italic: true))
+                .foregroundColor(Color.theme.terracottaDeep)
+        }
+        .padding(.vertical, AppSpacing.lg)
+        .frame(maxWidth: .infinity)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 10, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
 
-                    // History
-                    if viewModel.logs.isEmpty {
-                        VStack(spacing: AppSpacing.sm) {
-                            Image(systemName: "figure.run.circle")
-                                .font(.system(size: 44))
-                                .foregroundStyle(Color.theme.lightBlue)
-                            Text("No exercises logged yet")
-                                .font(.subheadline)
-                                .foregroundColor(Color.theme.secondaryText)
-                        }
-                        .padding(.top, AppSpacing.xl)
+    private var importCard: some View {
+        Button {
+            Task { await viewModel.syncFromHealthKit() }
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(Color.theme.terracotta.opacity(0.12))
+                    if viewModel.isSyncing {
+                        ProgressView().tint(Color.theme.terracotta).scaleEffect(0.7)
                     } else {
-                        VStack(spacing: AppSpacing.sm) {
-                            HStack {
-                                Text("History")
-                                    .font(.headline)
-                                    .foregroundColor(Color.theme.primaryText)
-                                Spacer()
-                            }
-
-                            ForEach(viewModel.logs) { log in
-                                HStack(spacing: AppSpacing.md) {
-                                    // Category icon
-                                    Image(systemName: categoryIcon(for: log.category))
-                                        .font(.title3)
-                                        .foregroundStyle(categoryColor(for: log.category))
-                                        .frame(width: 36, height: 36)
-                                        .background(categoryColor(for: log.category).opacity(0.12))
-                                        .clipShape(Circle())
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(log.exerciseName)
-                                            .font(.subheadline.bold())
-                                            .foregroundColor(Color.theme.primaryText)
-
-                                        HStack(spacing: 4) {
-                                            if log.source == .healthkit {
-                                                Image(systemName: "applewatch")
-                                                    .foregroundColor(Color.theme.mediumBlue)
-                                            }
-                                            Text(log.category.rawValue.capitalized)
-                                            Text("·")
-                                            Text("\(log.durationMinutes) min")
-                                            Text("·")
-                                            Text("\(log.caloriesBurned) cal")
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(Color.theme.secondaryText)
-
-                                        if log.category == .strength,
-                                           let sets = log.sets,
-                                           let reps = log.repsPerSet {
-                                            HStack(spacing: 4) {
-                                                Text("\(sets) sets × \(reps) reps")
-                                                if let weight = log.weight {
-                                                    Text("·")
-                                                    Text("\(weight, specifier: "%g") \(log.weightUnit?.rawValue ?? "lb")")
-                                                }
-                                            }
-                                            .font(.caption)
-                                            .foregroundColor(Color.theme.mediumBlue)
-                                        }
-                                    }
-
-                                    if log.source != .healthkit {
-                                        HStack(spacing: AppSpacing.sm) {
-                                            Button {
-                                                exerciseToEdit = log
-                                            } label: {
-                                                Image(systemName: "pencil")
-                                                    .font(.caption)
-                                                    .foregroundStyle(Color.theme.mediumBlue)
-                                            }
-                                            .buttonStyle(.plain)
-
-                                            Button {
-                                                Task { await viewModel.deleteLog(log) }
-                                            } label: {
-                                                Image(systemName: "trash")
-                                                    .font(.caption)
-                                                    .foregroundStyle(.red.opacity(0.7))
-                                            }
-                                            .buttonStyle(.plain)
-                                        }
-                                    }
-                                }
-                                .cardStyle()
-                            }
-                        }
+                        Image(systemName: "applewatch.radiowaves.left.and.right")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Color.theme.terracotta)
                     }
                 }
-                .padding(.horizontal)
-                .padding(.bottom, AppSpacing.lg)
-            }
-            .screenBackground()
-            .navigationTitle("Exercise")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { showLogExercise = true } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(Color.theme.orange)
-                            .font(.title3)
-                    }
+                .frame(width: 36, height: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Import from Apple Watch")
+                        .font(AppFont.ui(14, weight: .semibold))
+                        .foregroundColor(Color.theme.espresso)
+                    Text("Sync workouts from HealthKit")
+                        .font(AppFont.ui(12))
+                        .foregroundColor(Color.theme.dust)
                 }
+                Spacer()
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(Color.theme.terracotta)
             }
-            .sheet(isPresented: $showLogExercise) {
-                LogExerciseView(viewModel: viewModel)
-            }
-            .sheet(item: $exerciseToEdit) { log in
-                LogExerciseView(viewModel: viewModel, existingLog: log)
-            }
-            .task {
-                await viewModel.requestHealthKitAccess()
-                await viewModel.loadLogs()
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.theme.paper)
+            .cornerRadius(AppRadius.large)
+            .shadow(color: Color.theme.shadow, radius: 8, x: 0, y: 2)
+        }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isSyncing)
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "figure.run.circle")
+                .font(.system(size: 44))
+                .foregroundColor(Color.theme.dust)
+            Text("No exercises logged yet")
+                .font(AppFont.display(18, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+            Text("Tap the + button to add one.")
+                .font(AppFont.ui(13))
+                .foregroundColor(Color.theme.coffee)
+        }
+        .padding(.vertical, 40)
+        .frame(maxWidth: .infinity)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 8, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    private var history: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("History")
+                .font(AppFont.display(20, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 10) {
+                ForEach(viewModel.logs) { log in
+                    historyRow(log)
+                }
             }
         }
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    private func historyRow(_ log: ExerciseLog) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(categoryColor(for: log.category).opacity(0.15))
+                Image(systemName: categoryIcon(for: log.category))
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(categoryColor(for: log.category))
+            }
+            .frame(width: 38, height: 38)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(log.exerciseName)
+                    .font(AppFont.ui(14, weight: .semibold))
+                    .foregroundColor(Color.theme.espresso)
+                HStack(spacing: 4) {
+                    if log.source == .healthkit {
+                        Image(systemName: "applewatch").font(.caption2)
+                            .foregroundColor(Color.theme.terracotta)
+                    }
+                    Text(log.category.rawValue.capitalized)
+                    Text("·")
+                    Text("\(log.durationMinutes) min")
+                    Text("·")
+                    Text("\(log.caloriesBurned) cal")
+                }
+                .font(AppFont.ui(11))
+                .foregroundColor(Color.theme.dust)
+
+                if log.category == .strength,
+                   let sets = log.sets, let reps = log.repsPerSet {
+                    HStack(spacing: 4) {
+                        Text("\(sets) × \(reps) reps")
+                        if let weight = log.weight {
+                            Text("·")
+                            Text("\(weight, specifier: "%g") \(log.weightUnit?.rawValue ?? "lb")")
+                        }
+                    }
+                    .font(AppFont.ui(11, weight: .medium))
+                    .foregroundColor(Color.theme.terracottaDeep)
+                }
+            }
+
+            Spacer()
+
+            if log.source != .healthkit {
+                HStack(spacing: 8) {
+                    Button { exerciseToEdit = log } label: {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color.theme.coffee)
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        Task { await viewModel.deleteLog(log) }
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color.theme.ember.opacity(0.8))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(AppSpacing.md)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 6, x: 0, y: 2)
+    }
+
+    private func errorBanner(_ text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(Color.theme.ember)
+            Text(text)
+                .font(AppFont.ui(13, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.theme.ember.opacity(0.12))
+        .cornerRadius(AppRadius.small)
     }
 }

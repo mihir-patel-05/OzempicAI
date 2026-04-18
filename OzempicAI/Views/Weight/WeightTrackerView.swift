@@ -2,105 +2,102 @@ import SwiftUI
 import Charts
 
 struct WeightTrackerView: View {
-    @StateObject private var viewModel = WeightViewModel()
+    @EnvironmentObject var viewModel: WeightViewModel
     @State private var showLogSheet = false
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: AppSpacing.lg) {
-
-                    // Error banner
-                    if let error = viewModel.errorMessage {
-                        HStack(spacing: AppSpacing.sm) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                            Text(error)
-                        }
-                        .font(.caption.bold())
-                        .foregroundColor(Color.theme.darkNavy)
-                        .padding(AppSpacing.sm)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.theme.amber.opacity(0.2))
-                        .cornerRadius(AppRadius.small)
-                    }
-
-                    // Stats card — only when at least 1 entry
-                    if let latest = viewModel.latestWeight {
-                        statsCard(latest: latest)
-                    }
-
-                    // Chart or placeholder
-                    if viewModel.canShowChart {
-                        chartCard
-                    } else {
-                        chartPlaceholder
-                    }
-
-                    // Entries list
-                    if !viewModel.logs.isEmpty {
-                        entriesList
-                    }
+        ScrollView {
+            VStack(spacing: AppSpacing.md) {
+                ScreenHeader(title: "Weight", subtitle: "Body") {
+                    showLogSheet = true
                 }
-                .padding(.horizontal)
-                .padding(.bottom, AppSpacing.lg)
-            }
-            .screenBackground()
-            .navigationTitle("Weight")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showLogSheet = true
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(Color.theme.mediumBlue)
-                            .font(.title3)
-                    }
+
+                if let error = viewModel.errorMessage {
+                    errorBanner(error)
+                        .padding(.horizontal, AppSpacing.md + 4)
                 }
+
+                if let latest = viewModel.latestWeight {
+                    statsCard(latest: latest)
+                } else {
+                    emptyStatsCard
+                }
+
+                if viewModel.canShowChart {
+                    chartCard
+                } else {
+                    chartPlaceholder
+                }
+
+                if !viewModel.logs.isEmpty {
+                    entriesList
+                }
+
+                Spacer(minLength: 40)
             }
-            .sheet(isPresented: $showLogSheet) {
-                LogWeightView(viewModel: viewModel)
-            }
-            .task { await viewModel.loadLogs() }
+            .padding(.bottom, 100)
         }
+        .screenBackground()
+        .sheet(isPresented: $showLogSheet) {
+            LogWeightView(viewModel: viewModel)
+        }
+        .task { await viewModel.loadLogs() }
     }
 
-    // MARK: - Stats Card
+    // MARK: - Stats card
 
     private func statsCard(latest: WeightLog) -> some View {
-        VStack(spacing: AppSpacing.sm) {
-            HStack(alignment: .bottom, spacing: AppSpacing.xs) {
-                Image(systemName: "scalemass.fill")
-                    .font(.title2)
-                    .foregroundStyle(Color.theme.mediumBlue)
-
+        VStack(spacing: 10) {
+            HStack(alignment: .lastTextBaseline, spacing: 6) {
                 Text(String(format: "%.1f", latest.weightKg))
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundColor(Color.theme.primaryText)
-
+                    .font(AppFont.display(56, weight: .regular))
+                    .foregroundColor(Color.theme.espresso)
+                    .kerning(-1.2)
                 Text("kg")
-                    .font(.title2)
-                    .foregroundColor(Color.theme.secondaryText)
-                    .padding(.bottom, 6)
+                    .font(AppFont.ui(16, weight: .medium))
+                    .foregroundColor(Color.theme.coffee)
+                    .padding(.bottom, 4)
             }
-
             if viewModel.logs.count >= 2 {
                 trendRow
             }
-
             Text("Last logged \(latest.loggedAt.formatted(.relative(presentation: .named)))")
-                .font(.caption)
-                .foregroundColor(Color.theme.secondaryText)
+                .font(AppFont.ui(12))
+                .foregroundColor(Color.theme.dust)
         }
         .frame(maxWidth: .infinity)
-        .cardStyle()
+        .padding(.vertical, AppSpacing.lg)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 10, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    private var emptyStatsCard: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "scalemass.fill")
+                .font(.system(size: 32))
+                .foregroundColor(Color.theme.dust)
+            Text("No weigh-ins yet")
+                .font(AppFont.display(18, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+            Text("Tap + to log your first.")
+                .font(AppFont.ui(13))
+                .foregroundColor(Color.theme.coffee)
+        }
+        .padding(.vertical, AppSpacing.xl)
+        .frame(maxWidth: .infinity)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 10, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
     }
 
     private var trendRow: some View {
-        HStack(spacing: AppSpacing.xs) {
-            Image(systemName: trendIcon)
-                .foregroundStyle(trendColor)
+        HStack(spacing: 6) {
+            Image(systemName: trendIcon).foregroundColor(trendColor)
             Text(trendLabel)
-                .font(.subheadline.bold())
+                .font(AppFont.ui(13, weight: .semibold))
                 .foregroundColor(trendColor)
         }
     }
@@ -115,9 +112,9 @@ struct WeightTrackerView: View {
 
     private var trendColor: Color {
         switch viewModel.trend {
-        case .losing:  return Color.theme.mediumBlue
-        case .gaining: return Color.theme.orange
-        case .stable:  return Color.theme.secondaryText
+        case .losing:  return Color.theme.sageDeep
+        case .gaining: return Color.theme.ember
+        case .stable:  return Color.theme.coffee
         }
     }
 
@@ -133,10 +130,14 @@ struct WeightTrackerView: View {
     // MARK: - Chart
 
     private var chartCard: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            Text("Weight Progress")
-                .font(.headline)
-                .foregroundColor(Color.theme.primaryText)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Progress")
+                    .font(AppFont.display(20, weight: .medium))
+                    .foregroundColor(Color.theme.espresso)
+                Spacer()
+                CapsLabel(text: "\(viewModel.logs.count) entries")
+            }
 
             Chart {
                 ForEach(viewModel.logs) { log in
@@ -146,9 +147,8 @@ struct WeightTrackerView: View {
                     )
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color.theme.mediumBlue.opacity(0.25), Color.theme.mediumBlue.opacity(0.0)],
-                            startPoint: .top,
-                            endPoint: .bottom
+                            colors: [Color.theme.terracotta.opacity(0.28), Color.theme.terracotta.opacity(0)],
+                            startPoint: .top, endPoint: .bottom
                         )
                     )
 
@@ -156,7 +156,7 @@ struct WeightTrackerView: View {
                         x: .value("Date", log.loggedAt),
                         y: .value("kg", log.weightKg)
                     )
-                    .foregroundStyle(Color.theme.mediumBlue)
+                    .foregroundStyle(Color.theme.terracotta)
                     .lineStyle(StrokeStyle(lineWidth: 2.5))
                     .interpolationMethod(.catmullRom)
 
@@ -164,7 +164,7 @@ struct WeightTrackerView: View {
                         x: .value("Date", log.loggedAt),
                         y: .value("kg", log.weightKg)
                     )
-                    .foregroundStyle(Color.theme.mediumBlue)
+                    .foregroundStyle(Color.theme.terracotta)
                     .symbolSize(40)
                 }
             }
@@ -172,81 +172,104 @@ struct WeightTrackerView: View {
             .chartXAxis {
                 AxisMarks(values: .automatic) {
                     AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-                        .foregroundStyle(Color.theme.secondaryText)
-                    AxisGridLine()
+                        .foregroundStyle(Color.theme.coffee)
+                    AxisGridLine().foregroundStyle(Color.theme.divider)
                 }
             }
             .chartYAxis {
                 AxisMarks {
-                    AxisValueLabel()
-                        .foregroundStyle(Color.theme.secondaryText)
-                    AxisGridLine()
+                    AxisValueLabel().foregroundStyle(Color.theme.coffee)
+                    AxisGridLine().foregroundStyle(Color.theme.divider)
                 }
             }
         }
-        .cardStyle()
+        .padding(AppSpacing.md)
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 10, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
     }
 
-    // MARK: - Chart Placeholder
-
     private var chartPlaceholder: some View {
-        VStack(spacing: AppSpacing.md) {
+        VStack(spacing: 10) {
             Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.system(size: 40))
-                .foregroundStyle(Color.theme.mediumBlue.opacity(0.4))
-
-            Text("Log at least 2 weigh-ins to see your progress chart")
-                .font(.subheadline)
-                .foregroundColor(Color.theme.secondaryText)
+                .font(.system(size: 36))
+                .foregroundColor(Color.theme.dust)
+            Text("Log at least 2 weigh-ins to see your trend")
+                .font(AppFont.ui(13))
+                .foregroundColor(Color.theme.coffee)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, AppSpacing.xl)
-        .cardStyle()
+        .background(Color.theme.paper)
+        .cornerRadius(AppRadius.large)
+        .shadow(color: Color.theme.shadow, radius: 10, x: 0, y: 2)
+        .padding(.horizontal, AppSpacing.md + 4)
     }
 
-    // MARK: - Entries List
+    // MARK: - Entries list
 
     private var entriesList: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            Text("All Entries")
-                .font(.headline)
-                .foregroundColor(Color.theme.primaryText)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("All entries")
+                .font(AppFont.display(20, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+                .padding(.horizontal, 4)
 
-            // Show newest first
-            ForEach(viewModel.logs.reversed()) { log in
-                HStack {
-                    Image(systemName: "scalemass.fill")
-                        .foregroundStyle(Color.theme.mediumBlue)
-                        .font(.caption)
-
-                    Text(String(format: "%.1f kg", log.weightKg))
-                        .font(.subheadline.bold())
-                        .foregroundColor(Color.theme.primaryText)
-
-                    Spacer()
-
-                    Text(log.loggedAt, style: .date)
-                        .font(.caption)
-                        .foregroundColor(Color.theme.secondaryText)
-
-                    Button {
-                        Task { await viewModel.deleteLog(log) }
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.caption)
-                            .foregroundStyle(.red.opacity(0.7))
+            VStack(spacing: 0) {
+                let reversed = Array(viewModel.logs.reversed())
+                ForEach(Array(reversed.enumerated()), id: \.element.id) { idx, log in
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle().fill(Color.theme.terracotta.opacity(0.12))
+                            Image(systemName: "scalemass.fill")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color.theme.terracotta)
+                        }
+                        .frame(width: 32, height: 32)
+                        Text(String(format: "%.1f kg", log.weightKg))
+                            .font(AppFont.ui(14, weight: .semibold))
+                            .foregroundColor(Color.theme.espresso)
+                        Spacer()
+                        Text(log.loggedAt, style: .date)
+                            .font(AppFont.ui(12))
+                            .foregroundColor(Color.theme.dust)
+                        Button {
+                            Task { await viewModel.deleteLog(log) }
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color.theme.ember.opacity(0.8))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-                }
-                .padding(.vertical, AppSpacing.xs)
-
-                if log.id != viewModel.logs.first?.id {
-                    Divider()
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, 12)
+                    if idx < reversed.count - 1 {
+                        Divider().background(Color.theme.divider).padding(.leading, 60)
+                    }
                 }
             }
+            .background(Color.theme.paper)
+            .cornerRadius(AppRadius.large)
+            .shadow(color: Color.theme.shadow, radius: 8, x: 0, y: 2)
         }
-        .cardStyle()
+        .padding(.horizontal, AppSpacing.md + 4)
+    }
+
+    private func errorBanner(_ text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(Color.theme.ember)
+            Text(text)
+                .font(AppFont.ui(13, weight: .medium))
+                .foregroundColor(Color.theme.espresso)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.theme.ember.opacity(0.12))
+        .cornerRadius(AppRadius.small)
     }
 }
 
@@ -262,18 +285,15 @@ struct LogWeightView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: AppSpacing.lg) {
-                VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                    Text("Body Weight (kg)")
-                        .font(.subheadline.bold())
-                        .foregroundColor(Color.theme.secondaryText)
-
+                VStack(alignment: .leading, spacing: 8) {
+                    CapsLabel(text: "Body weight (kg)")
                     TextField("e.g. 75.5", text: $weightText)
                         .keyboardType(.decimalPad)
                         .textFieldStyle(ThemedTextFieldStyle())
                         .focused($isFocused)
                 }
 
-                Button("Log Weight") {
+                Button("Log weight") {
                     guard let kg = Double(weightText), kg > 0 else { return }
                     Task {
                         await viewModel.logWeight(kg)
@@ -286,7 +306,8 @@ struct LogWeightView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Log Weight")
+            .screenBackground()
+            .navigationTitle("Log weight")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
