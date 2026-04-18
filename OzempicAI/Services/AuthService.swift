@@ -45,6 +45,57 @@ class AuthService {
             try await client.from("users").insert(NewUser(id: userId, email: email)).execute()
         }
     }
+
+    func fetchUserProfile() async throws -> User {
+        let userId = try await client.auth.session.user.id
+        let rows: [User] = try await client
+            .from("users")
+            .select()
+            .eq("id", value: userId.uuidString)
+            .limit(1)
+            .execute()
+            .value
+        guard let user = rows.first else {
+            throw NSError(domain: "AuthService", code: 404,
+                          userInfo: [NSLocalizedDescriptionKey: "User profile not found"])
+        }
+        return user
+    }
+
+    func updateUserProfile(
+        name: String,
+        age: Int?,
+        heightCm: Double?,
+        weightKg: Double?,
+        dailyCalorieGoal: Int,
+        dailyWaterGoalMl: Int
+    ) async throws -> User {
+        let userId = try await client.auth.session.user.id
+
+        struct ProfileUpdate: Encodable {
+            let name: String
+            let age: Int?
+            let height_cm: Double?
+            let weight_kg: Double?
+            let daily_calorie_goal: Int
+            let daily_water_goal_ml: Int
+        }
+
+        try await client
+            .from("users")
+            .update(ProfileUpdate(
+                name: name,
+                age: age,
+                height_cm: heightCm,
+                weight_kg: weightKg,
+                daily_calorie_goal: dailyCalorieGoal,
+                daily_water_goal_ml: dailyWaterGoalMl
+            ))
+            .eq("id", value: userId.uuidString)
+            .execute()
+
+        return try await fetchUserProfile()
+    }
 }
 
 /// Minimal struct just for the existence check query

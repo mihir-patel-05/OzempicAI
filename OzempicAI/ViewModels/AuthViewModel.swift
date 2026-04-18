@@ -6,8 +6,21 @@ class AuthViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var needsEmailConfirmation = false
+    @Published var currentUser: User?
 
     private let authService = AuthService()
+
+    var avatarInitial: String {
+        if let name = currentUser?.name.trimmingCharacters(in: .whitespacesAndNewlines),
+           let first = name.first, !name.isEmpty {
+            return String(first).uppercased()
+        }
+        if let email = currentUser?.email.trimmingCharacters(in: .whitespacesAndNewlines),
+           let first = email.first {
+            return String(first).uppercased()
+        }
+        return "?"
+    }
 
     func signIn(email: String, password: String) async {
         isLoading = true
@@ -16,6 +29,7 @@ class AuthViewModel: ObservableObject {
             try await authService.signIn(email: email, password: password)
             // Ensure user profile exists — don't block login if this fails
             try? await authService.ensureUserProfile()
+            await loadProfile()
             isAuthenticated = true
             needsEmailConfirmation = false
         } catch {
@@ -43,6 +57,7 @@ class AuthViewModel: ObservableObject {
             if session.user.emailConfirmedAt != nil {
                 // Ensure user profile exists on session restore too
                 try? await authService.ensureUserProfile()
+                await loadProfile()
                 isAuthenticated = true
             }
         }
@@ -53,6 +68,40 @@ class AuthViewModel: ObservableObject {
         try? await authService.signOut()
         isAuthenticated = false
         needsEmailConfirmation = false
+        currentUser = nil
+    }
+
+    func loadProfile() async {
+        do {
+            currentUser = try await authService.fetchUserProfile()
+        } catch {
+            // Non-blocking — avatar falls back to email initial
+        }
+    }
+
+    func updateProfile(
+        name: String,
+        age: Int?,
+        heightCm: Double?,
+        weightKg: Double?,
+        dailyCalorieGoal: Int,
+        dailyWaterGoalMl: Int
+    ) async -> Bool {
+        errorMessage = nil
+        do {
+            currentUser = try await authService.updateUserProfile(
+                name: name,
+                age: age,
+                heightCm: heightCm,
+                weightKg: weightKg,
+                dailyCalorieGoal: dailyCalorieGoal,
+                dailyWaterGoalMl: dailyWaterGoalMl
+            )
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 
     func dismissConfirmation() {

@@ -32,11 +32,7 @@ struct HomeView: View {
         return f.string(from: Date())
     }
 
-    private var avatarInitial: String {
-        // Supabase auth's email may live in the session user rather than our own
-        // User model; fall back to a neutral glyph if we can't derive a letter.
-        "A"
-    }
+    private var avatarInitial: String { authVM.avatarInitial }
 
     private var waterLiters: String {
         String(format: "%.1fL", Double(waterVM.totalMlToday) / 1000.0)
@@ -95,20 +91,25 @@ struct HomeView: View {
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: AppSpacing.md) {
-                greetingRow
-                heroCard
-                statGrid
-                mealsSection
-                insightCard.padding(.horizontal, AppSpacing.md + 4)
-                Spacer(minLength: 40)
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: AppSpacing.md) {
+                    greetingRow
+                    heroCard
+                    statGrid
+                    mealsSection
+                    insightCard.padding(.horizontal, AppSpacing.md + 4)
+                    Spacer(minLength: 40)
+                }
+                .padding(.bottom, 100)
             }
-            .padding(.bottom, 100)
+            .screenBackground()
+            .navigationDestination(for: AccountDestination.self) { _ in
+                AccountView()
+            }
+            .task { await refresh() }
+            .refreshable { await refresh() }
         }
-        .screenBackground()
-        .task { await refresh() }
-        .refreshable { await refresh() }
     }
 
     private func refresh() async {
@@ -116,7 +117,8 @@ struct HomeView: View {
         async let b: () = waterVM.loadTodaysLogs()
         async let c: () = exerciseVM.loadLogs()
         async let d: () = weightVM.loadLogs()
-        _ = await (a, b, c, d)
+        async let e: () = authVM.loadProfile()
+        _ = await (a, b, c, d, e)
     }
 
     // MARK: - Sections
@@ -130,13 +132,17 @@ struct HomeView: View {
                     .foregroundColor(Color.theme.espresso)
             }
             Spacer()
-            ZStack {
-                LinearGradient(colors: [Color.theme.terracotta, Color.theme.amber],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .clipShape(Circle())
-                Text(avatarInitial).font(AppFont.display(17, weight: .medium)).foregroundColor(.white)
+            NavigationLink(value: AccountDestination.account) {
+                ZStack {
+                    LinearGradient(colors: [Color.theme.terracotta, Color.theme.amber],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                        .clipShape(Circle())
+                    Text(avatarInitial).font(AppFont.display(17, weight: .medium)).foregroundColor(.white)
+                }
+                .frame(width: 42, height: 42)
+                .shadow(color: Color.theme.terracotta.opacity(0.25), radius: 6, x: 0, y: 3)
             }
-            .frame(width: 42, height: 42)
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.top, AppSpacing.sm)
@@ -398,4 +404,8 @@ struct HomeView: View {
         }
         return "Small steps add up. Log a meal or a glass of water to get started."
     }
+}
+
+enum AccountDestination: Hashable {
+    case account
 }
