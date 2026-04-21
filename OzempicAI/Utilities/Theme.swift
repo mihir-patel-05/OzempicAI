@@ -147,3 +147,13 @@ enum AppFont {
         .system(size: size, weight: .semibold, design: .default)
     }
 }
+
+extension Font {
+    static func fraunces(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        Font.custom("Fraunces", size: size, relativeTo: .title).weight(weight)
+    }
+
+    static func inter(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        Font.custom("Inter", size: size, relativeTo: .body).weight(weight)
+    }
+}
