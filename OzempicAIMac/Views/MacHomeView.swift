@@ -8,6 +8,40 @@ struct MacHomeView: View {
     @StateObject private var calorieVM = CalorieViewModel()
     @StateObject private var waterVM = WaterViewModel()
     @StateObject private var weightVM = WeightViewModel()
+    @StateObject private var fastingVM = FastingViewModel()
+
+    private var remainingCalories: Int { max(calorieVM.dailyGoal - calorieVM.totalCalories, 0) }
+    private var calorieProgress: Double {
+        guard calorieVM.dailyGoal > 0 else { return 0 }
+        return min(Double(calorieVM.totalCalories) / Double(calorieVM.dailyGoal), 1.0)
+    }
+    private var calorieProgressPct: Int { Int((calorieProgress * 100).rounded()) }
+
+    private var waterValue: String {
+        String(format: "%.1fL", Double(waterVM.totalMlToday) / 1000.0)
+    }
+    private var waterGoalSub: String {
+        String(format: "of %.1fL", Double(waterVM.dailyGoalMl) / 1000.0)
+    }
+
+    private var weightValue: String {
+        guard let w = weightVM.latestWeight?.weightKg else { return "—" }
+        return String(format: "%.1f", w)
+    }
+    private var weightSub: String {
+        let delta = weightVM.trendDelta
+        guard weightVM.logs.count >= 2 else { return "kg" }
+        let sign = delta > 0 ? "+" : (delta < 0 ? "−" : "")
+        return String(format: "kg · %@%.1f last entry", sign, abs(delta))
+    }
+
+    private var fastingValue: String {
+        let total = Int(max(fastingVM.timeElapsed, 0))
+        return String(format: "%02d:%02d", total / 3600, (total % 3600) / 60)
+    }
+    private var fastingSub: String {
+        "of \(fastingVM.selectedHours)h · \(fastingVM.isActive ? "active" : "idle")"
+    }
 
     private var greeting: String {
         let h = Calendar.current.component(.hour, from: Date())
@@ -62,10 +96,16 @@ struct MacHomeView: View {
 
                 // Stat grid
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 4), spacing: 16) {
-                    MacStatCard(label: "Water", value: "1.4L", sub: "of 2.5L", color: Color.theme.sage, iconName: "drop.fill", progress: 0.58)
-                    MacStatCard(label: "Steps", value: "6,842", sub: "of 10,000", color: Color.theme.amber, iconName: "figure.walk", progress: 0.68)
-                    MacStatCard(label: "Weight", value: "74.2", sub: "kg · −0.4 this week", color: Color.theme.plum, iconName: "scalemass.fill", progress: 0.68)
-                    MacStatCard(label: "Fasting", value: "12:34", sub: "of 16h · active", color: Color.theme.saffron, iconName: "moon.fill", progress: 0.78)
+                    MacStatCard(label: "Water", value: waterValue, sub: waterGoalSub,
+                                color: Color.theme.sage, iconName: "drop.fill",
+                                progress: waterVM.progressFraction)
+                    MacStatCard(label: "Steps", value: "—", sub: "connect HealthKit",
+                                color: Color.theme.amber, iconName: "figure.walk")
+                    MacStatCard(label: "Weight", value: weightValue, sub: weightSub,
+                                color: Color.theme.plum, iconName: "scalemass.fill")
+                    MacStatCard(label: "Fasting", value: fastingValue, sub: fastingSub,
+                                color: Color.theme.saffron, iconName: "moon.fill",
+                                progress: fastingVM.progress)
                 }
 
                 // Today rows
@@ -77,6 +117,12 @@ struct MacHomeView: View {
             .padding(32)
         }
         .background(Color.theme.cream)
+        .task {
+            async let c: () = calorieVM.loadLogs()
+            async let w: () = waterVM.loadTodaysLogs()
+            async let wt: () = weightVM.loadLogs()
+            _ = await (c, w, wt)
+        }
     }
 
     private var heroCard: some View {
@@ -92,7 +138,7 @@ struct MacHomeView: View {
                             .font(.inter(11, weight: .semibold)).tracking(1.5)
                             .foregroundColor(.white.opacity(0.75))
                         HStack(alignment: .lastTextBaseline, spacing: 10) {
-                            Text("1,060").font(.fraunces(80, weight: .regular))
+                            Text("\(remainingCalories)").font(.fraunces(80, weight: .regular))
                             Text("cal remaining").font(.inter(16, weight: .regular))
                                 .foregroundColor(.white.opacity(0.75))
                         }
@@ -103,18 +149,18 @@ struct MacHomeView: View {
                     .foregroundColor(.white)
                     Spacer()
                     ZStack {
-                        MacRing(size: 96, stroke: 9, progress: 0.676,
+                        MacRing(size: 96, stroke: 9, progress: calorieProgress,
                                 gradient: [.white, .white],
                                 trackColor: .white.opacity(0.2))
-                        Text("68%").font(.inter(16, weight: .bold)).foregroundColor(.white)
+                        Text("\(calorieProgressPct)%").font(.inter(16, weight: .bold)).foregroundColor(.white)
                     }
                 }
                 Divider().background(.white.opacity(0.22)).padding(.vertical, 20)
                 HStack {
-                    heroStat("Eaten", "1,420 cal")
-                    heroStat("Burned", "380 cal")
-                    heroStat("Goal", "2,100 cal")
-                    heroStat("Net", "1,040 cal")
+                    heroStat("Eaten", "\(calorieVM.totalCalories) cal")
+                    heroStat("Burned", "—")
+                    heroStat("Goal", "\(calorieVM.dailyGoal) cal")
+                    heroStat("Net", "\(calorieVM.totalCalories) cal")
                 }
             }
             .padding(28)
