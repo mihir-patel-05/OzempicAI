@@ -111,6 +111,25 @@ struct MacCalorieOverview: View {
                                                 Text("\(log.calories) cal")
                                                     .font(.inter(11, weight: .medium))
                                                     .foregroundColor(Color.theme.dust)
+                                                Button {
+                                                    Task {
+                                                        await viewModel.deleteLog(log)
+                                                        await viewModel.loadWeekLogs(for: weekStart)
+                                                    }
+                                                } label: {
+                                                    Image(systemName: "xmark.circle.fill")
+                                                        .foregroundColor(Color.theme.dust)
+                                                }
+                                                .buttonStyle(.plain)
+                                                .help("Remove")
+                                            }
+                                            .contextMenu {
+                                                Button("Delete", role: .destructive) {
+                                                    Task {
+                                                        await viewModel.deleteLog(log)
+                                                        await viewModel.loadWeekLogs(for: weekStart)
+                                                    }
+                                                }
                                             }
                                         }
                                     }
