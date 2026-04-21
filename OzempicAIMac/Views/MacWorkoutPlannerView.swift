@@ -28,40 +28,32 @@ struct MacWorkoutPlannerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Weekly Workouts")
-                    .font(.title2)
-                    .fontWeight(.bold)
-
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(alignment: .bottom) {
+                MacPageHeader(title: "Workouts", subtitle: "This week", actionTitle: nil)
                 Spacer()
-
                 WeekNavigator(weekStart: $weekStart)
-
                 Spacer()
-
                 Button {
                     addingForDate = .now
                     showAddPopover = true
                 } label: {
                     Label("Add", systemImage: "plus")
+                        .font(.inter(13, weight: .semibold))
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.theme.terracotta)
             }
-            .padding()
+            .padding(.horizontal, 32).padding(.top, 32)
 
-            Divider()
-
-            // 7-day grid
-            HStack(spacing: 1) {
+            HStack(spacing: 8) {
                 ForEach(daysOfWeek, id: \.self) { day in
                     dayColumn(for: day)
                 }
             }
-            .padding(.horizontal)
-            .padding(.bottom)
+            .padding(.horizontal, 32).padding(.bottom, 32)
         }
-        .screenBackground()
+        .background(Color.theme.cream)
         .onChange(of: weekStart) { _ in
             Task {
                 await viewModel.loadWeeklyPlans(for: weekStart)
@@ -93,11 +85,11 @@ struct MacWorkoutPlannerView: View {
                 Text(date.formatted(.dateTime.weekday(.abbreviated)))
                     .font(.caption)
                     .fontWeight(.semibold)
-                    .foregroundColor(isToday ? Color.theme.mediumBlue : .secondary)
+                    .foregroundColor(isToday ? Color.theme.terracotta : .secondary)
                 Text(date.formatted(.dateTime.day()))
                     .font(.title3)
                     .fontWeight(isToday ? .bold : .regular)
-                    .foregroundColor(isToday ? Color.theme.mediumBlue : .primary)
+                    .foregroundColor(isToday ? Color.theme.terracotta : .primary)
             }
             .padding(.vertical, 8)
 
@@ -134,13 +126,13 @@ struct MacWorkoutPlannerView: View {
                 showAddPopover = true
             } label: {
                 Image(systemName: "plus.circle")
-                    .foregroundColor(Color.theme.mediumBlue)
+                    .foregroundColor(Color.theme.terracotta)
             }
             .buttonStyle(.plain)
             .padding(.bottom, 8)
         }
         .frame(maxWidth: .infinity)
-        .background(isToday ? Color.theme.mediumBlue.opacity(0.05) : Color.clear)
+        .background(isToday ? Color.theme.terracotta.opacity(0.05) : Color.clear)
         .cornerRadius(AppRadius.small)
     }
     @ViewBuilder
@@ -170,7 +162,7 @@ struct MacWorkoutPlannerView: View {
         } else {
             Text(savedLabel ?? "Rest Day")
                 .font(.caption)
-                .foregroundColor(savedLabel != nil ? Color.theme.mediumBlue : .secondary)
+                .foregroundColor(savedLabel != nil ? Color.theme.terracotta : .secondary)
                 .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -243,7 +235,7 @@ private struct AddWorkoutSheet: View {
                                 suggestions = []
                             }
                             .buttonStyle(.plain)
-                            .foregroundColor(Color.theme.mediumBlue)
+                            .foregroundColor(Color.theme.terracotta)
                         }
                     }
                 }

@@ -44,28 +44,18 @@ struct MacCalorieOverview: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Calories This Week")
-                    .font(.title2)
-                    .fontWeight(.bold)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(alignment: .bottom) {
+                    MacPageHeader(title: "Nutrition", subtitle: "Calories this week", actionTitle: nil)
+                    Spacer()
+                    Text("Goal: \(viewModel.dailyGoal)/day")
+                        .font(.inter(12, weight: .semibold))
+                        .foregroundColor(Color.theme.coffee)
+                    WeekNavigator(weekStart: $weekStart)
+                }
 
-                Spacer()
-
-                Text("Goal: \(viewModel.dailyGoal)/day")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                WeekNavigator(weekStart: $weekStart)
-            }
-            .padding()
-
-            Divider()
-
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Bar chart
+                MacCard {
                     Chart {
                         ForEach(daysOfWeek, id: \.self) { day in
                             BarMark(
@@ -74,96 +64,83 @@ struct MacCalorieOverview: View {
                             )
                             .foregroundStyle(
                                 dailyTotal(for: day) > viewModel.dailyGoal
-                                    ? Color.theme.orange
-                                    : Color.theme.mediumBlue
+                                    ? Color.theme.ember
+                                    : Color.theme.terracotta
                             )
                         }
-
                         RuleMark(y: .value("Goal", viewModel.dailyGoal))
-                            .foregroundStyle(Color.theme.amber)
+                            .foregroundStyle(Color.theme.saffron)
                             .lineStyle(StrokeStyle(dash: [5, 5]))
                             .annotation(position: .trailing) {
                                 Text("Goal")
-                                    .font(.caption2)
-                                    .foregroundColor(Color.theme.amber)
+                                    .font(.inter(10, weight: .semibold))
+                                    .foregroundColor(Color.theme.saffron)
                             }
                     }
                     .frame(height: 220)
-                    .chartYAxis {
-                        AxisMarks(position: .leading)
-                    }
-                    .padding()
-                    .cardStyle()
+                    .chartYAxis { AxisMarks(position: .leading) }
+                }
 
-                    // Bottom section: Today's log + Quick add
-                    HStack(alignment: .top, spacing: 16) {
-                        // Day breakdown
+                HStack(alignment: .top, spacing: 16) {
+                    MacCard {
                         VStack(alignment: .leading, spacing: 12) {
                             Text(displayDay.formatted(.dateTime.weekday(.wide).month().day()))
-                                .font(.headline)
+                                .font(.fraunces(18, weight: .medium))
+                                .foregroundColor(Color.theme.espresso)
 
                             let mealTypes: [CalorieLog.MealType] = [.breakfast, .lunch, .dinner, .snack]
                             ForEach(mealTypes, id: \.self) { type in
                                 let meals = displayDayLogsByMeal[type] ?? []
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(mealTypeLabel(type))
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.secondary)
-
+                                    Text(mealTypeLabel(type).uppercased())
+                                        .font(.inter(10, weight: .bold))
+                                        .tracking(1.0)
+                                        .foregroundColor(Color.theme.coffee)
                                     if meals.isEmpty {
                                         Text("(nothing logged)")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .font(.inter(12))
+                                            .foregroundColor(Color.theme.dust)
                                             .italic()
                                     } else {
                                         ForEach(meals) { log in
                                             HStack {
                                                 Text(log.foodName)
-                                                    .font(.body)
+                                                    .font(.inter(13))
+                                                    .foregroundColor(Color.theme.espresso)
                                                 Spacer()
                                                 Text("\(log.calories) cal")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
+                                                    .font(.inter(11, weight: .medium))
+                                                    .foregroundColor(Color.theme.dust)
                                             }
                                         }
                                     }
                                 }
                             }
-
-                            Divider()
-
+                            Divider().background(Color.theme.divider)
                             HStack {
-                                Text("Total")
-                                    .fontWeight(.semibold)
+                                Text("Total").font(.inter(13, weight: .semibold))
+                                    .foregroundColor(Color.theme.espresso)
                                 Spacer()
                                 Text("\(displayDayLogs.reduce(0) { $0 + $1.calories }) / \(viewModel.dailyGoal)")
-                                    .fontWeight(.semibold)
+                                    .font(.fraunces(16, weight: .medium))
+                                    .foregroundColor(Color.theme.espresso)
                             }
                         }
-                        .padding()
-                        .cardStyle()
-                        .frame(maxWidth: .infinity)
+                    }
+                    .frame(maxWidth: .infinity)
 
-                        // Quick add form
+                    MacCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Quick Add")
-                                .font(.headline)
-
-                            TextField("Food", text: $foodName)
-                                .textFieldStyle(.roundedBorder)
-
-                            TextField("Calories", text: $calories)
-                                .textFieldStyle(.roundedBorder)
-
+                            MacSectionTitle(text: "Quick add")
+                            TextField("Food", text: $foodName).textFieldStyle(.roundedBorder)
+                            TextField("Calories", text: $calories).textFieldStyle(.roundedBorder)
                             Picker("Meal", selection: $mealType) {
                                 ForEach([CalorieLog.MealType.breakfast, .lunch, .dinner, .snack], id: \.self) { type in
                                     Text(type.rawValue.capitalized).tag(type)
                                 }
                             }
                             .pickerStyle(.segmented)
-
-                            Button("Log Food") {
+                            Button("Log food") {
                                 Task {
                                     await viewModel.logFood(
                                         name: foodName,
@@ -177,19 +154,16 @@ struct MacCalorieOverview: View {
                                 }
                             }
                             .buttonStyle(.borderedProminent)
-                            .tint(Color.theme.ctaButton)
+                            .tint(Color.theme.terracotta)
                             .disabled(foodName.isEmpty || calories.isEmpty)
                         }
-                        .padding()
-                        .cardStyle()
-                        .frame(maxWidth: 300)
                     }
-                    .padding(.horizontal)
+                    .frame(maxWidth: 320)
                 }
-                .padding(.bottom)
             }
+            .padding(32)
         }
-        .screenBackground()
+        .background(Color.theme.cream)
         .onChange(of: weekStart) { _ in
             Task { await viewModel.loadWeekLogs(for: weekStart) }
         }

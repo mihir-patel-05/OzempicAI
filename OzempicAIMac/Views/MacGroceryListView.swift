@@ -30,118 +30,97 @@ struct MacGroceryListView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Grocery List")
-                    .font(.title2)
-                    .fontWeight(.bold)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                MacPageHeader(title: "Grocery", subtitle: "Shopping list", actionTitle: nil)
 
-                Spacer()
-
-                // Quick add bar
-                HStack(spacing: 8) {
-                    TextField("Add item...", text: $newItemName)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 200)
-                        .onSubmit { addItem() }
-
-                    Picker("", selection: $newItemCategory) {
-                        ForEach(GroceryItem.GroceryCategory.allCases, id: \.self) { cat in
-                            Text(cat.rawValue.capitalized).tag(cat)
+                MacCard {
+                    HStack(spacing: 8) {
+                        TextField("Add item…", text: $newItemName)
+                            .textFieldStyle(.roundedBorder)
+                            .onSubmit { addItem() }
+                        Picker("", selection: $newItemCategory) {
+                            ForEach(GroceryItem.GroceryCategory.allCases, id: \.self) { cat in
+                                Text(cat.rawValue.capitalized).tag(cat)
+                            }
                         }
+                        .frame(width: 140)
+                        Button { addItem() } label: {
+                            Label("Add", systemImage: "plus")
+                                .font(.inter(13, weight: .semibold))
+                        }
+                        .disabled(newItemName.isEmpty)
+                        .keyboardShortcut("n", modifiers: .command)
+                        Button("Clear purchased") {
+                            Task { await viewModel.clearPurchased() }
+                        }
+                        .keyboardShortcut(.delete, modifiers: .command)
                     }
-                    .frame(width: 120)
-
-                    Button {
-                        addItem()
-                    } label: {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                    .disabled(newItemName.isEmpty)
-                    .keyboardShortcut("n", modifiers: .command)
                 }
 
-                Button("Clear Purchased") {
-                    Task { await viewModel.clearPurchased() }
-                }
-                .keyboardShortcut(.delete, modifiers: .command)
-            }
-            .padding()
-
-            Divider()
-
-            // 3-column layout
-            HStack(alignment: .top, spacing: 16) {
-                ForEach(columns, id: \.first) { columnCategories in
-                    VStack(alignment: .leading, spacing: 16) {
-                        ForEach(columnCategories, id: \.self) { category in
-                            categorySection(category)
+                HStack(alignment: .top, spacing: 16) {
+                    ForEach(columns, id: \.first) { columnCategories in
+                        VStack(alignment: .leading, spacing: 16) {
+                            ForEach(columnCategories, id: \.self) { category in
+                                categorySection(category)
+                            }
                         }
-                        Spacer()
+                        .frame(maxWidth: .infinity, alignment: .top)
                     }
-                    .frame(maxWidth: .infinity)
                 }
             }
-            .padding()
+            .padding(32)
         }
-        .screenBackground()
-        .task {
-            await viewModel.loadItems()
-        }
+        .background(Color.theme.cream)
+        .task { await viewModel.loadItems() }
     }
 
     @ViewBuilder
     private func categorySection(_ category: GroceryItem.GroceryCategory) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: categoryIcon(category))
-                    .foregroundColor(Color.theme.mediumBlue)
-                Text(category.rawValue.uppercased())
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.bottom, 4)
+        MacCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: categoryIcon(category))
+                        .foregroundColor(Color.theme.terracotta)
+                    Text(category.rawValue.uppercased())
+                        .font(.inter(11, weight: .bold))
+                        .tracking(1.0)
+                        .foregroundColor(Color.theme.coffee)
+                }
 
-            let items = sortedItems(for: category)
-            if items.isEmpty {
-                Text("No items")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .italic()
-            } else {
-                ForEach(items) { item in
-                    HStack(spacing: 8) {
-                        Button {
-                            Task { await viewModel.togglePurchased(item) }
-                        } label: {
-                            Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(item.isPurchased ? .green : .secondary)
+                let items = sortedItems(for: category)
+                if items.isEmpty {
+                    Text("No items")
+                        .font(.inter(12))
+                        .foregroundColor(Color.theme.dust)
+                        .italic()
+                } else {
+                    ForEach(items) { item in
+                        HStack(spacing: 8) {
+                            Button {
+                                Task { await viewModel.togglePurchased(item) }
+                            } label: {
+                                Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(item.isPurchased ? Color.theme.sage : Color.theme.dust)
+                            }
+                            .buttonStyle(.plain)
+
+                            Text(item.name)
+                                .font(.inter(13))
+                                .strikethrough(item.isPurchased)
+                                .foregroundColor(item.isPurchased ? Color.theme.dust : Color.theme.espresso)
+
+                            if item.mealPlanId != nil {
+                                Image(systemName: "fork.knife.circle.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color.theme.terracotta.opacity(0.5))
+                            }
+                            Spacer()
                         }
-                        .buttonStyle(.plain)
-
-                        Text(item.name)
-                            .font(.body)
-                            .strikethrough(item.isPurchased)
-                            .foregroundColor(item.isPurchased ? .secondary : .primary)
-
-                        if item.mealPlanId != nil {
-                            Image(systemName: "fork.knife.circle.fill")
-                                .font(.caption2)
-                                .foregroundColor(Color.theme.mediumBlue.opacity(0.5))
-                        }
-
-                        Spacer()
                     }
-                    .padding(.vertical, 2)
                 }
             }
         }
-        .padding()
-        .background(Color.theme.cardBackground)
-        .cornerRadius(AppRadius.medium)
-        .shadow(color: Color.theme.darkNavy.opacity(0.06), radius: 4, x: 0, y: 2)
     }
 
     private func addItem() {
