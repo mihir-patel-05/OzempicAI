@@ -210,7 +210,7 @@ private struct AddExercisePanel: View {
                                     TextField("#", text: $sets)
                                         .textFieldStyle(.roundedBorder)
                                 }
-                                Text("\u00d7")
+                                Text("\u{00D7}")
                                     .foregroundColor(.secondary)
                                     .padding(.top, 16)
                                 VStack(alignment: .leading, spacing: 4) {
