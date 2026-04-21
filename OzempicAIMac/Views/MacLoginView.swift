@@ -9,23 +9,26 @@ struct MacLoginView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.darkNavy.ignoresSafeArea()
+            Color.theme.cream.ignoresSafeArea()
 
             VStack(spacing: 32) {
-                // Header
                 VStack(spacing: 12) {
-                    Image(systemName: "heart.text.square.fill")
-                        .font(.system(size: 56))
-                        .foregroundStyle(Color.theme.amber)
+                    LinearGradient(
+                        colors: [Color.theme.terracotta, Color.theme.amber],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(Text("O").font(.fraunces(28, weight: .semibold)).foregroundColor(.white))
+
                     Text("OzempicAI")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .font(.fraunces(32, weight: .semibold))
+                        .foregroundColor(Color.theme.espresso)
                     Text(isSignUp ? "Create your account" : "Welcome back")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.7))
+                        .font(.inter(13, weight: .medium))
+                        .foregroundColor(Color.theme.coffee)
                 }
 
-                // Form
                 VStack(spacing: 16) {
                     TextField("Email", text: $email)
                         .textFieldStyle(.roundedBorder)
@@ -37,8 +40,8 @@ struct MacLoginView: View {
 
                     if let error = authViewModel.errorMessage {
                         Text(error)
-                            .font(.caption)
-                            .foregroundColor(Color.theme.orange)
+                            .font(.inter(11))
+                            .foregroundColor(Color.theme.ember)
                             .frame(width: 300, alignment: .leading)
                     }
 
@@ -51,12 +54,13 @@ struct MacLoginView: View {
                             }
                         }
                     } label: {
-                        Text(isSignUp ? "Sign Up" : "Sign In")
-                            .font(.headline)
+                        Text(isSignUp ? "Sign up" : "Sign in")
+                            .font(.inter(14, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(width: 300, height: 44)
-                            .background(Color.theme.ctaButton)
-                            .cornerRadius(AppRadius.medium)
+                            .background(Color.theme.terracotta)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .shadow(color: Color.theme.terracotta.opacity(0.25), radius: 8, y: 3)
                     }
                     .buttonStyle(.plain)
                     .disabled(email.isEmpty || password.isEmpty)
@@ -65,9 +69,9 @@ struct MacLoginView: View {
                         isSignUp.toggle()
                         authViewModel.errorMessage = nil
                     } label: {
-                        Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
-                            .font(.subheadline)
-                            .foregroundColor(Color.theme.lightBlue)
+                        Text(isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up")
+                            .font(.inter(12, weight: .medium))
+                            .foregroundColor(Color.theme.terracotta)
                     }
                     .buttonStyle(.plain)
                 }

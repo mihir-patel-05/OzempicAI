@@ -12,8 +12,6 @@ extension Color {
     static let theme = ColorTheme()
 }
 
-#if os(iOS)
-
 struct ColorTheme {
     // Backgrounds
     let cream       = Color(hex: "F5EFE6")   // main app bg
@@ -65,30 +63,6 @@ struct ColorTheme {
     // call sites referring to Color.theme.amber resolve to the warm value —
     // no alias needed.
 }
-
-#else
-
-struct ColorTheme {
-    let lightBlue   = Color(hex: "8ECAE6")
-    let mediumBlue  = Color(hex: "219EBC")
-    let darkNavy    = Color(hex: "023047")
-    let amber       = Color(hex: "FFB703")
-    let orange      = Color(hex: "FB8500")
-
-    // Semantic aliases
-    var background: Color      { lightBlue.opacity(0.15) }
-    var cardBackground: Color  { Color(NSColor.windowBackgroundColor) }
-    var primaryText: Color     { Color(NSColor.labelColor) }
-    var secondaryText: Color   { Color(NSColor.secondaryLabelColor) }
-    var accent: Color          { mediumBlue }
-    var ctaButton: Color       { orange }
-    var calorieRing: Color     { amber }
-    var waterFill: Color       { mediumBlue }
-    var exerciseRing: Color    { orange }
-    var heartPulse: Color      { orange }
-}
-
-#endif
 
 // MARK: - Hex Initializer
 
@@ -145,5 +119,15 @@ enum AppFont {
 
     static func caps(_ size: CGFloat = 11) -> Font {
         .system(size: size, weight: .semibold, design: .default)
+    }
+}
+
+extension Font {
+    static func fraunces(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        Font.custom("Fraunces", size: size, relativeTo: .title).weight(weight)
+    }
+
+    static func inter(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        Font.custom("Inter", size: size, relativeTo: .body).weight(weight)
     }
 }

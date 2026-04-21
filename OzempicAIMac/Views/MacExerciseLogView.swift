@@ -16,20 +16,13 @@ struct MacExerciseLogView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Exercise Log")
-                    .font(.title2)
-                    .fontWeight(.bold)
-
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(alignment: .bottom) {
+                MacPageHeader(title: "Exercise", subtitle: "Log", actionTitle: nil)
                 Spacer()
-
-                Text("Today's Burn: \(viewModel.totalCaloriesBurnedToday) cal")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                // Filter
+                Text("Today's burn · \(viewModel.totalCaloriesBurnedToday) cal")
+                    .font(.inter(12, weight: .semibold))
+                    .foregroundColor(Color.theme.coffee)
                 Picker("Category", selection: $filterCategory) {
                     Text("All").tag(ExerciseLog.ExerciseCategory?.none)
                     ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) { cat in
@@ -37,21 +30,18 @@ struct MacExerciseLogView: View {
                     }
                 }
                 .frame(width: 140)
-
-                Button {
-                    showAddPanel.toggle()
-                } label: {
-                    Label("Log Exercise", systemImage: "plus")
+                Button { showAddPanel.toggle() } label: {
+                    Label("Log exercise", systemImage: "plus")
+                        .font(.inter(13, weight: .semibold))
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.theme.terracotta)
             }
-            .padding()
+            .padding(.horizontal, 32).padding(.top, 32)
 
-            Divider()
-
-            // Main content
-            HStack(spacing: 0) {
-                // Table
-                Table(filteredLogs, selection: $selectedLogIds, sortOrder: $sortOrder) {
+            HStack(spacing: 16) {
+                MacCard(padding: 0) {
+                    Table(filteredLogs, selection: $selectedLogIds, sortOrder: $sortOrder) {
                     TableColumn("Date") { log in
                         Text(log.loggedAt.formatted(.dateTime.month(.abbreviated).day()))
                     }
@@ -97,28 +87,28 @@ struct MacExerciseLogView: View {
                         }
                     }
                 } primaryAction: { _ in }
+                }
 
-                // Add panel
                 if showAddPanel {
-                    Divider()
-                    AddExercisePanel(viewModel: viewModel, onDismiss: { showAddPanel = false })
-                        .frame(width: 360)
+                    MacCard {
+                        AddExercisePanel(viewModel: viewModel, onDismiss: { showAddPanel = false })
+                    }
+                    .frame(width: 360)
                 }
             }
+            .padding(.horizontal, 32).padding(.bottom, 32)
         }
-        .screenBackground()
-        .task {
-            await viewModel.loadLogs()
-        }
+        .background(Color.theme.cream)
+        .task { await viewModel.loadLogs() }
     }
 
     private func categoryColor(_ category: ExerciseLog.ExerciseCategory) -> Color {
         switch category {
-        case .cardio:      return Color.theme.mediumBlue
-        case .strength:    return Color.theme.orange
-        case .flexibility: return .green
+        case .cardio:      return Color.theme.terracotta
+        case .strength:    return Color.theme.ember
+        case .flexibility: return Color.theme.sage
         case .sports:      return Color.theme.amber
-        case .other:       return .gray
+        case .other:       return Color.theme.dust
         }
     }
 
@@ -220,7 +210,7 @@ private struct AddExercisePanel: View {
                                     TextField("#", text: $sets)
                                         .textFieldStyle(.roundedBorder)
                                 }
-                                Text("\u00d7")
+                                Text("\u{00D7}")
                                     .foregroundColor(.secondary)
                                     .padding(.top, 16)
                                 VStack(alignment: .leading, spacing: 4) {
@@ -281,7 +271,7 @@ private struct AddExercisePanel: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(Color.theme.ctaButton)
+            .tint(Color.theme.terracotta)
             .disabled(name.isEmpty || duration.isEmpty || calories.isEmpty)
             .padding(AppSpacing.md)
         }

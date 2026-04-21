@@ -35,85 +35,74 @@ struct MacWeightView: View {
 
     private var trendColor: Color {
         switch viewModel.trend {
-        case .gaining: return Color.theme.orange
-        case .losing:  return .green
-        case .stable:  return Color.theme.mediumBlue
+        case .gaining: return Color.theme.ember
+        case .losing:  return Color.theme.sageDeep
+        case .stable:  return Color.theme.coffee
         }
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Weight Tracker")
-                    .font(.title2)
-                    .fontWeight(.bold)
-
-                if let latest = viewModel.latestWeight {
-                    Text(String(format: "%.1f kg", latest.weightKg))
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-
-                    Image(systemName: trendIcon)
-                        .foregroundColor(trendColor)
-
-                    if viewModel.trendDelta != 0 {
-                        Text(String(format: "%+.1f kg", viewModel.trendDelta))
-                            .font(.caption)
-                            .foregroundColor(trendColor)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(alignment: .bottom) {
+                    MacPageHeader(title: "Weight", subtitle: "Trend", actionTitle: nil)
+                    Spacer()
+                    if let latest = viewModel.latestWeight {
+                        HStack(spacing: 8) {
+                            Text(String(format: "%.1f kg", latest.weightKg))
+                                .font(.fraunces(20, weight: .medium))
+                                .foregroundColor(Color.theme.espresso)
+                            Image(systemName: trendIcon).foregroundColor(trendColor)
+                            if viewModel.trendDelta != 0 {
+                                Text(String(format: "%+.1f kg", viewModel.trendDelta))
+                                    .font(.inter(11, weight: .semibold))
+                                    .foregroundColor(trendColor)
+                            }
+                        }
                     }
+                    Picker("Range", selection: $timeRange) {
+                        ForEach(TimeRange.allCases, id: \.self) { range in
+                            Text(range.rawValue).tag(range)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 240)
                 }
 
-                Spacer()
-
-                Picker("Range", selection: $timeRange) {
-                    ForEach(TimeRange.allCases, id: \.self) { range in
-                        Text(range.rawValue).tag(range)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 240)
-            }
-            .padding()
-
-            Divider()
-
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Chart
-                    if filteredLogs.count >= 2 {
+                if filteredLogs.count >= 2 {
+                    MacCard {
                         Chart(filteredLogs) { log in
                             LineMark(
                                 x: .value("Date", log.loggedAt),
                                 y: .value("Weight", log.weightKg)
                             )
-                            .foregroundStyle(Color.theme.mediumBlue)
+                            .foregroundStyle(Color.theme.terracotta)
                             .interpolationMethod(.catmullRom)
 
                             PointMark(
                                 x: .value("Date", log.loggedAt),
                                 y: .value("Weight", log.weightKg)
                             )
-                            .foregroundStyle(Color.theme.mediumBlue)
+                            .foregroundStyle(Color.theme.terracotta)
                             .symbolSize(30)
                         }
                         .chartYScale(domain: .automatic(includesZero: false))
                         .frame(height: 250)
-                        .padding()
-                        .cardStyle()
-                    } else {
-                        Text("Log at least 2 weights to see the chart")
-                            .foregroundColor(.secondary)
-                            .padding(.vertical, 40)
                     }
+                } else {
+                    MacCard {
+                        Text("Log at least 2 weights to see the chart")
+                            .font(.inter(13))
+                            .foregroundColor(Color.theme.dust)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 28)
+                    }
+                }
 
-                    // Bottom: Table + Quick add
-                    HStack(alignment: .top, spacing: 16) {
-                        // Table
+                HStack(alignment: .top, spacing: 16) {
+                    MacCard {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("History")
-                                .font(.headline)
-
+                            MacSectionTitle(text: "History")
                             Table(filteredLogs) {
                                 TableColumn("Date") { log in
                                     Text(log.loggedAt.formatted(.dateTime.month(.abbreviated).day().year()))
@@ -126,7 +115,7 @@ struct MacWeightView: View {
                                         Task { await viewModel.deleteLog(log) }
                                     } label: {
                                         Image(systemName: "trash")
-                                            .foregroundColor(.red.opacity(0.7))
+                                            .foregroundColor(Color.theme.ember.opacity(0.75))
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -134,37 +123,28 @@ struct MacWeightView: View {
                             }
                             .frame(minHeight: 200)
                         }
-                        .frame(maxWidth: .infinity)
+                    }
+                    .frame(maxWidth: .infinity)
 
-                        // Quick add
+                    MacCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Log Weight")
-                                .font(.headline)
-
+                            MacSectionTitle(text: "Log weight")
                             TextField("Weight (kg)", text: $newWeight)
                                 .textFieldStyle(.roundedBorder)
                                 .onSubmit { logWeight() }
-
-                            Button("Log Weight") {
-                                logWeight()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(Color.theme.ctaButton)
-                            .disabled(newWeight.isEmpty)
+                            Button("Log weight") { logWeight() }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Color.theme.terracotta)
+                                .disabled(newWeight.isEmpty)
                         }
-                        .padding()
-                        .cardStyle()
-                        .frame(width: 220)
                     }
-                    .padding(.horizontal)
+                    .frame(width: 240)
                 }
-                .padding(.bottom)
             }
+            .padding(32)
         }
-        .screenBackground()
-        .task {
-            await viewModel.loadLogs()
-        }
+        .background(Color.theme.cream)
+        .task { await viewModel.loadLogs() }
     }
 
     private func logWeight() {

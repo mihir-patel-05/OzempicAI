@@ -44,34 +44,25 @@ struct MacMealPlannerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Meal Plan")
-                    .font(.title2)
-                    .fontWeight(.bold)
-
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(alignment: .bottom) {
+                MacPageHeader(title: "Meal plan", subtitle: "This week", actionTitle: nil)
                 Spacer()
-
                 WeekNavigator(weekStart: $weekStart)
-
                 Spacer()
-
-                Button("Copy Week") {
-                    Task { await copyWeekToNext() }
-                }
-
+                Button("Copy week") { Task { await copyWeekToNext() } }
                 Button {
                     addDate = .now
                     addMealType = .breakfast
                     showAddSheet = true
                 } label: {
                     Label("Add", systemImage: "plus")
+                        .font(.inter(13, weight: .semibold))
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.theme.terracotta)
             }
-            .padding()
-
-            Divider()
+            .padding(.horizontal, 32).padding(.top, 32)
 
             // Grid
             ScrollView {
@@ -146,7 +137,7 @@ struct MacMealPlannerView: View {
                 .padding()
             }
         }
-        .screenBackground()
+        .background(Color.theme.cream)
         .onChange(of: weekStart) { _ in
             Task { await viewModel.loadWeeklyPlans(for: weekStart) }
         }

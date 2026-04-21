@@ -5,11 +5,11 @@ struct WorkoutCard: View {
 
     private var categoryColor: Color {
         switch plan.category {
-        case .cardio:      return Color.theme.mediumBlue
-        case .strength:    return Color.theme.orange
-        case .flexibility: return .green
+        case .cardio:      return Color.theme.terracotta
+        case .strength:    return Color.theme.ember
+        case .flexibility: return Color.theme.sage
         case .sports:      return Color.theme.amber
-        case .other:       return .gray
+        case .other:       return Color.theme.dust
         }
     }
 

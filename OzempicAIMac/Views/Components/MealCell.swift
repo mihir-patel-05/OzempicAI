@@ -21,7 +21,7 @@ struct MealCell: View {
                 }
                 .padding(6)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.theme.mediumBlue.opacity(0.08))
+                .background(Color.theme.terracotta.opacity(0.12))
                 .cornerRadius(4)
                 .onTapGesture { onEdit(meal) }
             } else {
