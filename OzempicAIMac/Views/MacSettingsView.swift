@@ -53,7 +53,7 @@ struct MacSettingsView: View {
                         MacSectionTitle(text: "Account")
                         if authViewModel.isAuthenticated {
                             HStack {
-                                Text(authViewModel.user?.email ?? "Signed in")
+                                Text(authViewModel.currentUser?.email ?? "Signed in")
                                     .font(.inter(13))
                                     .foregroundColor(Color.theme.coffee)
                                 Spacer()

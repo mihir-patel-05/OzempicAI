@@ -146,12 +146,12 @@ struct MacSidebarView: View {
                 .frame(width: 30, height: 30)
                 .clipShape(Circle())
                 .overlay(
-                    Text(String(authViewModel.user?.name.first ?? "A"))
+                    Text(String(authViewModel.currentUser?.name.first ?? "A"))
                         .font(.fraunces(13, weight: .semibold))
                         .foregroundColor(.white)
                 )
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(authViewModel.user?.name ?? "You")
+                    Text(authViewModel.currentUser?.name ?? "You")
                         .font(.inter(12, weight: .semibold))
                         .foregroundColor(Color.theme.espresso)
                     Text("Pro · synced")

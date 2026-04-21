@@ -70,7 +70,7 @@ struct MacHomeView: View {
                         HStack(spacing: 0) {
                             Text("\(greeting), ")
                                 .font(.fraunces(40, weight: .regular))
-                            Text(authViewModel.user?.name.components(separatedBy: " ").first ?? "friend")
+                            Text(authViewModel.currentUser?.name.components(separatedBy: " ").first ?? "friend")
                                 .font(.fraunces(40, weight: .regular)).italic()
                         }
                         .foregroundColor(Color.theme.espresso)
