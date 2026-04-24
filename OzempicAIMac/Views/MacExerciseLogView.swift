@@ -16,32 +16,32 @@ struct MacExerciseLogView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            HStack(alignment: .bottom) {
-                MacPageHeader(title: "Exercise", subtitle: "Log", actionTitle: nil)
-                Spacer()
-                Text("Today's burn · \(viewModel.totalCaloriesBurnedToday) cal")
-                    .font(.inter(12, weight: .semibold))
-                    .foregroundColor(Color.theme.coffee)
-                Picker("Category", selection: $filterCategory) {
-                    Text("All").tag(ExerciseLog.ExerciseCategory?.none)
-                    ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) { cat in
-                        Text(cat.rawValue.capitalized).tag(ExerciseLog.ExerciseCategory?.some(cat))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(alignment: .bottom) {
+                    MacPageHeader(title: "Exercise", subtitle: "Log", actionTitle: nil)
+                    Spacer()
+                    Text("Today's burn · \(viewModel.totalCaloriesBurnedToday) cal")
+                        .font(.inter(12, weight: .semibold))
+                        .foregroundColor(Color.theme.coffee)
+                    Picker("Category", selection: $filterCategory) {
+                        Text("All").tag(ExerciseLog.ExerciseCategory?.none)
+                        ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) { cat in
+                            Text(cat.rawValue.capitalized).tag(ExerciseLog.ExerciseCategory?.some(cat))
+                        }
                     }
+                    .frame(width: 140)
+                    Button { showAddPanel.toggle() } label: {
+                        Label("Log exercise", systemImage: "plus")
+                            .font(.inter(13, weight: .semibold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.theme.terracotta)
                 }
-                .frame(width: 140)
-                Button { showAddPanel.toggle() } label: {
-                    Label("Log exercise", systemImage: "plus")
-                        .font(.inter(13, weight: .semibold))
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.theme.terracotta)
-            }
-            .padding(.horizontal, 32).padding(.top, 32)
 
-            HStack(spacing: 16) {
-                MacCard(padding: 0) {
-                    Table(filteredLogs, selection: $selectedLogIds, sortOrder: $sortOrder) {
+                HStack(spacing: 16) {
+                    MacCard(padding: 0) {
+                        Table(filteredLogs, selection: $selectedLogIds, sortOrder: $sortOrder) {
                     TableColumn("Date") { log in
                         Text(log.loggedAt.formatted(.dateTime.month(.abbreviated).day()))
                     }
@@ -88,15 +88,17 @@ struct MacExerciseLogView: View {
                     }
                 } primaryAction: { _ in }
                 }
+                    .frame(minHeight: 460)
 
-                if showAddPanel {
-                    MacCard {
-                        AddExercisePanel(viewModel: viewModel, onDismiss: { showAddPanel = false })
+                    if showAddPanel {
+                        MacCard {
+                            AddExercisePanel(viewModel: viewModel, onDismiss: { showAddPanel = false })
+                        }
+                        .frame(width: 360)
                     }
-                    .frame(width: 360)
                 }
             }
-            .padding(.horizontal, 32).padding(.bottom, 32)
+            .padding(32)
         }
         .background(Color.theme.cream)
         .task { await viewModel.loadLogs() }

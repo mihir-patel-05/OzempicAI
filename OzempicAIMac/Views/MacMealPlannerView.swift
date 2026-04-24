@@ -44,28 +44,27 @@ struct MacMealPlannerView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            HStack(alignment: .bottom) {
-                MacPageHeader(title: "Meal plan", subtitle: "This week", actionTitle: nil)
-                Spacer()
-                WeekNavigator(weekStart: $weekStart)
-                Spacer()
-                Button("Copy week") { Task { await copyWeekToNext() } }
-                Button {
-                    addDate = .now
-                    addMealType = .breakfast
-                    showAddSheet = true
-                } label: {
-                    Label("Add", systemImage: "plus")
-                        .font(.inter(13, weight: .semibold))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(alignment: .bottom) {
+                    MacPageHeader(title: "Meal plan", subtitle: "This week", actionTitle: nil)
+                    Spacer()
+                    WeekNavigator(weekStart: $weekStart)
+                    Spacer()
+                    Button("Copy week") { Task { await copyWeekToNext() } }
+                    Button {
+                        addDate = .now
+                        addMealType = .breakfast
+                        showAddSheet = true
+                    } label: {
+                        Label("Add", systemImage: "plus")
+                            .font(.inter(13, weight: .semibold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.theme.terracotta)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.theme.terracotta)
-            }
-            .padding(.horizontal, 32).padding(.top, 32)
 
-            // Grid
-            ScrollView {
+                // Grid
                 Grid(alignment: .topLeading, horizontalSpacing: 1, verticalSpacing: 1) {
                     // Header row
                     GridRow {
@@ -135,7 +134,11 @@ struct MacMealPlannerView: View {
                     .padding(.vertical, 8)
                 }
                 .padding()
+                .background(Color.theme.paper)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
+                .shadow(color: Color.theme.shadow, radius: 10, y: 2)
             }
+            .padding(32)
         }
         .background(Color.theme.cream)
         .onChange(of: weekStart) { _ in
