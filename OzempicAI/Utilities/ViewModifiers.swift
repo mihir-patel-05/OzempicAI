@@ -135,6 +135,10 @@ extension View {
     func screenBackground() -> some View {
         modifier(ScreenBackgroundModifier())
     }
+
+    func readableSegmentedControl() -> some View {
+        self
+    }
 }
 
 struct ScreenBackgroundModifier: ViewModifier {

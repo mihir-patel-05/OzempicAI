@@ -70,6 +70,13 @@ struct MealPlanView: View {
         } message: {
             Text("This will remove the meal from your plan.")
         }
+        .alert("Couldn't remove meal", isPresented: errorAlertBinding) {
+            Button("OK", role: .cancel) {
+                viewModel.errorMessage = nil
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "Something went wrong.")
+        }
         .task { await viewModel.loadWeeklyPlans() }
     }
 
@@ -78,6 +85,15 @@ struct MealPlanView: View {
             get: { mealPendingDeletion != nil },
             set: { isPresented in
                 if !isPresented { mealPendingDeletion = nil }
+            }
+        )
+    }
+
+    private var errorAlertBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { isPresented in
+                if !isPresented { viewModel.errorMessage = nil }
             }
         )
     }
@@ -159,8 +175,12 @@ struct MealPlanView: View {
                 Image(systemName: "trash")
                     .font(.system(size: 12))
                     .foregroundColor(Color.theme.ember.opacity(0.8))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Delete meal plan")
+            .accessibilityHint("Deletes this meal plan")
         }
         .padding(AppSpacing.md)
         .background(Color.theme.paper)
