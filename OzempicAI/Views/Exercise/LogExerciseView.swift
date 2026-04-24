@@ -64,6 +64,7 @@ struct LogExerciseView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                        .readableSegmentedControl()
                     }
 
                     // Duration & Calories
@@ -131,6 +132,7 @@ struct LogExerciseView: View {
                                         }
                                     }
                                     .pickerStyle(.segmented)
+                                    .readableSegmentedControl()
                                     .frame(height: 44)
                                 }
                                 .frame(width: 100)
@@ -146,6 +148,7 @@ struct LogExerciseView: View {
                                     }
                                 }
                                 .pickerStyle(.segmented)
+                                .readableSegmentedControl()
                             }
                         }
                         .padding(AppSpacing.md)

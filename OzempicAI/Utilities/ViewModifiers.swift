@@ -28,6 +28,12 @@ extension View {
         self.frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.theme.cream.ignoresSafeArea())
     }
+
+    func readableSegmentedControl() -> some View {
+        self
+            .tint(Color.theme.terracottaDeep)
+            .environment(\.colorScheme, .light)
+    }
 }
 
 // MARK: - Buttons
