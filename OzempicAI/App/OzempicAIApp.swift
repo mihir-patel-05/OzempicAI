@@ -26,6 +26,24 @@ struct OzempicAIApp: App {
         ]
         UINavigationBar.appearance().standardAppearance = navAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
+
+        let segmentedControl = UISegmentedControl.appearance()
+        segmentedControl.backgroundColor = UIColor(Color.theme.creamDim)
+        segmentedControl.selectedSegmentTintColor = UIColor(Color.theme.terracottaDeep)
+        segmentedControl.setTitleTextAttributes(
+            [
+                .foregroundColor: UIColor(Color.theme.espresso),
+                .font: UIFont.systemFont(ofSize: 14, weight: .semibold)
+            ],
+            for: .normal
+        )
+        segmentedControl.setTitleTextAttributes(
+            [
+                .foregroundColor: UIColor.white,
+                .font: UIFont.systemFont(ofSize: 14, weight: .semibold)
+            ],
+            for: .selected
+        )
     }
 
     var body: some Scene {

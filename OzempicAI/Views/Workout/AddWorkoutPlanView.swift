@@ -104,6 +104,7 @@ struct AddWorkoutPlanView: View {
                             Text("From History").tag(true)
                         }
                         .pickerStyle(.segmented)
+                        .readableSegmentedControl()
                     }
 
                     // From History picker
@@ -202,6 +203,7 @@ struct AddWorkoutPlanView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                        .readableSegmentedControl()
                     }
 
                     // Duration & Calories (optional)
@@ -268,6 +270,7 @@ struct AddWorkoutPlanView: View {
                                         }
                                     }
                                     .pickerStyle(.segmented)
+                                    .readableSegmentedControl()
                                     .frame(height: 44)
                                 }
                                 .frame(width: 100)
@@ -283,6 +286,7 @@ struct AddWorkoutPlanView: View {
                                     }
                                 }
                                 .pickerStyle(.segmented)
+                                .readableSegmentedControl()
                             }
                         }
                         .padding(AppSpacing.md)

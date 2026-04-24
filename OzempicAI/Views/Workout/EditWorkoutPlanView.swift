@@ -63,6 +63,7 @@ struct EditWorkoutPlanView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                        .readableSegmentedControl()
                     }
 
                     // Duration & Calories
@@ -129,6 +130,7 @@ struct EditWorkoutPlanView: View {
                                         }
                                     }
                                     .pickerStyle(.segmented)
+                                    .readableSegmentedControl()
                                     .frame(height: 44)
                                 }
                                 .frame(width: 100)
@@ -144,6 +146,7 @@ struct EditWorkoutPlanView: View {
                                     }
                                 }
                                 .pickerStyle(.segmented)
+                                .readableSegmentedControl()
                             }
                         }
                         .padding(AppSpacing.md)

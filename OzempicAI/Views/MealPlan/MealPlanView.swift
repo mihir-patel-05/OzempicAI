@@ -3,6 +3,7 @@ import SwiftUI
 struct MealPlanView: View {
     @StateObject private var viewModel = MealPlanViewModel()
     @State private var showAddMeal = false
+    @State private var mealPendingDeletion: MealPlan?
 
     private func mealIcon(for type: MealPlan.MealType) -> String {
         switch type {
@@ -57,7 +58,44 @@ struct MealPlanView: View {
         }
         .screenBackground()
         .sheet(isPresented: $showAddMeal) { AddMealView(viewModel: viewModel) }
+        .alert("Remove meal?", isPresented: deleteAlertBinding) {
+            Button("Cancel", role: .cancel) {
+                mealPendingDeletion = nil
+            }
+            Button("Remove", role: .destructive) {
+                guard let plan = mealPendingDeletion else { return }
+                mealPendingDeletion = nil
+                Task { await viewModel.deleteMeal(plan) }
+            }
+        } message: {
+            Text("This will remove the meal from your plan.")
+        }
+        .alert("Couldn't remove meal", isPresented: errorAlertBinding) {
+            Button("OK", role: .cancel) {
+                viewModel.errorMessage = nil
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "Something went wrong.")
+        }
         .task { await viewModel.loadWeeklyPlans() }
+    }
+
+    private var deleteAlertBinding: Binding<Bool> {
+        Binding(
+            get: { mealPendingDeletion != nil },
+            set: { isPresented in
+                if !isPresented { mealPendingDeletion = nil }
+            }
+        )
+    }
+
+    private var errorAlertBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { isPresented in
+                if !isPresented { viewModel.errorMessage = nil }
+            }
+        )
     }
 
     private var emptyState: some View {
@@ -130,6 +168,19 @@ struct MealPlanView: View {
                 .padding(.vertical, 4)
                 .background(accent.opacity(0.15))
                 .clipShape(Capsule())
+
+            Button {
+                mealPendingDeletion = plan
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color.theme.ember.opacity(0.8))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Delete meal plan")
+            .accessibilityHint("Deletes this meal plan")
         }
         .padding(AppSpacing.md)
         .background(Color.theme.paper)
