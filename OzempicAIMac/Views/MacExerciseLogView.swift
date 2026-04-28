@@ -37,57 +37,57 @@ struct MacExerciseLogView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(Color.theme.terracotta)
             }
-            .padding(.horizontal, 32).padding(.top, 32)
 
             HStack(spacing: 16) {
                 MacCard(padding: 0) {
                     Table(filteredLogs, selection: $selectedLogIds, sortOrder: $sortOrder) {
-                    TableColumn("Date") { log in
-                        Text(log.loggedAt.formatted(.dateTime.month(.abbreviated).day()))
-                    }
-                    .width(min: 60, ideal: 80)
-
-                    TableColumn("Exercise", value: \.exerciseName)
-                        .width(min: 100, ideal: 150)
-
-                    TableColumn("Category") { log in
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(categoryColor(log.category))
-                                .frame(width: 8, height: 8)
-                            Text(log.category.rawValue.capitalized)
+                        TableColumn("Date") { log in
+                            Text(log.loggedAt.formatted(.dateTime.month(.abbreviated).day()))
                         }
-                    }
-                    .width(min: 80, ideal: 100)
+                        .width(min: 60, ideal: 80)
 
-                    TableColumn("Duration") { log in
-                        Text("\(log.durationMinutes) min")
-                    }
-                    .width(min: 60, ideal: 80)
+                        TableColumn("Exercise", value: \.exerciseName)
+                            .width(min: 100, ideal: 150)
 
-                    TableColumn("Calories") { log in
-                        Text("\(log.caloriesBurned) cal")
-                    }
-                    .width(min: 60, ideal: 80)
+                        TableColumn("Category") { log in
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(categoryColor(log.category))
+                                    .frame(width: 8, height: 8)
+                                Text(log.category.rawValue.capitalized)
+                            }
+                        }
+                        .width(min: 80, ideal: 100)
 
-                    TableColumn("Details") { log in
-                        Text(detailText(for: log))
-                            .foregroundColor(.secondary)
+                        TableColumn("Duration") { log in
+                            Text("\(log.durationMinutes) min")
+                        }
+                        .width(min: 60, ideal: 80)
+
+                        TableColumn("Calories") { log in
+                            Text("\(log.caloriesBurned) cal")
+                        }
+                        .width(min: 60, ideal: 80)
+
+                        TableColumn("Details") { log in
+                            Text(detailText(for: log))
+                                .foregroundColor(.secondary)
+                        }
+                        .width(min: 80, ideal: 120)
                     }
-                    .width(min: 80, ideal: 120)
-                }
-                .contextMenu(forSelectionType: ExerciseLog.ID.self) { ids in
-                    Button("Delete", role: .destructive) {
-                        Task {
-                            for id in ids {
-                                if let log = viewModel.logs.first(where: { $0.id == id }) {
-                                    await viewModel.deleteLog(log)
+                    .contextMenu(forSelectionType: ExerciseLog.ID.self) { ids in
+                        Button("Delete", role: .destructive) {
+                            Task {
+                                for id in ids {
+                                    if let log = viewModel.logs.first(where: { $0.id == id }) {
+                                        await viewModel.deleteLog(log)
+                                    }
                                 }
                             }
                         }
-                    }
-                } primaryAction: { _ in }
+                    } primaryAction: { _ in }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 if showAddPanel {
                     MacCard {
@@ -96,8 +96,10 @@ struct MacExerciseLogView: View {
                     .frame(width: 360)
                 }
             }
-            .padding(.horizontal, 32).padding(.bottom, 32)
+            .frame(maxHeight: .infinity)
         }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color.theme.cream)
         .task { await viewModel.loadLogs() }
     }

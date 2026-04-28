@@ -27,31 +27,39 @@ struct MacWorkoutPlannerView: View {
         }
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            HStack(alignment: .bottom) {
-                MacPageHeader(title: "Workouts", subtitle: "This week", actionTitle: nil)
-                Spacer()
-                WeekNavigator(weekStart: $weekStart)
-                Spacer()
-                Button {
-                    addingForDate = .now
-                    showAddPopover = true
-                } label: {
-                    Label("Add", systemImage: "plus")
-                        .font(.inter(13, weight: .semibold))
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.theme.terracotta)
-            }
-            .padding(.horizontal, 32).padding(.top, 32)
+    private var defaultAddDate: Date {
+        let calendar = Calendar.current
+        let currentWeekStart = WeekNavigator.mondayOfWeek(containing: .now)
+        return calendar.isDate(weekStart, inSameDayAs: currentWeekStart) ? .now : weekStart
+    }
 
-            HStack(spacing: 8) {
-                ForEach(daysOfWeek, id: \.self) { day in
-                    dayColumn(for: day)
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(alignment: .bottom) {
+                    MacPageHeader(title: "Workouts", subtitle: "This week", actionTitle: nil)
+                    Spacer()
+                    WeekNavigator(weekStart: $weekStart)
+                    Spacer()
+                    Button {
+                        addingForDate = defaultAddDate
+                        showAddPopover = true
+                    } label: {
+                        Label("Add", systemImage: "plus")
+                            .font(.inter(13, weight: .semibold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.theme.terracotta)
                 }
+
+                HStack(spacing: 8) {
+                    ForEach(daysOfWeek, id: \.self) { day in
+                        dayColumn(for: day)
+                    }
+                }
+                .frame(minHeight: 560)
             }
-            .padding(.horizontal, 32).padding(.bottom, 32)
+            .padding(32)
         }
         .background(Color.theme.cream)
         .onChange(of: weekStart) { _ in

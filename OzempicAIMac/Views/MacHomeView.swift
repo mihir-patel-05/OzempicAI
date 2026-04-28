@@ -9,6 +9,7 @@ struct MacHomeView: View {
     @StateObject private var waterVM = WaterViewModel()
     @StateObject private var weightVM = WeightViewModel()
     @StateObject private var fastingVM = FastingViewModel()
+    @StateObject private var exerciseVM = ExerciseViewModel()
 
     private var remainingCalories: Int { max(calorieVM.dailyGoal - calorieVM.totalCalories, 0) }
     private var calorieProgress: Double {
@@ -99,8 +100,8 @@ struct MacHomeView: View {
                     MacStatCard(label: "Water", value: waterValue, sub: waterGoalSub,
                                 color: Color.theme.sage, iconName: "drop.fill",
                                 progress: waterVM.progressFraction)
-                    MacStatCard(label: "Steps", value: "—", sub: "connect HealthKit",
-                                color: Color.theme.amber, iconName: "figure.walk")
+                    MacStatCard(label: "Activity", value: "\(exerciseVM.totalCaloriesBurnedToday)", sub: "cal burned today",
+                                color: Color.theme.amber, iconName: "flame.fill")
                     MacStatCard(label: "Weight", value: weightValue, sub: weightSub,
                                 color: Color.theme.plum, iconName: "scalemass.fill")
                     MacStatCard(label: "Fasting", value: fastingValue, sub: fastingSub,
@@ -121,7 +122,8 @@ struct MacHomeView: View {
             async let c: () = calorieVM.loadLogs()
             async let w: () = waterVM.loadTodaysLogs()
             async let wt: () = weightVM.loadLogs()
-            _ = await (c, w, wt)
+            async let e: () = exerciseVM.loadLogs()
+            _ = await (c, w, wt, e)
         }
     }
 
@@ -158,9 +160,9 @@ struct MacHomeView: View {
                 Divider().background(.white.opacity(0.22)).padding(.vertical, 20)
                 HStack {
                     heroStat("Eaten", "\(calorieVM.totalCalories) cal")
-                    heroStat("Burned", "—")
+                    heroStat("Burned", "\(exerciseVM.totalCaloriesBurnedToday) cal")
                     heroStat("Goal", "\(calorieVM.dailyGoal) cal")
-                    heroStat("Net", "\(calorieVM.totalCalories) cal")
+                    heroStat("Net", "\(max(calorieVM.totalCalories - exerciseVM.totalCaloriesBurnedToday, 0)) cal")
                 }
             }
             .padding(28)
@@ -210,13 +212,35 @@ struct MacHomeView: View {
             MacSectionTitle(text: "Today's plate")
             MacCard(padding: 0) {
                 VStack(spacing: 0) {
-                    plateRow("Breakfast", "7:42 AM", "Oatmeal, berries, almonds", 380, done: true, divider: true)
-                    plateRow("Lunch", "12:30 PM", "Grilled chicken salad", 520, done: true, divider: true)
-                    plateRow("Snack", "3:15 PM", "Greek yogurt + honey", 220, done: true, divider: true)
-                    plateRow("Dinner", "Planned", "Salmon, quinoa, greens", 580, done: false, divider: false)
+                    let mealTypes: [CalorieLog.MealType] = [.breakfast, .lunch, .snack, .dinner]
+                    ForEach(Array(mealTypes.enumerated()), id: \.element) { index, mealType in
+                        let logs = calorieVM.logsByMeal[mealType] ?? []
+                        plateRow(
+                            mealTitle(for: mealType),
+                            logs.isEmpty ? "Not logged" : "\(logs.count) item\(logs.count == 1 ? "" : "s")",
+                            foodSummary(for: logs),
+                            logs.reduce(0) { $0 + $1.calories },
+                            done: !logs.isEmpty,
+                            divider: index < mealTypes.count - 1
+                        )
+                    }
                 }
             }
         }
+    }
+
+    private func mealTitle(for type: CalorieLog.MealType) -> String {
+        switch type {
+        case .breakfast: return "Breakfast"
+        case .lunch: return "Lunch"
+        case .dinner: return "Dinner"
+        case .snack: return "Snack"
+        }
+    }
+
+    private func foodSummary(for logs: [CalorieLog]) -> String {
+        guard !logs.isEmpty else { return "Add food to complete your day" }
+        return logs.prefix(2).map(\.foodName).joined(separator: ", ")
     }
 
     private func plateRow(_ meal: String, _ time: String, _ food: String, _ cal: Int, done: Bool, divider: Bool) -> some View {
@@ -258,11 +282,42 @@ struct MacHomeView: View {
             MacSectionTitle(text: "Today's activity")
             MacCard(padding: 0) {
                 VStack(spacing: 0) {
-                    activityRow("Morning run", "3.2 mi · 28 min", 240, icon: "figure.run")
-                    Divider().background(Color.theme.divider)
-                    activityRow("Upper body", "Strength · 14 min", 140, icon: "dumbbell.fill")
+                    let logs = todaysExerciseLogs
+                    if logs.isEmpty {
+                        Text("No exercise logged today")
+                            .font(.inter(13))
+                            .foregroundColor(Color.theme.dust)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 28)
+                    } else {
+                        ForEach(Array(logs.prefix(4).enumerated()), id: \.element.id) { index, log in
+                            activityRow(
+                                log.exerciseName,
+                                "\(log.category.rawValue.capitalized) · \(log.durationMinutes) min",
+                                log.caloriesBurned,
+                                icon: activityIcon(for: log.category)
+                            )
+                            if index < min(logs.count, 4) - 1 {
+                                Divider().background(Color.theme.divider)
+                            }
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    private var todaysExerciseLogs: [ExerciseLog] {
+        exerciseVM.logs.filter { Calendar.current.isDateInToday($0.loggedAt) }
+    }
+
+    private func activityIcon(for category: ExerciseLog.ExerciseCategory) -> String {
+        switch category {
+        case .cardio: return "figure.run"
+        case .strength: return "dumbbell.fill"
+        case .flexibility: return "figure.flexibility"
+        case .sports: return "sportscourt.fill"
+        case .other: return "flame.fill"
         }
     }
 
