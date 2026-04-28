@@ -16,90 +16,90 @@ struct MacExerciseLogView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                HStack(alignment: .bottom) {
-                    MacPageHeader(title: "Exercise", subtitle: "Log", actionTitle: nil)
-                    Spacer()
-                    Text("Today's burn · \(viewModel.totalCaloriesBurnedToday) cal")
-                        .font(.inter(12, weight: .semibold))
-                        .foregroundColor(Color.theme.coffee)
-                    Picker("Category", selection: $filterCategory) {
-                        Text("All").tag(ExerciseLog.ExerciseCategory?.none)
-                        ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) { cat in
-                            Text(cat.rawValue.capitalized).tag(ExerciseLog.ExerciseCategory?.some(cat))
-                        }
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(alignment: .bottom) {
+                MacPageHeader(title: "Exercise", subtitle: "Log", actionTitle: nil)
+                Spacer()
+                Text("Today's burn · \(viewModel.totalCaloriesBurnedToday) cal")
+                    .font(.inter(12, weight: .semibold))
+                    .foregroundColor(Color.theme.coffee)
+                Picker("Category", selection: $filterCategory) {
+                    Text("All").tag(ExerciseLog.ExerciseCategory?.none)
+                    ForEach(ExerciseLog.ExerciseCategory.allCases, id: \.self) { cat in
+                        Text(cat.rawValue.capitalized).tag(ExerciseLog.ExerciseCategory?.some(cat))
                     }
-                    .frame(width: 140)
-                    Button { showAddPanel.toggle() } label: {
-                        Label("Log exercise", systemImage: "plus")
-                            .font(.inter(13, weight: .semibold))
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color.theme.terracotta)
                 }
-
-                HStack(spacing: 16) {
-                    MacCard(padding: 0) {
-                        Table(filteredLogs, selection: $selectedLogIds, sortOrder: $sortOrder) {
-                    TableColumn("Date") { log in
-                        Text(log.loggedAt.formatted(.dateTime.month(.abbreviated).day()))
-                    }
-                    .width(min: 60, ideal: 80)
-
-                    TableColumn("Exercise", value: \.exerciseName)
-                        .width(min: 100, ideal: 150)
-
-                    TableColumn("Category") { log in
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(categoryColor(log.category))
-                                .frame(width: 8, height: 8)
-                            Text(log.category.rawValue.capitalized)
-                        }
-                    }
-                    .width(min: 80, ideal: 100)
-
-                    TableColumn("Duration") { log in
-                        Text("\(log.durationMinutes) min")
-                    }
-                    .width(min: 60, ideal: 80)
-
-                    TableColumn("Calories") { log in
-                        Text("\(log.caloriesBurned) cal")
-                    }
-                    .width(min: 60, ideal: 80)
-
-                    TableColumn("Details") { log in
-                        Text(detailText(for: log))
-                            .foregroundColor(.secondary)
-                    }
-                    .width(min: 80, ideal: 120)
+                .frame(width: 140)
+                Button { showAddPanel.toggle() } label: {
+                    Label("Log exercise", systemImage: "plus")
+                        .font(.inter(13, weight: .semibold))
                 }
-                .contextMenu(forSelectionType: ExerciseLog.ID.self) { ids in
-                    Button("Delete", role: .destructive) {
-                        Task {
-                            for id in ids {
-                                if let log = viewModel.logs.first(where: { $0.id == id }) {
-                                    await viewModel.deleteLog(log)
+                .buttonStyle(.borderedProminent)
+                .tint(Color.theme.terracotta)
+            }
+
+            HStack(spacing: 16) {
+                MacCard(padding: 0) {
+                    Table(filteredLogs, selection: $selectedLogIds, sortOrder: $sortOrder) {
+                        TableColumn("Date") { log in
+                            Text(log.loggedAt.formatted(.dateTime.month(.abbreviated).day()))
+                        }
+                        .width(min: 60, ideal: 80)
+
+                        TableColumn("Exercise", value: \.exerciseName)
+                            .width(min: 100, ideal: 150)
+
+                        TableColumn("Category") { log in
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(categoryColor(log.category))
+                                    .frame(width: 8, height: 8)
+                                Text(log.category.rawValue.capitalized)
+                            }
+                        }
+                        .width(min: 80, ideal: 100)
+
+                        TableColumn("Duration") { log in
+                            Text("\(log.durationMinutes) min")
+                        }
+                        .width(min: 60, ideal: 80)
+
+                        TableColumn("Calories") { log in
+                            Text("\(log.caloriesBurned) cal")
+                        }
+                        .width(min: 60, ideal: 80)
+
+                        TableColumn("Details") { log in
+                            Text(detailText(for: log))
+                                .foregroundColor(.secondary)
+                        }
+                        .width(min: 80, ideal: 120)
+                    }
+                    .contextMenu(forSelectionType: ExerciseLog.ID.self) { ids in
+                        Button("Delete", role: .destructive) {
+                            Task {
+                                for id in ids {
+                                    if let log = viewModel.logs.first(where: { $0.id == id }) {
+                                        await viewModel.deleteLog(log)
+                                    }
                                 }
                             }
                         }
-                    }
-                } primaryAction: { _ in }
+                    } primaryAction: { _ in }
                 }
-                    .frame(minHeight: 460)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    if showAddPanel {
-                        MacCard {
-                            AddExercisePanel(viewModel: viewModel, onDismiss: { showAddPanel = false })
-                        }
-                        .frame(width: 360)
+                if showAddPanel {
+                    MacCard {
+                        AddExercisePanel(viewModel: viewModel, onDismiss: { showAddPanel = false })
                     }
+                    .frame(width: 360)
                 }
             }
-            .padding(32)
+            .frame(maxHeight: .infinity)
         }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color.theme.cream)
         .task { await viewModel.loadLogs() }
     }
