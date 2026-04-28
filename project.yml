@@ -63,3 +63,17 @@ targets:
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
+
+  OzempicAIMacTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: OzempicAIMacTests
+    dependencies:
+      - target: OzempicAIMac
+        embed: false
+    settings:
+      base:
+        SWIFT_VERSION: "5.9"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/OzempicAI.app/Contents/MacOS/OzempicAI"
+        BUNDLE_LOADER: "$(TEST_HOST)"
