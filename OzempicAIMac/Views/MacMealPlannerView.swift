@@ -21,17 +21,25 @@ struct MacMealPlannerView: View {
         return f
     }()
 
+    private func dateString(for date: Date) -> String {
+        Self.dayFormatter.string(from: date)
+    }
+
+    private func mealPlan(_ plan: MealPlan, matches date: Date, type: MealPlan.MealType) -> Bool {
+        plan.plannedDate == dateString(for: date) && plan.mealType == type
+    }
+
+    private func meal(in plans: [MealPlan], for date: Date, type: MealPlan.MealType) -> MealPlan? {
+        plans.first { mealPlan($0, matches: date, type: type) }
+    }
+
     private func meal(for date: Date, type: MealPlan.MealType) -> MealPlan? {
-        let dateString = Self.dayFormatter.string(from: date)
-        return viewModel.weeklyPlans.first {
-            $0.plannedDate == dateString && $0.mealType == type
-        }
+        meal(in: viewModel.weeklyPlans, for: date, type: type)
     }
 
     private func dailyTotal(for date: Date) -> Int {
-        let dateString = Self.dayFormatter.string(from: date)
-        return viewModel.weeklyPlans
-            .filter { $0.plannedDate == dateString }
+        mealTypes
+            .compactMap { meal(for: date, type: $0) }
             .reduce(0) { $0 + $1.calories }
     }
 
@@ -159,12 +167,21 @@ struct MacMealPlannerView: View {
     private func copyWeekToNext() async {
         let calendar = Calendar.current
         let nextWeekStart = calendar.date(byAdding: .weekOfYear, value: 1, to: weekStart)!
+        let sourcePlans = viewModel.weeklyPlans
 
-        for plan in viewModel.weeklyPlans {
-            let dayOffset = calendar.dateComponents([.day], from: weekStart, to: plan.plannedDateValue ?? weekStart).day ?? 0
-            let newDate = calendar.date(byAdding: .day, value: dayOffset, to: nextWeekStart)!
-            await viewModel.addMeal(name: plan.name, date: newDate, mealType: plan.mealType, calories: plan.calories)
+        for day in daysOfWeek {
+            let dayOffset = calendar.dateComponents([.day], from: weekStart, to: day).day ?? 0
+            let targetDate = calendar.date(byAdding: .day, value: dayOffset, to: nextWeekStart)!
+
+            for mealType in mealTypes {
+                guard let plan = meal(in: sourcePlans, for: day, type: mealType) else { continue }
+
+                await viewModel.deleteMeal(on: targetDate, mealType: mealType)
+                await viewModel.addMeal(name: plan.name, date: targetDate, mealType: mealType, calories: plan.calories)
+            }
         }
+
+        await viewModel.loadWeeklyPlans(for: weekStart)
     }
 }
 

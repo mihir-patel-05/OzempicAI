@@ -78,4 +78,20 @@ class MealPlanViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
+
+    func deleteMeal(on date: Date, mealType: MealPlan.MealType) async {
+        do {
+            let userId = try await SupabaseService.shared.currentUserId
+
+            try await client
+                .from("meal_plans")
+                .delete()
+                .eq("user_id", value: userId.uuidString)
+                .eq("planned_date", value: Self.dateFormatter.string(from: date))
+                .eq("meal_type", value: mealType.rawValue)
+                .execute()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }
