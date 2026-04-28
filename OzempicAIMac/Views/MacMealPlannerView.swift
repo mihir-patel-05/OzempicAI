@@ -61,7 +61,7 @@ struct MacMealPlannerView: View {
                     Spacer()
                     Button("Copy week") { Task { await copyWeekToNext() } }
                     Button {
-                        addDate = .now
+                        addDate = weekStart
                         addMealType = .breakfast
                         showAddSheet = true
                     } label: {
