@@ -27,6 +27,12 @@ struct MacWorkoutPlannerView: View {
         }
     }
 
+    private var defaultAddDate: Date {
+        let calendar = Calendar.current
+        let currentWeekStart = WeekNavigator.mondayOfWeek(containing: .now)
+        return calendar.isDate(weekStart, inSameDayAs: currentWeekStart) ? .now : weekStart
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -36,7 +42,7 @@ struct MacWorkoutPlannerView: View {
                     WeekNavigator(weekStart: $weekStart)
                     Spacer()
                     Button {
-                        addingForDate = .now
+                        addingForDate = defaultAddDate
                         showAddPopover = true
                     } label: {
                         Label("Add", systemImage: "plus")
