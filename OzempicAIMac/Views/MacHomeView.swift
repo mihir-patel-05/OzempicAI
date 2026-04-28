@@ -162,7 +162,7 @@ struct MacHomeView: View {
                     heroStat("Eaten", "\(calorieVM.totalCalories) cal")
                     heroStat("Burned", "\(exerciseVM.totalCaloriesBurnedToday) cal")
                     heroStat("Goal", "\(calorieVM.dailyGoal) cal")
-                    heroStat("Net", "\(max(calorieVM.totalCalories - exerciseVM.totalCaloriesBurnedToday, 0)) cal")
+                    heroStat("Net", "\(calorieVM.totalCalories - exerciseVM.totalCaloriesBurnedToday) cal")
                 }
             }
             .padding(28)
