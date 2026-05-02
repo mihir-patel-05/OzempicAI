@@ -59,9 +59,7 @@ struct MacWaterView: View {
                             } else {
                                 VStack(spacing: 0) {
                                     ForEach(Array(vm.todaysLogs.enumerated()), id: \.element.id) { idx, log in
-                                        entryRow(formatTime(log.loggedAt), log.amountMl,
-                                                 entryLabel(for: log.amountMl),
-                                                 divider: idx < vm.todaysLogs.count - 1)
+                                        entryRow(log, divider: idx < vm.todaysLogs.count - 1)
                                     }
                                 }
                             }
@@ -105,7 +103,27 @@ struct MacWaterView: View {
         }.buttonStyle(.plain)
     }
 
-    private func entryRow(_ time: String, _ ml: Int, _ name: String, divider: Bool) -> some View {
+    private func entryRow(_ log: WaterLog, divider: Bool) -> some View {
+        WaterEntryRow(
+            time: formatTime(log.loggedAt),
+            ml: log.amountMl,
+            name: entryLabel(for: log.amountMl),
+            divider: divider,
+            onDelete: { Task { await vm.deleteLog(log) } }
+        )
+    }
+}
+
+private struct WaterEntryRow: View {
+    let time: String
+    let ml: Int
+    let name: String
+    let divider: Bool
+    let onDelete: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
                 ZStack {
@@ -120,8 +138,25 @@ struct MacWaterView: View {
                 Text(time).font(.inter(12, weight: .medium)).foregroundColor(Color.theme.dust)
                 Text("\(ml) ml").font(.fraunces(16, weight: .medium))
                     .foregroundColor(Color.theme.espresso).frame(width: 70, alignment: .trailing)
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color.theme.ember)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Delete entry")
+                .opacity(isHovering ? 1 : 0)
             }
             .padding(.horizontal, 18).padding(.vertical, 12)
+            .contentShape(Rectangle())
+            .onHover { isHovering = $0 }
+            .contextMenu {
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete entry", systemImage: "trash")
+                }
+            }
             if divider { Divider().background(Color.theme.divider) }
         }
     }
