@@ -11,6 +11,8 @@ struct MacHomeView: View {
     @StateObject private var fastingVM = FastingViewModel()
     @StateObject private var exerciseVM = ExerciseViewModel()
 
+    @State private var addMealType: CalorieLog.MealType?
+
     private var remainingCalories: Int { max(calorieVM.dailyGoal - calorieVM.totalCalories, 0) }
     private var calorieProgress: Double {
         guard calorieVM.dailyGoal > 0 else { return 0 }
@@ -125,6 +127,9 @@ struct MacHomeView: View {
             async let e: () = exerciseVM.loadLogs()
             _ = await (c, w, wt, e)
         }
+        .sheet(item: $addMealType) { mealType in
+            MacAddMealSheet(mealType: mealType, viewModel: calorieVM)
+        }
     }
 
     private var heroCard: some View {
@@ -214,15 +219,7 @@ struct MacHomeView: View {
                 VStack(spacing: 0) {
                     let mealTypes: [CalorieLog.MealType] = [.breakfast, .lunch, .snack, .dinner]
                     ForEach(Array(mealTypes.enumerated()), id: \.element) { index, mealType in
-                        let logs = calorieVM.logsByMeal[mealType] ?? []
-                        plateRow(
-                            mealTitle(for: mealType),
-                            logs.isEmpty ? "Not logged" : "\(logs.count) item\(logs.count == 1 ? "" : "s")",
-                            foodSummary(for: logs),
-                            logs.reduce(0) { $0 + $1.calories },
-                            done: !logs.isEmpty,
-                            divider: index < mealTypes.count - 1
-                        )
+                        plateRowButton(for: mealType, divider: index < mealTypes.count - 1)
                     }
                 }
             }
@@ -275,6 +272,24 @@ struct MacHomeView: View {
             .opacity(done ? 1 : 0.55)
             if divider { Divider().background(Color.theme.divider) }
         }
+    }
+
+    private func plateRowButton(for mealType: CalorieLog.MealType, divider: Bool) -> some View {
+        let logs = calorieVM.logsByMeal[mealType] ?? []
+        return Button {
+            addMealType = mealType
+        } label: {
+            plateRow(
+                mealTitle(for: mealType),
+                logs.isEmpty ? "Not logged" : "\(logs.count) item\(logs.count == 1 ? "" : "s")",
+                foodSummary(for: logs),
+                logs.reduce(0) { $0 + $1.calories },
+                done: !logs.isEmpty,
+                divider: divider
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var activityCard: some View {
@@ -343,5 +358,96 @@ struct MacHomeView: View {
                 .foregroundColor(Color.theme.ember)
         }
         .padding(.horizontal, 20).padding(.vertical, 14)
+    }
+}
+
+extension CalorieLog.MealType: Identifiable {
+    public var id: String { rawValue }
+}
+
+struct MacAddMealSheet: View {
+    let mealType: CalorieLog.MealType
+    @ObservedObject var viewModel: CalorieViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var foodName = ""
+    @State private var caloriesText = ""
+    @State private var isSaving = false
+
+    private var mealTitle: String {
+        switch mealType {
+        case .breakfast: return "Breakfast"
+        case .lunch:     return "Lunch"
+        case .dinner:    return "Dinner"
+        case .snack:     return "Snack"
+        }
+    }
+
+    private var canSave: Bool {
+        !foodName.trimmingCharacters(in: .whitespaces).isEmpty
+            && (Int(caloriesText) ?? 0) > 0
+            && !isSaving
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("ADD TO").font(.inter(10, weight: .bold)).tracking(1.2)
+                    .foregroundColor(Color.theme.coffee)
+                Text(mealTitle).font(.fraunces(28, weight: .medium))
+                    .foregroundColor(Color.theme.espresso)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Food").font(.inter(11, weight: .semibold))
+                    .foregroundColor(Color.theme.coffee)
+                TextField("e.g. Grilled chicken", text: $foodName)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Calories").font(.inter(11, weight: .semibold))
+                    .foregroundColor(Color.theme.coffee)
+                TextField("e.g. 350", text: $caloriesText)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            if let error = viewModel.errorMessage {
+                Text(error).font(.inter(12)).foregroundColor(Color.theme.ember)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button {
+                    guard let cals = Int(caloriesText) else { return }
+                    isSaving = true
+                    Task {
+                        await viewModel.logFood(
+                            name: foodName.trimmingCharacters(in: .whitespaces),
+                            calories: cals,
+                            mealType: mealType,
+                            date: Date()
+                        )
+                        isSaving = false
+                        if viewModel.errorMessage == nil { dismiss() }
+                    }
+                } label: {
+                    if isSaving {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text("Add").frame(minWidth: 60)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.theme.terracotta)
+                .keyboardShortcut(.defaultAction)
+                .disabled(!canSave)
+            }
+        }
+        .padding(28)
+        .frame(width: 380)
+        .background(Color.theme.cream)
     }
 }
