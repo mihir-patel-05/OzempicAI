@@ -362,7 +362,7 @@ struct MacHomeView: View {
 }
 
 extension CalorieLog.MealType: Identifiable {
-    public var id: String { rawValue }
+     var id: String { rawValue }
 }
 
 struct MacAddMealSheet: View {
