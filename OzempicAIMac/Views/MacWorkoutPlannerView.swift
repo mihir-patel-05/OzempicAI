@@ -93,11 +93,11 @@ struct MacWorkoutPlannerView: View {
                 Text(date.formatted(.dateTime.weekday(.abbreviated)))
                     .font(.caption)
                     .fontWeight(.semibold)
-                    .foregroundColor(isToday ? Color.theme.terracotta : .secondary)
+                    .foregroundColor(isToday ? Color.theme.terracotta : Color.theme.coffee)
                 Text(date.formatted(.dateTime.day()))
                     .font(.title3)
                     .fontWeight(isToday ? .bold : .regular)
-                    .foregroundColor(isToday ? Color.theme.terracotta : .primary)
+                    .foregroundColor(isToday ? Color.theme.terracotta : Color.theme.espresso)
             }
             .padding(.vertical, 8)
 
@@ -170,7 +170,7 @@ struct MacWorkoutPlannerView: View {
         } else {
             Text(savedLabel ?? "Rest Day")
                 .font(.caption)
-                .foregroundColor(savedLabel != nil ? Color.theme.terracotta : .secondary)
+                .foregroundColor(savedLabel != nil ? Color.theme.terracotta : Color.theme.dust)
                 .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
                 .onTapGesture {

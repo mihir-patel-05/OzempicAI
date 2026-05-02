@@ -59,9 +59,7 @@ struct MacWaterView: View {
                             } else {
                                 VStack(spacing: 0) {
                                     ForEach(Array(vm.todaysLogs.enumerated()), id: \.element.id) { idx, log in
-                                        entryRow(formatTime(log.loggedAt), log.amountMl,
-                                                 entryLabel(for: log.amountMl),
-                                                 divider: idx < vm.todaysLogs.count - 1)
+                                        entryRow(log, divider: idx < vm.todaysLogs.count - 1)
                                     }
                                 }
                             }
@@ -105,7 +103,27 @@ struct MacWaterView: View {
         }.buttonStyle(.plain)
     }
 
-    private func entryRow(_ time: String, _ ml: Int, _ name: String, divider: Bool) -> some View {
+    private func entryRow(_ log: WaterLog, divider: Bool) -> some View {
+        WaterEntryRow(
+            time: formatTime(log.loggedAt),
+            ml: log.amountMl,
+            name: entryLabel(for: log.amountMl),
+            divider: divider,
+            onDelete: { Task { await vm.deleteLog(log) } }
+        )
+    }
+}
+
+private struct WaterEntryRow: View {
+    let time: String
+    let ml: Int
+    let name: String
+    let divider: Bool
+    let onDelete: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
                 ZStack {
@@ -120,8 +138,25 @@ struct MacWaterView: View {
                 Text(time).font(.inter(12, weight: .medium)).foregroundColor(Color.theme.dust)
                 Text("\(ml) ml").font(.fraunces(16, weight: .medium))
                     .foregroundColor(Color.theme.espresso).frame(width: 70, alignment: .trailing)
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color.theme.ember)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Delete entry")
+                .opacity(isHovering ? 1 : 0)
             }
             .padding(.horizontal, 18).padding(.vertical, 12)
+            .contentShape(Rectangle())
+            .onHover { isHovering = $0 }
+            .contextMenu {
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete entry", systemImage: "trash")
+                }
+            }
             if divider { Divider().background(Color.theme.divider) }
         }
     }
@@ -315,8 +350,19 @@ struct MacFastingView: View {
                                         .foregroundColor(Color.theme.dust)
                                 }
                             }
-                            Button { vm.stopFast() } label: {
-                                Text(vm.isActive ? "End fast early" : "Start fast")
+                            Button {
+                                if vm.isActive {
+                                    vm.stopFast()
+                                } else if vm.isComplete {
+                                    vm.resetAfterComplete()
+                                } else {
+                                    vm.customStartTime = Date()
+                                    vm.startFast()
+                                }
+                            } label: {
+                                Text(vm.isActive ? "End fast early"
+                                     : vm.isComplete ? "Reset"
+                                     : "Start fast")
                                     .font(.inter(14, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -325,13 +371,44 @@ struct MacFastingView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 14))
                             }
                             .buttonStyle(.plain)
-                            .disabled(!vm.isActive)
-                            .opacity(vm.isActive ? 1 : 0.5)
                         }
                     }
                     .frame(width: 340)
 
                     VStack(alignment: .leading, spacing: 16) {
+                        MacCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("FAST DURATION").font(.inter(11, weight: .bold)).tracking(1.0)
+                                    .foregroundColor(Color.theme.coffee)
+                                Menu {
+                                    ForEach([12, 16, 18, 20], id: \.self) { hours in
+                                        Button("\(hours) hours") { vm.selectedHours = hours }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text("\(vm.selectedHours) hours")
+                                            .font(.fraunces(18, weight: .medium))
+                                            .foregroundColor(Color.theme.espresso)
+                                        Spacer()
+                                        Image(systemName: "chevron.up.chevron.down")
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundColor(Color.theme.coffee)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .background(Color.theme.cream)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.theme.divider, lineWidth: 1)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                }
+                                .menuStyle(.borderlessButton)
+                                .menuIndicator(.hidden)
+                                .disabled(vm.isActive)
+                                .opacity(vm.isActive ? 0.5 : 1)
+                            }
+                        }
                         MacCard {
                             VStack(alignment: .leading, spacing: 14) {
                                 Text("SCHEDULE").font(.inter(11, weight: .bold)).tracking(1.0)

@@ -21,18 +21,21 @@ struct WeekNavigator: View {
                 weekStart = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: weekStart) ?? weekStart
             } label: {
                 Image(systemName: "chevron.left")
+                    .foregroundColor(Color.theme.coffee)
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.leftArrow, modifiers: .command)
 
             Text(weekLabel)
                 .font(.headline)
+                .foregroundColor(Color.theme.espresso)
                 .frame(minWidth: 200)
 
             Button {
                 weekStart = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: weekStart) ?? weekStart
             } label: {
                 Image(systemName: "chevron.right")
+                    .foregroundColor(Color.theme.coffee)
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.rightArrow, modifiers: .command)

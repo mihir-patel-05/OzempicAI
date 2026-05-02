@@ -45,13 +45,14 @@ struct WorkoutCard: View {
                 Text(plan.exerciseName)
                     .font(.caption)
                     .fontWeight(.semibold)
+                    .foregroundColor(Color.theme.espresso)
                     .lineLimit(1)
             }
 
             if !detailText.isEmpty {
                 Text(detailText)
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.theme.coffee)
             }
         }
         .padding(8)
