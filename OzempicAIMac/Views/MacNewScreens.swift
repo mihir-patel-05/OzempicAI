@@ -380,13 +380,31 @@ struct MacFastingView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("FAST DURATION").font(.inter(11, weight: .bold)).tracking(1.0)
                                     .foregroundColor(Color.theme.coffee)
-                                Picker("Duration", selection: $vm.selectedHours) {
+                                Menu {
                                     ForEach([12, 16, 18, 20], id: \.self) { hours in
-                                        Text("\(hours) hours").tag(hours)
+                                        Button("\(hours) hours") { vm.selectedHours = hours }
                                     }
+                                } label: {
+                                    HStack {
+                                        Text("\(vm.selectedHours) hours")
+                                            .font(.fraunces(18, weight: .medium))
+                                            .foregroundColor(Color.theme.espresso)
+                                        Spacer()
+                                        Image(systemName: "chevron.up.chevron.down")
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundColor(Color.theme.coffee)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .background(Color.theme.cream)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.theme.divider, lineWidth: 1)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
                                 }
-                                .labelsHidden()
-                                .pickerStyle(.menu)
+                                .menuStyle(.borderlessButton)
+                                .menuIndicator(.hidden)
                                 .disabled(vm.isActive)
                                 .opacity(vm.isActive ? 0.5 : 1)
                             }
