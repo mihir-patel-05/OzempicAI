@@ -350,8 +350,19 @@ struct MacFastingView: View {
                                         .foregroundColor(Color.theme.dust)
                                 }
                             }
-                            Button { vm.stopFast() } label: {
-                                Text(vm.isActive ? "End fast early" : "Start fast")
+                            Button {
+                                if vm.isActive {
+                                    vm.stopFast()
+                                } else if vm.isComplete {
+                                    vm.resetAfterComplete()
+                                } else {
+                                    vm.customStartTime = Date()
+                                    vm.startFast()
+                                }
+                            } label: {
+                                Text(vm.isActive ? "End fast early"
+                                     : vm.isComplete ? "Reset"
+                                     : "Start fast")
                                     .font(.inter(14, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -360,13 +371,26 @@ struct MacFastingView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 14))
                             }
                             .buttonStyle(.plain)
-                            .disabled(!vm.isActive)
-                            .opacity(vm.isActive ? 1 : 0.5)
                         }
                     }
                     .frame(width: 340)
 
                     VStack(alignment: .leading, spacing: 16) {
+                        MacCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("FAST DURATION").font(.inter(11, weight: .bold)).tracking(1.0)
+                                    .foregroundColor(Color.theme.coffee)
+                                Picker("Duration", selection: $vm.selectedHours) {
+                                    ForEach([12, 16, 18, 20], id: \.self) { hours in
+                                        Text("\(hours) hours").tag(hours)
+                                    }
+                                }
+                                .labelsHidden()
+                                .pickerStyle(.menu)
+                                .disabled(vm.isActive)
+                                .opacity(vm.isActive ? 0.5 : 1)
+                            }
+                        }
                         MacCard {
                             VStack(alignment: .leading, spacing: 14) {
                                 Text("SCHEDULE").font(.inter(11, weight: .bold)).tracking(1.0)
