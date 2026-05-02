@@ -196,15 +196,29 @@ private struct AddMealSheet: View {
 
     @State private var name = ""
     @State private var calories = ""
+    @State private var selectedDate: Date = .now
+    @State private var selectedMealType: MealPlan.MealType = .breakfast
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Add \(mealType.rawValue.capitalized) — \(date.formatted(.dateTime.weekday(.wide).month().day()))")
+            Text("Add Meal")
                 .font(.headline)
+                .foregroundColor(Color.theme.espresso)
 
             Form {
                 TextField("Food Name", text: $name)
                 TextField("Calories", text: $calories)
+                Picker("Meal", selection: $selectedMealType) {
+                    ForEach([MealPlan.MealType.breakfast, .lunch, .dinner, .snack], id: \.self) { type in
+                        Text(type.rawValue.capitalized).tag(type)
+                    }
+                }
+                DatePicker(
+                    "Day",
+                    selection: $selectedDate,
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(.graphical)
             }
             .formStyle(.grouped)
 
@@ -216,8 +230,8 @@ private struct AddMealSheet: View {
                     Task {
                         await viewModel.addMeal(
                             name: name,
-                            date: date,
-                            mealType: mealType,
+                            date: selectedDate,
+                            mealType: selectedMealType,
                             calories: Int(calories) ?? 0
                         )
                         await viewModel.loadWeeklyPlans(for: weekStart)
@@ -229,8 +243,12 @@ private struct AddMealSheet: View {
             }
             .padding()
         }
-        .frame(width: 350, height: 250)
+        .frame(width: 420, height: 560)
         .padding()
+        .onAppear {
+            selectedDate = date
+            selectedMealType = mealType
+        }
     }
 }
 
