@@ -72,79 +72,12 @@ struct MacMealPlannerView: View {
                     .tint(Color.theme.terracotta)
                 }
 
-                // Grid
-                Grid(alignment: .topLeading, horizontalSpacing: 1, verticalSpacing: 1) {
-                    // Header row
-                    GridRow {
-                        Text("")
-                            .frame(width: 80)
-                        ForEach(daysOfWeek, id: \.self) { day in
-                            VStack(spacing: 2) {
-                                Text(day.formatted(.dateTime.weekday(.abbreviated)))
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                Text(day.formatted(.dateTime.month(.abbreviated).day()))
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                        }
+                HStack(spacing: 8) {
+                    ForEach(daysOfWeek, id: \.self) { day in
+                        dayColumn(for: day)
                     }
-
-                    Divider()
-
-                    // Meal type rows
-                    ForEach(mealTypes, id: \.self) { mealType in
-                        GridRow {
-                            Text(mealType.rawValue.capitalized)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .frame(width: 80, alignment: .leading)
-                                .padding(.leading, 8)
-
-                            ForEach(daysOfWeek, id: \.self) { day in
-                                MealCell(
-                                    meal: meal(for: day, type: mealType),
-                                    dayDate: day,
-                                    mealType: mealType,
-                                    onAdd: {
-                                        addDate = day
-                                        addMealType = mealType
-                                        showAddSheet = true
-                                    },
-                                    onEdit: { editingMeal = $0 }
-                                )
-                                .frame(maxWidth: .infinity)
-                            }
-                        }
-
-                        Divider()
-                    }
-
-                    // Totals row
-                    GridRow {
-                        Text("TOTAL")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .frame(width: 80, alignment: .leading)
-                            .padding(.leading, 8)
-
-                        ForEach(daysOfWeek, id: \.self) { day in
-                            let total = dailyTotal(for: day)
-                            Text(total > 0 ? "\(total)" : "—")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(totalColor(for: total))
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .padding(.vertical, 8)
                 }
-                .padding()
-                .background(Color.theme.paper)
-                .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
-                .shadow(color: Color.theme.shadow, radius: 10, y: 2)
+                .frame(minHeight: 560)
             }
             .padding(32)
         }
@@ -161,6 +94,132 @@ struct MacMealPlannerView: View {
         }
         .sheet(item: $editingMeal) { meal in
             EditMealSheet(viewModel: viewModel, meal: meal, weekStart: weekStart)
+        }
+    }
+
+    @ViewBuilder
+    private func dayColumn(for date: Date) -> some View {
+        let isToday = Calendar.current.isDateInToday(date)
+        let total = dailyTotal(for: date)
+
+        VStack(spacing: 8) {
+            VStack(spacing: 2) {
+                Text(date.formatted(.dateTime.weekday(.abbreviated)))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(isToday ? Color.theme.terracotta : Color.theme.coffee)
+                Text(date.formatted(.dateTime.day()))
+                    .font(.title3)
+                    .fontWeight(isToday ? .bold : .regular)
+                    .foregroundColor(isToday ? Color.theme.terracotta : Color.theme.espresso)
+            }
+            .padding(.vertical, 8)
+
+            Divider()
+
+            HStack(spacing: 4) {
+                Text("TOTAL")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(0.8)
+                    .foregroundColor(Color.theme.coffee)
+                Spacer()
+                Text(total > 0 ? "\(total) cal" : "—")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(totalColor(for: total))
+            }
+            .padding(.horizontal, 6)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(mealTypes, id: \.self) { type in
+                        mealTypeSection(date: date, type: type)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+
+            Spacer()
+
+            Button {
+                addDate = date
+                addMealType = .breakfast
+                showAddSheet = true
+            } label: {
+                Image(systemName: "plus.circle")
+                    .foregroundColor(Color.theme.terracotta)
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 8)
+        }
+        .frame(maxWidth: .infinity)
+        .background(isToday ? Color.theme.terracotta.opacity(0.05) : Color.clear)
+        .cornerRadius(AppRadius.small)
+    }
+
+    @ViewBuilder
+    private func mealTypeSection(date: Date, type: MealPlan.MealType) -> some View {
+        let plan = meal(for: date, type: type)
+
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Text(type.rawValue.uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(0.8)
+                    .foregroundColor(Color.theme.coffee)
+                Spacer()
+                Button {
+                    addDate = date
+                    addMealType = type
+                    showAddSheet = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(Color.theme.terracotta)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if let plan = plan {
+                Button {
+                    editingMeal = plan
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(plan.name)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color.theme.espresso)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        Text("\(plan.calories) cal")
+                            .font(.caption2)
+                            .foregroundColor(Color.theme.coffee)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+                    .background(Color.theme.terracotta.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.small)
+                            .strokeBorder(Color.theme.terracotta.opacity(0.3), lineWidth: 1)
+                    )
+                    .cornerRadius(AppRadius.small)
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button("Delete", role: .destructive) {
+                        Task {
+                            await viewModel.deleteMeal(plan)
+                            await viewModel.loadWeeklyPlans(for: weekStart)
+                        }
+                    }
+                }
+            } else {
+                Text("—")
+                    .font(.caption2)
+                    .foregroundColor(Color.theme.dust)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
+            }
         }
     }
 
@@ -196,29 +255,16 @@ private struct AddMealSheet: View {
 
     @State private var name = ""
     @State private var calories = ""
-    @State private var selectedDate: Date = .now
-    @State private var selectedMealType: MealPlan.MealType = .breakfast
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Add Meal")
+            Text("Add \(mealType.rawValue.capitalized) — \(date.formatted(.dateTime.weekday(.wide).month().day()))")
                 .font(.headline)
                 .foregroundColor(Color.theme.espresso)
 
             Form {
                 TextField("Food Name", text: $name)
                 TextField("Calories", text: $calories)
-                Picker("Meal", selection: $selectedMealType) {
-                    ForEach([MealPlan.MealType.breakfast, .lunch, .dinner, .snack], id: \.self) { type in
-                        Text(type.rawValue.capitalized).tag(type)
-                    }
-                }
-                DatePicker(
-                    "Day",
-                    selection: $selectedDate,
-                    displayedComponents: [.date]
-                )
-                .datePickerStyle(.graphical)
             }
             .formStyle(.grouped)
 
@@ -230,8 +276,8 @@ private struct AddMealSheet: View {
                     Task {
                         await viewModel.addMeal(
                             name: name,
-                            date: selectedDate,
-                            mealType: selectedMealType,
+                            date: date,
+                            mealType: mealType,
                             calories: Int(calories) ?? 0
                         )
                         await viewModel.loadWeeklyPlans(for: weekStart)
@@ -243,12 +289,8 @@ private struct AddMealSheet: View {
             }
             .padding()
         }
-        .frame(width: 420, height: 560)
+        .frame(width: 350, height: 250)
         .padding()
-        .onAppear {
-            selectedDate = date
-            selectedMealType = mealType
-        }
     }
 }
 
