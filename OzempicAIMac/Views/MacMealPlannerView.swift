@@ -244,10 +244,7 @@ struct MacMealPlannerView: View {
                 let plans = meals(in: sourcePlans, for: day, type: mealType)
                 guard !plans.isEmpty else { continue }
 
-                await viewModel.deleteMeal(on: targetDate, mealType: mealType)
-                for plan in plans {
-                    await viewModel.addMeal(name: plan.name, date: targetDate, mealType: mealType, calories: plan.calories)
-                }
+                await viewModel.replaceMeals(on: targetDate, mealType: mealType, with: plans, reloadWeek: weekStart)
             }
         }
 

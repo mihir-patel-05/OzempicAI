@@ -14,7 +14,7 @@ import SwiftUI
 
 // MARK: - Logic replicas
 
-private static let dayFormatter: DateFormatter = {
+private let dayFormatter: DateFormatter = {
     let f = DateFormatter()
     f.dateFormat = "yyyy-MM-dd"
     return f
