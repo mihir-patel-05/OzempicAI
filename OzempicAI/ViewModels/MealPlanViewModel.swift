@@ -14,6 +14,14 @@ class MealPlanViewModel: ObservableObject {
         return f
     }()
 
+    private struct NewMealPlan: Encodable {
+        let user_id: UUID
+        let name: String
+        let planned_date: String
+        let meal_type: String
+        let calories: Int
+    }
+
     func loadWeeklyPlans(for weekStart: Date? = nil) async {
         isLoading = true
         errorMessage = nil
@@ -41,25 +49,7 @@ class MealPlanViewModel: ObservableObject {
     func addMeal(name: String, date: Date, mealType: MealPlan.MealType, calories: Int) async {
         errorMessage = nil
         do {
-            let userId = try await SupabaseService.shared.currentUserId
-
-            struct NewMealPlan: Encodable {
-                let user_id: UUID
-                let name: String
-                let planned_date: String
-                let meal_type: String
-                let calories: Int
-            }
-
-            let entry = NewMealPlan(
-                user_id: userId,
-                name: name,
-                planned_date: Self.dateFormatter.string(from: date),
-                meal_type: mealType.rawValue,
-                calories: calories
-            )
-
-            try await client.from("meal_plans").insert(entry).execute()
+            try await insertMeal(name: name, date: date, mealType: mealType, calories: calories)
             await loadWeeklyPlans()
         } catch {
             errorMessage = error.localizedDescription
@@ -81,17 +71,73 @@ class MealPlanViewModel: ObservableObject {
 
     func deleteMeal(on date: Date, mealType: MealPlan.MealType) async {
         do {
-            let userId = try await SupabaseService.shared.currentUserId
-
-            try await client
-                .from("meal_plans")
-                .delete()
-                .eq("user_id", value: userId.uuidString)
-                .eq("planned_date", value: Self.dateFormatter.string(from: date))
-                .eq("meal_type", value: mealType.rawValue)
-                .execute()
+            try await deleteMeals(on: date, mealType: mealType)
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func replaceMeals(on date: Date, mealType: MealPlan.MealType, with plans: [MealPlan], reloadWeek weekStart: Date? = nil) async {
+        errorMessage = nil
+        do {
+            let originalPlans = try await meals(on: date, mealType: mealType)
+
+            do {
+                try await deleteMeals(on: date, mealType: mealType)
+                for plan in plans {
+                    try await insertMeal(name: plan.name, date: date, mealType: mealType, calories: plan.calories)
+                }
+            } catch {
+                try? await deleteMeals(on: date, mealType: mealType)
+                for originalPlan in originalPlans {
+                    try? await insertMeal(name: originalPlan.name, date: date, mealType: mealType, calories: originalPlan.calories)
+                }
+                throw error
+            }
+
+            await loadWeeklyPlans(for: weekStart)
+        } catch {
+            errorMessage = error.localizedDescription
+            await loadWeeklyPlans(for: weekStart)
+        }
+    }
+
+    private func meals(on date: Date, mealType: MealPlan.MealType) async throws -> [MealPlan] {
+        let userId = try await SupabaseService.shared.currentUserId
+
+        return try await client
+            .from("meal_plans")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .eq("planned_date", value: Self.dateFormatter.string(from: date))
+            .eq("meal_type", value: mealType.rawValue)
+            .order("created_at", ascending: true)
+            .execute()
+            .value
+    }
+
+    private func insertMeal(name: String, date: Date, mealType: MealPlan.MealType, calories: Int) async throws {
+        let userId = try await SupabaseService.shared.currentUserId
+        let entry = NewMealPlan(
+            user_id: userId,
+            name: name,
+            planned_date: Self.dateFormatter.string(from: date),
+            meal_type: mealType.rawValue,
+            calories: calories
+        )
+
+        try await client.from("meal_plans").insert(entry).execute()
+    }
+
+    private func deleteMeals(on date: Date, mealType: MealPlan.MealType) async throws {
+        let userId = try await SupabaseService.shared.currentUserId
+
+        try await client
+            .from("meal_plans")
+            .delete()
+            .eq("user_id", value: userId.uuidString)
+            .eq("planned_date", value: Self.dateFormatter.string(from: date))
+            .eq("meal_type", value: mealType.rawValue)
+            .execute()
     }
 }
