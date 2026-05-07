@@ -198,11 +198,14 @@ private struct AddWorkoutSheet: View {
     let weekStart: Date
     @Environment(\.dismiss) private var dismiss
 
+    @State private var isFromHistory = false
+    @State private var searchText = ""
     @State private var exerciseName = ""
     @State private var category: ExerciseLog.ExerciseCategory = .strength
     @State private var sets = ""
     @State private var reps = ""
     @State private var duration = ""
+    @State private var calories = ""
     @State private var weight = ""
     @State private var weightUnit: ExerciseLog.WeightUnit = .lb
     @State private var bodyPart: ExerciseLog.BodyPart = .fullBody
@@ -213,14 +216,142 @@ private struct AddWorkoutSheet: View {
         Array(Set(viewModel.allPastExercises.map(\.exerciseName))).sorted()
     }
 
+    private var uniquePastExercises: [WorkoutPlanViewModel.HistoryExercise] {
+        var seen = Set<String>()
+        return viewModel.allPastExercises.filter { item in
+            let key = item.exerciseName.lowercased()
+            guard !seen.contains(key) else { return false }
+            seen.insert(key)
+            return true
+        }
+    }
+
+    private var filteredPastExercises: [WorkoutPlanViewModel.HistoryExercise] {
+        if searchText.isEmpty { return uniquePastExercises }
+        return uniquePastExercises.filter {
+            $0.exerciseName.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    private func selectPastExercise(_ item: WorkoutPlanViewModel.HistoryExercise) {
+        exerciseName = item.exerciseName
+        category = item.category
+        duration = item.durationMinutes.map(String.init) ?? ""
+        calories = item.caloriesBurned.map(String.init) ?? ""
+        sets = item.sets.map(String.init) ?? ""
+        reps = item.repsPerSet.map(String.init) ?? ""
+        if let bp = item.bodyPart { bodyPart = bp }
+        weight = item.weight.map(weightText) ?? ""
+        if let wu = item.weightUnit { weightUnit = wu }
+        suggestions = []
+    }
+
+    private func categoryIcon(for category: ExerciseLog.ExerciseCategory) -> String {
+        switch category {
+        case .cardio: return "figure.run"
+        case .strength: return "figure.strengthtraining.traditional"
+        case .flexibility: return "figure.mind.and.body"
+        case .sports: return "sportscourt.fill"
+        case .other: return "ellipsis.circle.fill"
+        }
+    }
+
+    private func categoryColor(for category: ExerciseLog.ExerciseCategory) -> Color {
+        switch category {
+        case .cardio: return Color.theme.terracotta
+        case .strength: return Color.theme.amber
+        case .flexibility, .sports: return Color.theme.mediumBlue
+        case .other: return Color.theme.lightBlue
+        }
+    }
+
+    private func weightText(_ value: Double) -> String {
+        value.rounded() == value ? String(Int(value)) : String(value)
+    }
+
     var body: some View {
         VStack(spacing: 16) {
             Text("Add Workout — \(date.formatted(.dateTime.weekday(.wide).month().day()))")
                 .font(.headline)
 
             Form {
+                Picker("Source", selection: $isFromHistory) {
+                    Text("New Workout").tag(false)
+                    Text("From History").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: isFromHistory) { _ in
+                    suggestions = []
+                    searchText = ""
+                }
+
+                if isFromHistory {
+                    VStack(alignment: .leading, spacing: 8) {
+                        TextField("Search workout history", text: $searchText)
+
+                        if filteredPastExercises.isEmpty {
+                            HStack(spacing: 8) {
+                                Image(systemName: "figure.run.circle")
+                                    .foregroundColor(Color.theme.dust)
+                                Text("No past workouts found")
+                                    .font(.caption)
+                                    .foregroundColor(Color.theme.coffee)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 8)
+                        } else {
+                            VStack(spacing: 4) {
+                                ForEach(filteredPastExercises.prefix(8)) { item in
+                                    Button {
+                                        selectPastExercise(item)
+                                    } label: {
+                                        HStack(spacing: 8) {
+                                            Image(systemName: categoryIcon(for: item.category))
+                                                .foregroundColor(categoryColor(for: item.category))
+                                                .frame(width: 18)
+
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(item.exerciseName)
+                                                    .font(.caption)
+                                                    .fontWeight(.semibold)
+                                                    .foregroundColor(Color.theme.espresso)
+                                                    .lineLimit(1)
+
+                                                Text(historyDetail(for: item))
+                                                    .font(.caption2)
+                                                    .foregroundColor(Color.theme.coffee)
+                                                    .lineLimit(1)
+                                            }
+
+                                            Spacer()
+
+                                            if exerciseName == item.exerciseName {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .foregroundColor(Color.theme.terracotta)
+                                            }
+                                        }
+                                        .padding(6)
+                                        .background(
+                                            exerciseName == item.exerciseName
+                                                ? Color.theme.terracotta.opacity(0.1)
+                                                : Color.clear
+                                        )
+                                        .cornerRadius(AppRadius.small)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 TextField("Exercise Name", text: $exerciseName)
                     .onChange(of: exerciseName) { newValue in
+                        guard !isFromHistory else {
+                            suggestions = []
+                            return
+                        }
+
                         if newValue.count >= 2 {
                             suggestions = pastNames.filter {
                                 $0.localizedCaseInsensitiveContains(newValue)
@@ -230,17 +361,16 @@ private struct AddWorkoutSheet: View {
                         }
                     }
 
-                if !suggestions.isEmpty {
+                if !isFromHistory && !suggestions.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(suggestions, id: \.self) { name in
                             Button(name) {
-                                exerciseName = name
-                                // Auto-fill category from past exercise
                                 if let past = viewModel.allPastExercises.first(where: { $0.exerciseName == name }) {
-                                    category = past.category
-                                    if let bp = past.bodyPart { bodyPart = bp }
+                                    selectPastExercise(past)
+                                } else {
+                                    exerciseName = name
+                                    suggestions = []
                                 }
-                                suggestions = []
                             }
                             .buttonStyle(.plain)
                             .foregroundColor(Color.theme.terracotta)
@@ -268,7 +398,10 @@ private struct AddWorkoutSheet: View {
                         .frame(width: 60)
                 }
 
-                TextField("Duration (min)", text: $duration)
+                HStack {
+                    TextField("Duration (min)", text: $duration)
+                    TextField("Calories", text: $calories)
+                }
 
                 HStack {
                     TextField("Weight", text: $weight)
@@ -295,6 +428,7 @@ private struct AddWorkoutSheet: View {
                             category: category,
                             plannedDate: date,
                             durationMinutes: Int(duration),
+                            caloriesBurned: Int(calories),
                             sets: Int(sets),
                             repsPerSet: Int(reps),
                             bodyPart: bodyPart,
@@ -311,8 +445,24 @@ private struct AddWorkoutSheet: View {
             }
             .padding()
         }
-        .frame(width: 420, height: 520)
+        .frame(width: 520, height: 620)
         .padding()
+        .task {
+            await viewModel.loadPastExercises()
+            await viewModel.loadPastWorkoutPlans()
+        }
+    }
+
+    private func historyDetail(for item: WorkoutPlanViewModel.HistoryExercise) -> String {
+        var details = [item.category.rawValue.capitalized]
+        if let duration = item.durationMinutes { details.append("\(duration) min") }
+        if let calories = item.caloriesBurned { details.append("\(calories) cal") }
+        if let sets = item.sets, let reps = item.repsPerSet { details.append("\(sets)x\(reps)") }
+        if let weight = item.weight {
+            let unit = item.weightUnit?.rawValue ?? ExerciseLog.WeightUnit.lb.rawValue
+            details.append("\(weightText(weight)) \(unit)")
+        }
+        return details.joined(separator: " - ")
     }
 }
 
