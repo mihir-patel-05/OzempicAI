@@ -4,8 +4,7 @@
 // The PR wraps the content in a ScrollView and moves the inner grid outside the
 // old inner ScrollView. The styling changes (background, clip, shadow) are visual-only.
 // The helper functions that drive the grid's data — dailyTotal(for:), totalColor(for:),
-// and meal(for:type:) — remain unchanged but are now rendered inside the new layout
-// and must continue to work correctly.
+// and meals(for:type:) — are replicated here so multi-item meal slots keep working.
 //
 // These private helpers are replicated here as standalone functions.
 
@@ -29,10 +28,10 @@ private func dailyTotal(for date: Date, in plans: [MealPlan]) -> Int {
         .reduce(0) { $0 + $1.calories }
 }
 
-/// Replicates MacMealPlannerView.meal(for:type:)
-private func meal(for date: Date, type: MealPlan.MealType, in plans: [MealPlan]) -> MealPlan? {
+/// Replicates MacMealPlannerView.meals(for:type:)
+private func meals(for date: Date, type: MealPlan.MealType, in plans: [MealPlan]) -> [MealPlan] {
     let dateString = dayFormatter.string(from: date)
-    return plans.first { $0.plannedDate == dateString && $0.mealType == type }
+    return plans.filter { $0.plannedDate == dateString && $0.mealType == type }
 }
 
 /// Replicates MacMealPlannerView.totalColor(for:) with a given calorie goal.
@@ -160,7 +159,7 @@ final class TotalColorTests: XCTestCase {
     }
 }
 
-// MARK: - meal(for:type:) tests
+// MARK: - meals(for:type:) tests
 
 final class MealLookupTests: XCTestCase {
 
@@ -169,32 +168,33 @@ final class MealLookupTests: XCTestCase {
         Calendar.current.date(byAdding: .day, value: 1, to: today)!
     }
 
-    func test_noPlans_returnsNil() {
-        XCTAssertNil(meal(for: today, type: .breakfast, in: []))
+    func test_noPlans_returnsEmptyArray() {
+        XCTAssertTrue(meals(for: today, type: .breakfast, in: []).isEmpty)
     }
 
-    func test_matchingDateAndType_returnsPlan() {
+    func test_matchingDateAndType_returnsPlans() {
         let plan = makePlan(plannedDate: today, mealType: .breakfast, calories: 400)
-        let result = meal(for: today, type: .breakfast, in: [plan])
-        XCTAssertNotNil(result)
-        XCTAssertEqual(result?.name, "Meal")
+        let result = meals(for: today, type: .breakfast, in: [plan])
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.name, "Meal")
     }
 
-    func test_wrongDate_returnsNil() {
+    func test_wrongDate_returnsEmptyArray() {
         let plan = makePlan(plannedDate: tomorrow, mealType: .lunch, calories: 500)
-        XCTAssertNil(meal(for: today, type: .lunch, in: [plan]))
+        XCTAssertTrue(meals(for: today, type: .lunch, in: [plan]).isEmpty)
     }
 
-    func test_wrongMealType_returnsNil() {
+    func test_wrongMealType_returnsEmptyArray() {
         let plan = makePlan(plannedDate: today, mealType: .dinner, calories: 700)
-        XCTAssertNil(meal(for: today, type: .breakfast, in: [plan]))
+        XCTAssertTrue(meals(for: today, type: .breakfast, in: [plan]).isEmpty)
     }
 
-    func test_multiplePlans_returnsFirstMatch() {
+    func test_multiplePlans_returnsEveryMatch() {
         let plan1 = makePlan(name: "First",  plannedDate: today, mealType: .lunch, calories: 400)
         let plan2 = makePlan(name: "Second", plannedDate: today, mealType: .lunch, calories: 600)
-        let result = meal(for: today, type: .lunch, in: [plan1, plan2])
-        XCTAssertEqual(result?.name, "First")
+        let result = meals(for: today, type: .lunch, in: [plan1, plan2])
+        XCTAssertEqual(result.map(\.name), ["First", "Second"])
+        XCTAssertEqual(result.reduce(0) { $0 + $1.calories }, 1000)
     }
 
     func test_allMealTypes_canBeFound() {
@@ -202,8 +202,8 @@ final class MealLookupTests: XCTestCase {
             makePlan(plannedDate: today, mealType: $0, calories: 300)
         }
         for mealType in MealPlan.MealType.allCases {
-            XCTAssertNotNil(meal(for: today, type: mealType, in: plans),
-                            "Should find plan for meal type: \(mealType)")
+            XCTAssertFalse(meals(for: today, type: mealType, in: plans).isEmpty,
+                           "Should find plans for meal type: \(mealType)")
         }
     }
 }

@@ -29,17 +29,17 @@ struct MacMealPlannerView: View {
         plan.plannedDate == dateString(for: date) && plan.mealType == type
     }
 
-    private func meal(in plans: [MealPlan], for date: Date, type: MealPlan.MealType) -> MealPlan? {
-        plans.first { mealPlan($0, matches: date, type: type) }
+    private func meals(in plans: [MealPlan], for date: Date, type: MealPlan.MealType) -> [MealPlan] {
+        plans.filter { mealPlan($0, matches: date, type: type) }
     }
 
-    private func meal(for date: Date, type: MealPlan.MealType) -> MealPlan? {
-        meal(in: viewModel.weeklyPlans, for: date, type: type)
+    private func meals(for date: Date, type: MealPlan.MealType) -> [MealPlan] {
+        meals(in: viewModel.weeklyPlans, for: date, type: type)
     }
 
     private func dailyTotal(for date: Date) -> Int {
-        mealTypes
-            .compactMap { meal(for: date, type: $0) }
+        viewModel.weeklyPlans
+            .filter { $0.plannedDate == dateString(for: date) }
             .reduce(0) { $0 + $1.calories }
     }
 
@@ -159,7 +159,7 @@ struct MacMealPlannerView: View {
 
     @ViewBuilder
     private func mealTypeSection(date: Date, type: MealPlan.MealType) -> some View {
-        let plan = meal(for: date, type: type)
+        let plans = meals(for: date, type: type)
 
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
@@ -180,45 +180,53 @@ struct MacMealPlannerView: View {
                 .buttonStyle(.plain)
             }
 
-            if let plan = plan {
-                Button {
-                    editingMeal = plan
-                } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(plan.name)
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(Color.theme.espresso)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                        Text("\(plan.calories) cal")
-                            .font(.caption2)
-                            .foregroundColor(Color.theme.coffee)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
-                    .background(Color.theme.terracotta.opacity(0.1))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppRadius.small)
-                            .strokeBorder(Color.theme.terracotta.opacity(0.3), lineWidth: 1)
-                    )
-                    .cornerRadius(AppRadius.small)
-                }
-                .buttonStyle(.plain)
-                .contextMenu {
-                    Button("Delete", role: .destructive) {
-                        Task {
-                            await viewModel.deleteMeal(plan)
-                            await viewModel.loadWeeklyPlans(for: weekStart)
-                        }
-                    }
-                }
-            } else {
+            if plans.isEmpty {
                 Text("—")
                     .font(.caption2)
                     .foregroundColor(Color.theme.dust)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 4)
+            } else {
+                VStack(spacing: 4) {
+                    ForEach(plans) { plan in
+                        Button {
+                            editingMeal = plan
+                        } label: {
+                            HStack(alignment: .top, spacing: 6) {
+                                Text(plan.name)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(Color.theme.espresso)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+
+                                Spacer(minLength: 4)
+
+                                Text("\(plan.calories)")
+                                    .font(.caption2)
+                                    .foregroundColor(Color.theme.coffee)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                            .background(Color.theme.terracotta.opacity(0.1))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppRadius.small)
+                                    .strokeBorder(Color.theme.terracotta.opacity(0.3), lineWidth: 1)
+                            )
+                            .cornerRadius(AppRadius.small)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Delete", role: .destructive) {
+                                Task {
+                                    await viewModel.deleteMeal(plan)
+                                    await viewModel.loadWeeklyPlans(for: weekStart)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -233,10 +241,13 @@ struct MacMealPlannerView: View {
             let targetDate = calendar.date(byAdding: .day, value: dayOffset, to: nextWeekStart)!
 
             for mealType in mealTypes {
-                guard let plan = meal(in: sourcePlans, for: day, type: mealType) else { continue }
+                let plans = meals(in: sourcePlans, for: day, type: mealType)
+                guard !plans.isEmpty else { continue }
 
                 await viewModel.deleteMeal(on: targetDate, mealType: mealType)
-                await viewModel.addMeal(name: plan.name, date: targetDate, mealType: mealType, calories: plan.calories)
+                for plan in plans {
+                    await viewModel.addMeal(name: plan.name, date: targetDate, mealType: mealType, calories: plan.calories)
+                }
             }
         }
 
