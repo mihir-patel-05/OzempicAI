@@ -1,3 +1,5 @@
+import { useRef, type KeyboardEvent } from 'react'
+
 interface Option<T extends string> {
   value: T
   label: string
@@ -18,6 +20,24 @@ export function SegmentedPicker<T extends string>({
   ariaLabel,
   ariaLabelledBy,
 }: SegmentedPickerProps<T>) {
+  const radiosRef = useRef<Array<HTMLButtonElement | null>>([])
+
+  function onRadioKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const direction =
+      e.key === 'ArrowRight' || e.key === 'ArrowDown'
+        ? 1
+        : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+          ? -1
+          : 0
+
+    if (direction === 0 || options.length === 0) return
+
+    e.preventDefault()
+    const nextIndex = (index + direction + options.length) % options.length
+    onChange(options[nextIndex].value)
+    radiosRef.current[nextIndex]?.focus()
+  }
+
   return (
     <div
       role="radiogroup"
@@ -31,15 +51,20 @@ export function SegmentedPicker<T extends string>({
         borderRadius: 'var(--radius-md)',
       }}
     >
-      {options.map((opt) => {
+      {options.map((opt, index) => {
         const selected = opt.value === value
         return (
           <button
             key={opt.value}
+            ref={(node) => {
+              radiosRef.current[index] = node
+            }}
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={selected ? 0 : -1}
             onClick={() => onChange(opt.value)}
+            onKeyDown={(e) => onRadioKeyDown(e, index)}
             style={{
               flex: 1,
               padding: '8px 10px',
