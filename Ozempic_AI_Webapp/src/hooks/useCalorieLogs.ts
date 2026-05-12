@@ -56,10 +56,17 @@ export function useLogCalorie() {
 }
 
 export function useDeleteCalorieLog() {
+  const { session } = useAuth()
+  const userId = session?.user.id ?? null
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('calorie_logs').delete().eq('id', id)
+      if (!userId) throw new Error('Not signed in')
+      const { error } = await supabase
+        .from('calorie_logs')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId)
       if (error) throw error
     },
     onSuccess: () => {
