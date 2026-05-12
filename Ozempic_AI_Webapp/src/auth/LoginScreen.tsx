@@ -6,12 +6,19 @@ import { PrimaryButton } from '../components/PrimaryButton'
 import { Banner } from '../components/Banner'
 
 type Mode = 'signin' | 'signup'
+type RedirectFrom =
+  | string
+  | { pathname?: string; search?: string; hash?: string }
 
 export function LoginScreen() {
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const redirectTo = (location.state as { from?: string } | null)?.from ?? '/'
+  const from = (location.state as { from?: RedirectFrom } | null)?.from
+  const redirectTo =
+    typeof from === 'string'
+      ? from
+      : `${from?.pathname ?? '/'}${from?.search ?? ''}${from?.hash ?? ''}`
 
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
