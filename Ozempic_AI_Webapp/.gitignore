@@ -6,9 +6,8 @@ node_modules
 dist
 dist-ssr
 *.tsbuildinfo
-.env
-.env.local
-.env.*.local
+.env*
+!.env.example
 *.log
 .DS_Store
 
