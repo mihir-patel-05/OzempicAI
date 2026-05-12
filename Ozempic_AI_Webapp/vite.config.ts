@@ -33,15 +33,6 @@ export default defineConfig({
         navigateFallback: '/index.html',
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.origin.includes('supabase'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api',
-              networkTimeoutSeconds: 5,
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
-            },
-          },
-          {
             urlPattern: ({ url }) =>
               url.origin === 'https://fonts.googleapis.com' ||
               url.origin === 'https://fonts.gstatic.com',
