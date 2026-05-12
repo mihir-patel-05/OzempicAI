@@ -55,7 +55,7 @@
 
   /* Typography */
   --font-display: 'Fraunces', ui-serif, 'New York', Georgia, serif;
-  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui,
+  --font-ui: 'Inter', -apple-system, 'BlinkMacSystemFont', 'Segoe UI', system-ui,
     sans-serif;
 
   /* Safe-area insets (iOS) */
