@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthProvider'
+import { Field } from '../components/Field'
+import { PrimaryButton } from '../components/PrimaryButton'
+import { Banner } from '../components/Banner'
 
 type Mode = 'signin' | 'signup'
 
@@ -99,22 +102,9 @@ export function LoginScreen() {
         {error && <Banner tone="error">{error}</Banner>}
         {info && <Banner tone="info">{info}</Banner>}
 
-        <button
-          type="submit"
-          disabled={submitting || !email || !password}
-          style={{
-            background: 'var(--cta)',
-            color: 'white',
-            borderRadius: 'var(--radius-md)',
-            padding: '14px 16px',
-            fontSize: 16,
-            fontWeight: 600,
-            opacity: submitting || !email || !password ? 0.6 : 1,
-            transition: 'opacity 120ms ease-out',
-          }}
-        >
-          {submitting ? 'Working…' : mode === 'signin' ? 'Sign in' : 'Create account'}
-        </button>
+        <PrimaryButton type="submit" loading={submitting} disabled={!email || !password}>
+          {mode === 'signin' ? 'Sign in' : 'Create account'}
+        </PrimaryButton>
 
         <button
           type="button"
@@ -191,69 +181,6 @@ function BrandMark() {
       >
         Your daily health companion
       </p>
-    </div>
-  )
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  ...rest
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'>) {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span
-        style={{
-          fontSize: 11,
-          letterSpacing: 0.8,
-          textTransform: 'uppercase',
-          color: 'var(--text-secondary)',
-          fontWeight: 600,
-        }}
-      >
-        {label}
-      </span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoCapitalize="none"
-        autoCorrect="off"
-        spellCheck={false}
-        style={{
-          background: 'var(--cream-dim)',
-          border: '1px solid var(--divider)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '12px 14px',
-          fontSize: 16,
-          color: 'var(--text-primary)',
-          outline: 'none',
-        }}
-        {...rest}
-      />
-    </label>
-  )
-}
-
-function Banner({ tone, children }: { tone: 'error' | 'info'; children: React.ReactNode }) {
-  const isError = tone === 'error'
-  return (
-    <div
-      role={isError ? 'alert' : 'status'}
-      style={{
-        background: isError ? 'rgba(184,68,31,0.12)' : 'rgba(138,160,125,0.18)',
-        color: 'var(--text-primary)',
-        padding: '10px 12px',
-        borderRadius: 'var(--radius-sm)',
-        fontSize: 13,
-        fontWeight: 500,
-      }}
-    >
-      {children}
     </div>
   )
 }
