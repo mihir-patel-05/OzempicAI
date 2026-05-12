@@ -46,12 +46,21 @@ export function ExerciseScreen() {
 
   const durationNum = Number(duration)
   const caloriesNum = Number(caloriesBurned)
+  const hasSets = sets.trim().length > 0
+  const hasReps = reps.trim().length > 0
+  const setsNum = Number(sets)
+  const repsNum = Number(reps)
+  const strengthFieldsValid =
+    category !== 'strength' ||
+    ((!hasSets || (Number.isFinite(setsNum) && setsNum > 0)) &&
+      (!hasReps || (Number.isFinite(repsNum) && repsNum > 0)))
   const canSubmit =
     name.trim().length > 0 &&
     Number.isFinite(durationNum) &&
     durationNum > 0 &&
     Number.isFinite(caloriesNum) &&
-    caloriesNum >= 0
+    caloriesNum >= 0 &&
+    strengthFieldsValid
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -63,9 +72,9 @@ export function ExerciseScreen() {
         category,
         duration_minutes: Math.round(durationNum),
         calories_burned: Math.round(caloriesNum),
-        sets: category === 'strength' && sets ? Math.round(Number(sets)) : null,
+        sets: category === 'strength' && hasSets ? Math.round(setsNum) : null,
         reps_per_set:
-          category === 'strength' && reps ? Math.round(Number(reps)) : null,
+          category === 'strength' && hasReps ? Math.round(repsNum) : null,
         body_part: category === 'strength' && bodyPart ? bodyPart : null,
       })
       setName('')
