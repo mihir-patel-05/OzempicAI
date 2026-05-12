@@ -25,7 +25,6 @@ export function Field({ label, value, onChange, hint, ...rest }: FieldProps) {
           padding: '12px 14px',
           fontSize: 16,
           color: 'var(--text-primary)',
-          outline: 'none',
         }}
         {...rest}
       />
