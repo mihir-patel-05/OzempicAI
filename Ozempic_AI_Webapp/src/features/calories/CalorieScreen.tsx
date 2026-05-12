@@ -36,8 +36,11 @@ export function CalorieScreen() {
   )
 
   const calorieNum = Number(calories)
-  const canSubmit =
-    foodName.trim().length > 0 && Number.isFinite(calorieNum) && calorieNum > 0
+  const roundedCalories =
+    Number.isFinite(calorieNum) && calorieNum > 0
+      ? Math.max(1, Math.round(calorieNum))
+      : 0
+  const canSubmit = foodName.trim().length > 0 && roundedCalories > 0
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -46,7 +49,7 @@ export function CalorieScreen() {
     try {
       await logCalorie.mutateAsync({
         food_name: foodName.trim(),
-        calories: Math.round(calorieNum),
+        calories: roundedCalories,
         meal_type: mealType,
       })
       setFoodName('')
