@@ -103,6 +103,7 @@ export function CalorieScreen() {
               options={MEAL_OPTIONS}
               value={mealType}
               onChange={setMealType}
+              ariaLabel="Meal"
             />
           </div>
           {error && <Banner tone="error">{error}</Banner>}

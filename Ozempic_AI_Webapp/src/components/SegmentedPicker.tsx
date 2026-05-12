@@ -7,16 +7,22 @@ interface SegmentedPickerProps<T extends string> {
   options: Option<T>[]
   value: T
   onChange: (next: T) => void
+  ariaLabel?: string
+  ariaLabelledBy?: string
 }
 
 export function SegmentedPicker<T extends string>({
   options,
   value,
   onChange,
+  ariaLabel,
+  ariaLabelledBy,
 }: SegmentedPickerProps<T>) {
   return (
     <div
       role="radiogroup"
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
       style={{
         display: 'flex',
         gap: 4,

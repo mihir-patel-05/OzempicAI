@@ -113,6 +113,7 @@ export function ExerciseScreen() {
               options={CATEGORY_OPTIONS}
               value={category}
               onChange={setCategory}
+              ariaLabel="Category"
             />
           </div>
           <div
