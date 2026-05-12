@@ -23,7 +23,7 @@ export function Ring({
 }: RingProps) {
   const safeGoal = goal > 0 ? goal : 1
   const progress = Math.max(0, Math.min(value / safeGoal, 1))
-  const radius = (size - stroke) / 2
+  const radius = Math.max(0, (size - stroke) / 2)
   const circumference = 2 * Math.PI * radius
   const dashOffset = circumference * (1 - progress)
 
