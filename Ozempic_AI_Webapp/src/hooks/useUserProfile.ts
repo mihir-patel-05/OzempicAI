@@ -35,6 +35,15 @@ export function useUserProfile() {
         })
         .select()
         .single()
+      if (insertError?.code === '23505') {
+        const { data: racedExisting, error: racedSelectError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId!)
+          .single()
+        if (racedSelectError) throw racedSelectError
+        return racedExisting as UserProfile
+      }
       if (insertError) throw insertError
       return inserted as UserProfile
     },
