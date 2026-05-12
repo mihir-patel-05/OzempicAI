@@ -32,16 +32,18 @@ export function WaterScreen() {
     setError(null)
     try {
       await logWater.mutateAsync(ml)
+      return true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log water.')
+      return false
     }
   }
 
   async function onSubmitCustom(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmitCustom) return
-    await addAmount(Math.round(customNum))
-    setCustom('')
+    const didAdd = await addAmount(Math.round(customNum))
+    if (didAdd) setCustom('')
   }
 
   return (
