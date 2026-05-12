@@ -1,7 +1,29 @@
 import { Card } from '../../components/Card'
 import { Ring } from '../../components/Ring'
+import { useUserProfile } from '../../hooks/useUserProfile'
+import {
+  useDailyCalorieTotal,
+  useDailyExerciseTotal,
+  useDailyWaterTotal,
+} from '../../hooks/useDailyTotals'
+import { useAuth } from '../../auth/AuthProvider'
+
+const EXERCISE_GOAL_MINUTES = 30
 
 export function TodayScreen() {
+  const { session } = useAuth()
+  const profile = useUserProfile()
+  const calories = useDailyCalorieTotal()
+  const water = useDailyWaterTotal()
+  const exercise = useDailyExerciseTotal()
+
+  const firstError =
+    profile.error ?? calories.error ?? water.error ?? exercise.error
+
+  const calorieGoal = profile.data?.daily_calorie_goal ?? 2000
+  const waterGoal = profile.data?.daily_water_goal_ml ?? 2500
+  const name = profile.data?.name?.trim() || firstName(session?.user.email)
+
   return (
     <div
       style={{
@@ -20,7 +42,7 @@ export function TodayScreen() {
             textTransform: 'uppercase',
           }}
         >
-          Today
+          {greeting()}
         </p>
         <h1
           style={{
@@ -31,7 +53,7 @@ export function TodayScreen() {
             color: 'var(--text-primary)',
           }}
         >
-          Good morning
+          Hi{name ? `, ${name}` : ''}
         </h1>
       </header>
 
@@ -44,37 +66,69 @@ export function TodayScreen() {
             placeItems: 'center',
           }}
         >
-          <RingStub label="Calories" value={0} goal={2000} color="var(--calorie-ring)" unit="kcal" />
-          <RingStub label="Water" value={0} goal={2500} color="var(--water-fill)" unit="ml" />
-          <RingStub label="Exercise" value={0} goal={30} color="var(--exercise-ring)" unit="min" />
+          <RingStat
+            label="Calories"
+            value={calories.data ?? 0}
+            goal={calorieGoal}
+            unit="kcal"
+            color="var(--calorie-ring)"
+            loading={calories.isLoading}
+          />
+          <RingStat
+            label="Water"
+            value={water.data ?? 0}
+            goal={waterGoal}
+            unit="ml"
+            color="var(--water-fill)"
+            loading={water.isLoading}
+          />
+          <RingStat
+            label="Exercise"
+            value={exercise.data ?? 0}
+            goal={EXERCISE_GOAL_MINUTES}
+            unit="min"
+            color="var(--exercise-ring)"
+            loading={exercise.isLoading}
+          />
         </div>
       </Card>
 
-      <Card padding="md">
-        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 14 }}>
-          Connect your account to see today's totals. Auth comes in the next phase.
-        </p>
-      </Card>
+      {firstError && (
+        <Card padding="md">
+          <p style={{ margin: 0, color: 'var(--ember)', fontSize: 14 }}>
+            Couldn't load today's totals: {firstError.message}
+          </p>
+        </Card>
+      )}
     </div>
   )
 }
 
-function RingStub({
+function RingStat({
   label,
   value,
   goal,
-  color,
   unit,
+  color,
+  loading,
 }: {
   label: string
   value: number
   goal: number
-  color: string
   unit: string
+  color: string
+  loading: boolean
 }) {
   return (
     <div style={{ textAlign: 'center' }}>
-      <Ring value={value} goal={goal} color={color} size={92} stroke={10} label={label}>
+      <Ring
+        value={value}
+        goal={goal}
+        color={color}
+        size={92}
+        stroke={10}
+        label={`${label}: ${value} of ${goal} ${unit}`}
+      >
         <div>
           <div
             style={{
@@ -83,9 +137,11 @@ function RingStub({
               fontSize: 18,
               color: 'var(--text-primary)',
               lineHeight: 1,
+              opacity: loading ? 0.4 : 1,
+              transition: 'opacity 200ms ease-out',
             }}
           >
-            {value}
+            {loading ? '—' : value}
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{unit}</div>
         </div>
@@ -101,6 +157,29 @@ function RingStub({
       >
         {label}
       </p>
+      <p
+        style={{
+          margin: '2px 0 0',
+          fontSize: 10,
+          color: 'var(--text-tertiary)',
+        }}
+      >
+        of {goal}
+      </p>
     </div>
   )
+}
+
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 5) return 'Late night'
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function firstName(email: string | undefined): string {
+  if (!email) return ''
+  const local = email.split('@')[0]
+  return local.charAt(0).toUpperCase() + local.slice(1)
 }
