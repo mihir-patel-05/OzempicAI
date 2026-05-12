@@ -46,4 +46,3 @@ supabase/logs/
 *.key
 *.cer
 *.pfx
-*.md

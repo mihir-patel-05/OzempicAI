@@ -1,7 +1,3 @@
-# Re-include this dir's markdown (root .gitignore globally ignores *.md)
-!README.md
-!*.md
-
 node_modules
 dist
 dist-ssr
