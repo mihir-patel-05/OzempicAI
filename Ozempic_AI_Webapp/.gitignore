@@ -1,0 +1,18 @@
+# Re-include this dir's markdown (root .gitignore globally ignores *.md)
+!README.md
+!*.md
+
+node_modules
+dist
+dist-ssr
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
