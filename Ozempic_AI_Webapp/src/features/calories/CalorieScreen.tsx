@@ -34,6 +34,11 @@ export function CalorieScreen() {
     () => (logs.data ?? []).reduce((acc, row) => acc + row.calories, 0),
     [logs.data],
   )
+  const logsError = logs.error
+    ? logs.error instanceof Error
+      ? logs.error.message
+      : String(logs.error)
+    : null
 
   const calorieNum = Number(calories)
   const roundedCalories =
@@ -128,7 +133,13 @@ export function CalorieScreen() {
         </Card>
       )}
 
-      {!logs.isLoading && (logs.data?.length ?? 0) === 0 && (
+      {logs.isError && (
+        <Card padding="md">
+          <Banner tone="error">{logsError ?? 'Failed to load meals.'}</Banner>
+        </Card>
+      )}
+
+      {!logs.isLoading && !logs.isError && (logs.data?.length ?? 0) === 0 && (
         <Card padding="md">
           <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 13 }}>
             No meals logged yet today.
