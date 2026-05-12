@@ -1,16 +1,22 @@
 import { useState } from 'react'
 import { Card } from '../../components/Card'
+import { Banner } from '../../components/Banner'
 import { useAuth } from '../../auth/AuthProvider'
 
 export function ProfileScreen() {
   const { session, signOut } = useAuth()
   const [signingOut, setSigningOut] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const email = session?.user.email ?? '—'
 
   async function onSignOut() {
     setSigningOut(true)
+    setError(null)
     try {
       await signOut()
+    } catch (err) {
+      console.error('Failed to sign out', err)
+      setError(err instanceof Error ? err.message : 'Failed to sign out.')
     } finally {
       setSigningOut(false)
     }
@@ -65,6 +71,8 @@ export function ProfileScreen() {
           Daily goal editing arrives in a later phase.
         </p>
       </Card>
+
+      {error && <Banner tone="error">{error}</Banner>}
 
       <button
         onClick={onSignOut}
