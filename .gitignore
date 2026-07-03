@@ -1,43 +1,26 @@
-# Xcode
-*.xcodeproj/xcuserdata/
-*.xcworkspace/xcuserdata/
-*.xcworkspace/xcshareddata/
-DerivedData/
-*.ipa
-*.dSYM.zip
-*.dSYM
-build/
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+*.log
 
-# Swift Package Manager
-.build/
-.swiftpm/
+# Env
+.env
+.env.*
+!.env.example
 
-# CocoaPods
-Pods/
-Podfile.lock
+# Local Supabase
+supabase/.env
+supabase/logs/
 
-# Fastlane
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots
-fastlane/test_output
-
-# macOS
+# Editor / OS
 .DS_Store
 .AppleDouble
 .LSOverride
-
-# Secrets — never commit real credentials
-OzempicAI/Utilities/Constants.swift
-
-# Docker / local Supabase
-supabase/.env
-supabase/logs/
-*.env.local
-
-# Broader env protection
-**/.env
-!**/.env.example
+.vscode/*
+!.vscode/extensions.json
+.idea/
 
 # Certificates and keys
 *.p8
