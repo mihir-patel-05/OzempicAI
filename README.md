@@ -24,7 +24,21 @@ npm run typecheck  # tsc --noEmit
 
 ## Deploy
 
-Vercel — connect the repo, set root directory to `.` (was `Ozempic_AI_Webapp` before the migration), add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in project env vars. HTTPS + Add-to-Home-Screen on iPhone Safari works once deployed.
+AWS Amplify Hosting, auto-deploying on push to `main`. Build settings live in `amplify.yml`; this is plain static hosting, not Amplify Gen 2 — there is no `ampx` backend, since Supabase is the backend.
+
+One-time console setup:
+
+1. Amplify → Create new app → GitHub → this repo, branch `main`. Leave the monorepo/app-root setting **empty** — the app lives at the repo root.
+2. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` under Advanced settings. Vite inlines these at build time, so they must be set before the first build; a build without them serves a blank page.
+3. Hosting → Rewrites and redirects → add a `200 (Rewrite)` to `/index.html` so deep links resolve:
+
+   ```
+   </^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webmanifest)$)([^.]+$)/>
+   ```
+
+4. In Supabase → Authentication → URL Configuration, set Site URL to the deployed origin and add it to Additional Redirect URLs, or signup confirmation emails will point at the old host.
+
+HTTPS + Add-to-Home-Screen on iPhone Safari works once deployed.
 
 ## Backend
 
