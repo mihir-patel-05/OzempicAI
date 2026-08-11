@@ -61,7 +61,9 @@ Advanced settings and add a `200 (Rewrite)` to `/index.html` for deep links:
 
 ## Backend
 
-Supabase. Hosted project for prod; the optional local Docker stack in `supabase/docker-compose.yml` mirrors it. Schema lives in `supabase/migrations/`.
+Supabase. Hosted project for prod; the optional local Docker stack in `supabase/docker-compose.yml` mirrors it. Schema lives in `supabase/migrations/`, applied in filename order — the directory is mounted at `/docker-entrypoint-initdb.d`, so a clean `docker compose up` reproduces the full schema.
+
+Migrations `00002`, `00003`, and `00005` were originally applied by hand through the dashboard SQL editor; they are written to be idempotent (`if not exists` / `drop policy if exists`), so re-running the whole directory against the live project is safe and is how you confirm it matches the repo.
 
 ## Theme
 

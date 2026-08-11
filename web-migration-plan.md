@@ -7,7 +7,7 @@ Turn the multi-target Swift + partial React project into a single React/Vite PWA
 - **iOS app** — `OzempicAI/` (SwiftUI, HealthKit, Supabase). Feature-complete.
 - **macOS app** — `OzempicAIMac/`, `OzempicAIMacTests/` (SwiftUI shell reusing shared models). Partial.
 - **Web app** — `Ozempic_AI_Webapp/` (Vite + React 18 + TS + Supabase + `vite-plugin-pwa`, Vercel-ready). Roughly 40% parity: auth, Today ring stats, and log screens for calories/water/weight/exercise/heart-rate. Stubs for Plans and Profile.
-- **Backend** — Supabase already live. Migrations for `users`, `calorie_logs`, `water_logs`, `exercise_logs`, `heart_rate_logs`, `meal_plans`, `grocery_items`, `day_labels` with RLS. `weight_logs` exists only as a doc note (`supabase-weight-logs.md`) — needs to become a real migration.
+- **Backend** — Supabase already live. Migrations for `users`, `calorie_logs`, `water_logs`, `exercise_logs`, `heart_rate_logs`, `meal_plans`, `grocery_items`, `day_labels`, `weight_logs` with RLS. Done: the loose dashboard-only SQL was folded into `supabase/migrations/` as `00002`/`00003`/`00005`, so the schema now reproduces from the repo.
 
 ## Target state
 
@@ -21,7 +21,7 @@ Remove everything Apple-specific so the repo stops reading like a Swift project.
 
 - Delete `OzempicAI/`, `OzempicAIMac/`, `OzempicAIMacTests/`, `OzempicAI.xcodeproj/`, `project.yml`, `mac-swift/`, `swift/`, `.DS_Store`.
 - Delete obsolete planning docs: `macOS-implementation-plan.md`, `phase1-plan.md`, `docker-setup.md` (unless still used), `techstack.html`, `schedhule.html`, `Product Documents - Ozempic AI.docx` (or move to a `docs/` folder if you want to keep them).
-- Delete `supabase_add_weight.sql`, `supabase_fix_rls.sql`, `supabase-schema.md`, `supabase-weight-logs.md` once they've been folded into `supabase/migrations/`.
+- ~~Delete `supabase_add_weight.sql`, `supabase_fix_rls.sql`, `supabase-schema.md`, `supabase-weight-logs.md` once they've been folded into `supabase/migrations/`.~~ Done.
 - Move `Ozempic_AI_Webapp/*` up to the repo root (or keep the subdir and adjust `vercel.json` root — see open question below).
 - Rewrite root `README.md` to describe the web app + Supabase setup only.
 - Prune `.gitignore` of Xcode/Swift patterns; add `dist/`, `.env.local`, `node_modules/`.

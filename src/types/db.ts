@@ -1,5 +1,5 @@
-// Mirrors supabase/migrations/00001_init_schema.sql (+ 00004_day_labels and
-// supabase-weight-logs.md). Keep field names matching the Postgres columns
+// Mirrors supabase/migrations/ (00001_init_schema, 00003_weight_logs,
+// 00004_day_labels). Keep field names matching the Postgres columns
 // (snake_case) so we can pass these straight to .insert()/.select().
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
