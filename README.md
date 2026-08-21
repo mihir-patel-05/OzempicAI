@@ -24,21 +24,40 @@ npm run typecheck  # tsc --noEmit
 
 ## Deploy
 
-AWS Amplify Hosting, auto-deploying on push to `main`. Build settings live in `amplify.yml`; this is plain static hosting, not Amplify Gen 2 — there is no `ampx` backend, since Supabase is the backend.
+### Vercel (primary)
 
-One-time console setup:
+Static hosting on Vercel, auto-deploying on push to `main`. Build settings live in
+`vercel.json` (framework preset `vite`, build `npm run build`, output `dist`), which also
+handles the SPA fallback rewrite (`react-router-dom` uses `BrowserRouter`, so deep links must
+resolve to `/index.html`) and the PWA cache headers (hashed `/assets/**` are immutable; the
+service-worker/manifest entry points are `no-store` so clients always pick up new deploys).
 
-1. Amplify → Create new app → GitHub → this repo, branch `main`. Leave the monorepo/app-root setting **empty** — the app lives at the repo root.
-2. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` under Advanced settings. Vite inlines these at build time, so they must be set before the first build; a build without them serves a blank page.
-3. Hosting → Rewrites and redirects → add a `200 (Rewrite)` to `/index.html` so deep links resolve:
+One-time setup:
 
-   ```
-   </^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webmanifest)$)([^.]+$)/>
-   ```
-
-4. In Supabase → Authentication → URL Configuration, set Site URL to the deployed origin and add it to Additional Redirect URLs, or signup confirmation emails will point at the old host.
+1. Vercel → Add New → Project → import this repo. The framework preset, build command,
+   output directory, and rewrites are picked up from `vercel.json`; leave the root directory as
+   the repo root.
+2. Project → Settings → Environment Variables: add `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_ANON_KEY` (all environments). Vite inlines these at build time, so they must
+   be set before the first build; a build without them fails fast (`src/lib/supabase.ts`
+   throws), so redeploy after adding them.
+3. In Supabase → Authentication → URL Configuration, set Site URL to the deployed origin and
+   add it (plus any preview domains) to Additional Redirect URLs, or signup confirmation emails
+   will point at the old host.
 
 HTTPS + Add-to-Home-Screen on iPhone Safari works once deployed.
+
+Prefer the CLI? `npm i -g vercel`, then `vercel` (preview) or `vercel --prod`.
+
+### AWS Amplify (alternative)
+
+`amplify.yml` is kept for AWS Amplify Hosting. It is plain static hosting, not Amplify Gen 2 —
+there is no `ampx` backend, since Supabase is the backend. Set the same two env vars under
+Advanced settings and add a `200 (Rewrite)` to `/index.html` for deep links:
+
+```
+</^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webmanifest)$)([^.]+$)/>
+```
 
 ## Backend
 
