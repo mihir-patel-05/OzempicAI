@@ -5,6 +5,9 @@ dist-ssr/
 *.tsbuildinfo
 *.log
 
+# Vercel
+.vercel
+
 # Env
 .env
 .env.*
