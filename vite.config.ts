@@ -22,7 +22,7 @@ function validateEnvironment(mode: string) {
 
   if (
     environment.VITE_SUPABASE_URL === 'https://your-project-ref.supabase.co' ||
-    environment.VITE_SUPABASE_ANON_KEY === 'your-anon-key-here'
+    environment.VITE_SUPABASE_ANON_KEY.startsWith('your-')
   ) {
     throw new Error('Replace the example Supabase environment values before building.')
   }

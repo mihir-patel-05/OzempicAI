@@ -24,46 +24,54 @@ npm run typecheck  # tsc --noEmit
 
 ## Deploy
 
-### Vercel (primary)
+Vercel hosts the Vite frontend; Supabase remains the backend. The committed
+`vercel.json` selects Vite, publishes `dist/`, preserves client-side routes on
+page refresh, and applies safe caching rules for the PWA service worker.
 
-Static hosting on Vercel, auto-deploying on push to `main`. Build settings live in
-`vercel.json` (framework preset `vite`, build `npm run build`, output `dist`), which also
-handles the SPA fallback rewrite (`react-router-dom` uses `BrowserRouter`, so deep links must
-resolve to `/index.html`) and the PWA cache headers (hashed `/assets/**` are immutable; the
-service-worker/manifest entry points are `no-store` so clients always pick up new deploys).
+### First deployment
 
-One-time setup:
+1. Import this repository into Vercel and leave **Root Directory** set to `.`.
+2. In **Project Settings → Environment Variables**, add these variables for
+   Production and Preview:
 
-1. Vercel → Add New → Project → import this repo. The framework preset, build command,
-   output directory, and rewrites are picked up from `vercel.json`; leave the root directory as
-   the repo root.
-2. Project → Settings → Environment Variables: add `VITE_SUPABASE_URL` and
-   `VITE_SUPABASE_ANON_KEY` (all environments). Vite inlines these at build time, so they must
-   be set before the first build; a build without them fails fast (`src/lib/supabase.ts`
-   throws), so redeploy after adding them.
-3. In Supabase → Authentication → URL Configuration, set Site URL to the deployed origin and
-   add it (plus any preview domains) to Additional Redirect URLs, or signup confirmation emails
-   will point at the old host.
+   ```text
+   VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-public-anon-or-publishable-key
+   ```
+
+   These values are intentionally exposed to the browser. Use only a Supabase
+   publishable key or legacy `anon` key—never a secret or `service_role` key.
+   The build fails with a clear error when either value is missing.
+3. Deploy. Vercel reads the build and routing configuration from `vercel.json`.
+4. In **Supabase → Authentication → URL Configuration**:
+
+   - Set **Site URL** to the final Vercel production origin.
+   - Add the production origin and `https://*-<team-or-account-slug>.vercel.app/**`
+     to **Additional Redirect URLs** if signup should also work on previews.
+   - Keep `http://localhost:5173/**` in the redirect list for local development.
+
+The app passes its current origin to Supabase when a user signs up, so confirmation
+emails return to the deployment where signup began. Supabase must allow that origin.
+
+### CLI deployment
+
+After the Vercel project and environment variables are configured:
+
+```bash
+vercel deploy       # preview
+vercel deploy --prod
+```
 
 HTTPS + Add-to-Home-Screen on iPhone Safari works once deployed.
-
-Prefer the CLI? `npm i -g vercel`, then `vercel` (preview) or `vercel --prod`.
-
-### AWS Amplify (alternative)
-
-`amplify.yml` is kept for AWS Amplify Hosting. It is plain static hosting, not Amplify Gen 2 —
-there is no `ampx` backend, since Supabase is the backend. Set the same two env vars under
-Advanced settings and add a `200 (Rewrite)` to `/index.html` for deep links:
-
-```
-</^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webmanifest)$)([^.]+$)/>
-```
 
 ## Backend
 
 Supabase. Hosted project for prod; the optional local Docker stack in `supabase/docker-compose.yml` mirrors it. Schema lives in `supabase/migrations/`, applied in filename order — the directory is mounted at `/docker-entrypoint-initdb.d`, so a clean `docker compose up` reproduces the full schema.
 
-Migrations `00002`, `00003`, and `00005` were originally applied by hand through the dashboard SQL editor; they are written to be idempotent (`if not exists` / `drop policy if exists`), so re-running the whole directory against the live project is safe and is how you confirm it matches the repo.
+The hosted project predates the repository migration history. Treat these files as the
+reproducible schema for new environments; do not replay the entire directory against production.
+Verify production with schema inspection or `supabase db diff`, and add forward-only migrations
+for future changes.
 
 ## Theme
 
