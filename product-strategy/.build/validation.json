@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "presentation-finalization.v1",
+  "finalSha256": "a690f06077f1de6a6d3616da80dd4e99d5a41899dc6f1f759642356e3eb3a513",
+  "byteCount": 85948,
+  "packageIntegrity": {
+    "chart_count": 0,
+    "claim_boundary": "Structural package checks only; no slide text, notes, formulas, chart values, or native PowerPoint execution were inspected.",
+    "finding_count": 0,
+    "findings": [],
+    "notes_parts_skipped": 15,
+    "relationship_part_count": 35,
+    "slide_count": 15,
+    "status": "pass",
+    "exitCode": 0,
+    "findingCount": 0,
+    "warnings": []
+  },
+  "presentationLayout": {
+    "finding_count": 0,
+    "findings": [],
+    "font_policy": {
+      "checked_text_script_count": 200,
+      "native_font_rendering_verified": false,
+      "observed_font_families": [
+        "Helvetica Neue"
+      ],
+      "observed_font_use_counts": {
+        "Helvetica Neue": 200
+      },
+      "passed": true,
+      "performed": true
+    },
+    "slide_count": 15,
+    "slide_size_in": [
+      13.3333,
+      7.5
+    ],
+    "warning_count": 0,
+    "warnings": [],
+    "exitCode": 0,
+    "findingCount": 0,
+    "fontPolicy": {
+      "checked_text_script_count": 200,
+      "native_font_rendering_verified": false,
+      "observed_font_families": [
+        "Helvetica Neue"
+      ],
+      "observed_font_use_counts": {
+        "Helvetica Neue": 200
+      },
+      "passed": true,
+      "performed": true
+    }
+  },
+  "fontSelection": {
+    "basis": "design",
+    "approvedFamilies": [
+      "Helvetica Neue"
+    ],
+    "scriptFonts": {},
+    "referenceSha256": null,
+    "referenceFontsVerifiedInEncodedText": false,
+    "checked_text_script_count": 200,
+    "native_font_rendering_verified": false,
+    "observed_font_families": [
+      "Helvetica Neue"
+    ],
+    "observed_font_use_counts": {
+      "Helvetica Neue": 200
+    },
+    "passed": true,
+    "performed": true
+  },
+  "firstPartyImport": {
+    "performed": true,
+    "passed": true,
+    "slideCount": 15,
+    "sha256": "a690f06077f1de6a6d3616da80dd4e99d5a41899dc6f1f759642356e3eb3a513",
+    "runtimeNodeModules": "/Users/mihirpatel/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules",
+    "nodeExecutable": "/Users/mihirpatel/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+  },
+  "nativeTableArithmetic": {
+    "performed": true,
+    "checked_column_count": 0,
+    "checks": [],
+    "claim_boundary": "Displayed-value arithmetic with rounding tolerance; not source-data verification.",
+    "eligible_table_count": 0,
+    "finding_count": 0,
+    "findings": [],
+    "native_table_count": 3,
+    "passed": true,
+    "schema_version": "presentation-native-table-arithmetic.v1",
+    "skipped_tables": [
+      {
+        "reason": "no_numeric_amounts",
+        "slide": 4,
+        "table": 1
+      },
+      {
+        "reason": "no_numeric_amounts",
+        "slide": 8,
+        "table": 1
+      },
+      {
+        "reason": "no_unambiguous_bottom_total",
+        "slide": 10,
+        "table": 1
+      }
+    ],
+    "slide_count": 15,
+    "warning_count": 0,
+    "warnings": []
+  },
+  "nativeChartTitles": {
+    "performed": true,
+    "checks": [],
+    "finding_count": 0,
+    "findings": [],
+    "native_chart_count": 0,
+    "native_powerpoint_verified": false,
+    "passed": true,
+    "presentation_sha256": "a690f06077f1de6a6d3616da80dd4e99d5a41899dc6f1f759642356e3eb3a513",
+    "schema_version": "presentation-native-chart-titles.v1",
+    "slide_count": 15,
+    "source_text_emitted": false,
+    "unresolved_linked_title_count": 0
+  },
+  "sourceDerivedPolicyFlags": [
+    "--expected-slide-size-emu",
+    "12192000,6858000",
+    "--validate-bullet-geometry",
+    "--validate-heading-fit",
+    "--require-native-table-slide",
+    "4",
+    "--require-native-table-slide",
+    "8",
+    "--require-native-table-slide",
+    "10",
+    "--cover-role",
+    "none",
+    "--approved-font-family",
+    "Helvetica Neue"
+  ],
+  "nativeChartValidation": {
+    "detectedOwnerSlides": [],
+    "detectedChartCount": 0,
+    "targetApplication": null,
+    "sourceChartOwnersExplicitlyDeclared": false,
+    "validatorRan": false,
+    "passed": true
+  }
+}
