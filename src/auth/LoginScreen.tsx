@@ -10,15 +10,25 @@ type RedirectFrom =
   | string
   | { pathname?: string; search?: string; hash?: string }
 
+function safeRedirectPath(from?: RedirectFrom) {
+  const candidate =
+    typeof from === 'string'
+      ? from
+      : `${from?.pathname ?? '/'}${from?.search ?? ''}${from?.hash ?? ''}`
+
+  if (!candidate.startsWith('/') || candidate.startsWith('//') || candidate.includes('\\')) {
+    return '/'
+  }
+
+  return candidate
+}
+
 export function LoginScreen() {
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: RedirectFrom } | null)?.from
-  const redirectTo =
-    typeof from === 'string'
-      ? from
-      : `${from?.pathname ?? '/'}${from?.search ?? ''}${from?.hash ?? ''}`
+  const redirectTo = safeRedirectPath(from)
 
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')

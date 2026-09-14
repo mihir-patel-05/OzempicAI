@@ -1,6 +1,5 @@
-// Mirrors supabase/migrations/ (00001_init_schema, 00003_weight_logs,
-// 00004_day_labels). Keep field names matching the Postgres columns
-// (snake_case) so we can pass these straight to .insert()/.select().
+// Mirrors the final schema in supabase/migrations/. Keep field names matching
+// the Postgres columns (snake_case) for direct inserts and selects.
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
@@ -70,6 +69,10 @@ export interface ExerciseLog {
   reps_per_set: number | null
   body_part: BodyPart | null
   logged_at: string
+  weight: number | null
+  weight_unit: string | null
+  source: string
+  healthkit_id: string | null
 }
 
 export interface HeartRateLog {
@@ -113,4 +116,22 @@ export interface DayLabel {
   label_date: string
   label: string
   created_at: string
+}
+
+export interface WorkoutPlan {
+  id: string
+  user_id: string
+  exercise_name: string
+  category: string
+  planned_date: string
+  duration_minutes: number | null
+  calories_burned: number | null
+  sets: number | null
+  reps_per_set: number | null
+  body_part: string | null
+  weight: number | null
+  weight_unit: string | null
+  notes: string | null
+  created_at: string
+  is_completed: boolean
 }
