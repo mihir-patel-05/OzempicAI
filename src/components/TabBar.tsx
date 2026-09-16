@@ -14,48 +14,46 @@ const TABS: Tab[] = [
   { to: '/profile', label: 'Profile', icon: <IconPerson /> },
 ]
 
-export function TabBar() {
+export function TabBar({ variant = 'mobile' }: { variant?: 'mobile' | 'desktop' }) {
   return (
     <nav
-      style={{
-        position: 'sticky',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        display: 'grid',
-        gridTemplateColumns: `repeat(${TABS.length}, 1fr)`,
-        background: 'var(--paper)',
-        borderTop: '1px solid var(--divider)',
-        paddingBottom: 'var(--sa-bottom)',
-        boxShadow: '0 -4px 16px var(--shadow-soft)',
-      }}
+      className={variant === 'mobile' ? 'mobile-tab-bar' : 'nav-links'}
+      aria-label={variant === 'mobile' ? 'Primary navigation' : undefined}
     >
       {TABS.map((tab) => (
         <NavLink
           key={tab.to}
           to={tab.to}
           end={tab.to === '/'}
-          style={({ isActive }) => ({
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '10px 0 12px',
-            gap: 2,
-            color: isActive ? 'var(--accent)' : 'var(--text-tertiary)',
-            textDecoration: 'none',
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: 0.5,
-            textTransform: 'uppercase',
-          })}
+          className="nav-link"
         >
-          {tab.icon}
-          <span>{tab.label}</span>
+          {({ isActive }) => (
+            <>
+              {tab.icon}
+              <span>{tab.label}</span>
+              <ActiveMarker active={isActive} />
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
   )
+}
+
+function ActiveMarker({ active }: { active: boolean }) {
+  return active ? (
+    <span
+      aria-hidden="true"
+      style={{
+        position: 'absolute',
+        width: 4,
+        height: 4,
+        borderRadius: 999,
+        background: 'currentColor',
+        transform: 'translateY(17px)',
+      }}
+    />
+  ) : null
 }
 
 function IconSun() {

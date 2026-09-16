@@ -7,7 +7,8 @@ interface AuthContextValue {
   session: Session | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
+  signUp: (name: string, email: string, password: string) => Promise<boolean>
+  resetPassword: (email: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -44,8 +45,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
       },
-      signUp: async (email, password) => {
-        const { error } = await supabase.auth.signUp({ email, password })
+      signUp: async (name, email, password) => {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name: name.trim() },
+            emailRedirectTo: window.location.origin,
+          },
+        })
+        if (error) throw error
+        return !!data.session
+      },
+      resetPassword: async (email) => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/profile`,
+        })
         if (error) throw error
       },
       signOut: async () => {
