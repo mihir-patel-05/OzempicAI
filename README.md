@@ -2,6 +2,10 @@
 
 Personal health & fitness tracker. Delivered as an installable PWA — bookmark it to your iPhone home screen and it opens full-screen.
 
+The web app includes email/password authentication, password recovery, a daily dashboard,
+calorie/meal tracking, water, exercise, weight and heart-rate logs, meal planning, groceries,
+and editable personal goals. Every user-owned table is protected with Supabase Row Level Security.
+
 Vite + React 18 + TypeScript · `@supabase/supabase-js` · `@tanstack/react-query` · `react-router-dom` · `vite-plugin-pwa` (Workbox).
 
 ## Setup
@@ -62,6 +66,25 @@ Advanced settings and add a `200 (Rewrite)` to `/index.html` for deep links:
 ## Backend
 
 Supabase. Hosted project for prod; the optional local Docker stack in `supabase/docker-compose.yml` mirrors it. Schema lives in `supabase/migrations/`.
+
+For a new hosted project, link the Supabase CLI and apply all ordered migrations:
+
+```bash
+supabase link --project-ref your-project-ref
+supabase db push
+```
+
+Then configure Authentication → URL Configuration with the production Site URL and any
+Vercel preview origins. Email/password signups can require confirmation; when enabled, the
+login screen tells new users to check their inbox. The auth trigger creates the matching
+`public.users` profile as soon as an account is created.
+
+Before release, verify:
+
+- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` exist in every Vercel environment.
+- The migrations are applied, including `weight_logs`, the auth profile trigger, and indexes.
+- Supabase Site URL and Redirect URLs include production and preview origins.
+- A newly created account can add and delete an entry in each tracker without seeing another user's data.
 
 ## Theme
 

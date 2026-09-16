@@ -16,11 +16,17 @@ export function RequireAuth({ children }: { children: ReactNode }) {
           background: 'var(--bg)',
           color: 'var(--text-tertiary)',
           fontFamily: 'var(--font-display)',
-          fontStyle: 'italic',
-          fontSize: 14,
+          fontSize: 15,
         }}
       >
-        Loading…
+        <div style={{ textAlign: 'center' }}>
+          <div className="nav-brand-mark" style={{ margin: '0 auto 14px' }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 21s-7-4.35-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.65-7 10-7 10z" />
+            </svg>
+          </div>
+          Preparing your day…
+        </div>
       </div>
     )
   }

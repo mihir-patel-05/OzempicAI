@@ -3,6 +3,8 @@
   --cream: #f5efe6;
   --cream-dim: #ece5d8;
   --paper: #fbf7f0;
+  --paper-bright: #fffdf9;
+  --paper-muted: #f7f1e8;
 
   /* Text */
   --espresso: #2a1e16;
@@ -15,6 +17,7 @@
   --amber: #e8a66b;
   --saffron: #d89a4f;
   --ember: #b8441f;
+  --coral-soft: #f0c7b5;
 
   /* Supporting */
   --sage: #8aa07d;
@@ -25,6 +28,8 @@
   --ring-track: rgba(42, 30, 22, 0.07);
   --divider: rgba(42, 30, 22, 0.08);
   --shadow-soft: rgba(80, 50, 30, 0.1);
+  --shadow-card: 0 12px 40px rgba(80, 50, 30, 0.08);
+  --shadow-lifted: 0 18px 55px rgba(80, 50, 30, 0.15);
 
   /* Semantic aliases — mirror iOS ColorTheme */
   --bg: var(--cream);
@@ -46,12 +51,17 @@
   --space-md: 16px;
   --space-lg: 24px;
   --space-xl: 32px;
+  --space-2xl: 48px;
 
   /* Radius */
   --radius-sm: 12px;
   --radius-md: 18px;
   --radius-lg: 24px;
   --radius-hero: 32px;
+
+  /* Layout */
+  --sidebar-width: 232px;
+  --content-max: 1120px;
 
   /* Typography */
   --font-display: 'Fraunces', ui-serif, 'New York', Georgia, serif;
