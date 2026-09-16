@@ -11,6 +11,7 @@ import {
   useLogCalorie,
 } from '../../hooks/useCalorieLogs'
 import type { CalorieLog, MealType } from '../../types/db'
+import { useUserProfile } from '../../hooks/useUserProfile'
 
 const MEAL_OPTIONS: { value: MealType; label: string }[] = [
   { value: 'breakfast', label: 'Breakfast' },
@@ -23,6 +24,7 @@ export function CalorieScreen() {
   const logs = useCalorieLogsToday()
   const logCalorie = useLogCalorie()
   const deleteLog = useDeleteCalorieLog()
+  const profile = useUserProfile()
 
   const [foodName, setFoodName] = useState('')
   const [calories, setCalories] = useState('')
@@ -34,6 +36,9 @@ export function CalorieScreen() {
     () => (logs.data ?? []).reduce((acc, row) => acc + row.calories, 0),
     [logs.data],
   )
+  const goal = profile.data?.daily_calorie_goal ?? 2000
+  const remaining = Math.max(goal - dailyTotal, 0)
+  const progress = Math.min(100, Math.round((dailyTotal / goal) * 100))
   const logsError = logs.error
     ? logs.error instanceof Error
       ? logs.error.message
@@ -68,10 +73,23 @@ export function CalorieScreen() {
     <div
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
     >
-      <ScreenHeader
-        title="Calories"
-        subtitle={`${dailyTotal} kcal logged today`}
-      />
+      <ScreenHeader title="Calories" subtitle="Build awareness, one meal at a time" />
+
+      <Card padding="lg" radius="hero" style={{ boxShadow: 'var(--shadow-card)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'baseline' }}>
+          <div>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 600 }}>{dailyTotal.toLocaleString()}</span>
+            <span style={{ marginLeft: 6, color: 'var(--text-tertiary)', fontSize: 12 }}>kcal logged</span>
+          </div>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{remaining.toLocaleString()} left</span>
+        </div>
+        <div className="progress-track" style={{ marginTop: 14 }}>
+          <div className="progress-fill" style={{ width: `${progress}%`, background: 'var(--calorie-ring)' }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 7, color: 'var(--text-tertiary)', fontSize: 10 }}>
+          <span>{progress}% of goal</span><span>{goal.toLocaleString()} kcal</span>
+        </div>
+      </Card>
 
       <Card padding="md">
         <form
