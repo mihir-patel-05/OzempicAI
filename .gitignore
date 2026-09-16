@@ -16,6 +16,8 @@ dist-ssr/
 # Local Supabase
 supabase/.env
 supabase/logs/
+supabase/.temp/
+.playwright-cli/
 
 # Editor / OS
 .DS_Store
