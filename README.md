@@ -88,6 +88,14 @@ supabase link --project-ref your-project-ref
 supabase db push
 ```
 
+**The existing hosted project has drifted from these files.** Its recorded migration history
+holds only `align_hosted_schema_and_rls`; `00001`–`00005` were never registered, so
+`supabase db push` starts at `00001_init_schema.sql` and fails on `create table public.users`.
+Until the history is repaired (`supabase migration repair --status applied <version>` for each
+already-applied file), apply new migrations by pasting them into the dashboard SQL editor in
+order. `00007_workouts.sql` also drops a `workout_plans` table left over from the retired Swift
+app — it holds no rows and nothing in this repo reads it, but confirm that before running.
+
 Then configure Authentication → URL Configuration with the production Site URL and any
 Vercel preview origins. Email/password signups can require confirmation; when enabled, the
 login screen tells new users to check their inbox. The auth trigger creates the matching

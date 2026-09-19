@@ -7,6 +7,14 @@
 -- Loads are stored in kilograms and distances in kilometres regardless of the
 -- unit system the user reads them in — see public.users.unit_system.
 
+-- The hosted project carries a public.workout_plans left over from the retired
+-- Swift app (one row per exercise: exercise_name, sets, weight, weight_unit,
+-- is_completed). Nothing in this repo reads it and it holds no rows, so it is
+-- dropped to free the name for the model below. No `cascade`: nothing should
+-- depend on it, and if something does we want this to fail loudly rather than
+-- quietly take that object with it. No-op on a clean database.
+drop table if exists public.workout_plans;
+
 -- ─── Plans ───────────────────────────────────────────────────────────────────
 create table public.workout_plans (
   id           uuid primary key default gen_random_uuid(),
