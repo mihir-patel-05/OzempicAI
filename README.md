@@ -3,10 +3,24 @@
 Personal health & fitness tracker. Delivered as an installable PWA — bookmark it to your iPhone home screen and it opens full-screen.
 
 The web app includes email/password authentication, password recovery, a daily dashboard,
-calorie/meal tracking, water, exercise, weight and heart-rate logs, meal planning, groceries,
-and editable personal goals. Every user-owned table is protected with Supabase Row Level Security.
+calorie/meal tracking, water, exercise, weight and heart-rate logs, workout planning and
+tracking, meal planning, groceries, and editable personal goals. Every user-owned table is
+protected with Supabase Row Level Security.
 
 Vite + React 18 + TypeScript · `@supabase/supabase-js` · `@tanstack/react-query` · `react-router-dom` · `vite-plugin-pwa` (Workbox).
+
+## Workouts
+
+Plans (Plans → Workouts) and logged sessions (Log → Workouts) share one shape: pick a split —
+push, pull, legs, full body, cardio or other — then add exercises, each with the machine used
+and either sets, reps and load or, for cardio, minutes and distance. A planned workout can be
+tapped in the tracker to prefill the whole form, and ticked off once it is done.
+
+## Units
+
+Every measurement is stored in metric (kg, cm, km). Profile → Units switches the whole app
+between metric and imperial, which relabels and converts what you read and type without
+touching stored history. Conversions live in one place, `src/lib/units.ts`.
 
 ## Setup
 
@@ -74,6 +88,14 @@ supabase link --project-ref your-project-ref
 supabase db push
 ```
 
+**The existing hosted project has drifted from these files.** Its recorded migration history
+holds only `align_hosted_schema_and_rls`; `00001`–`00005` were never registered, so
+`supabase db push` starts at `00001_init_schema.sql` and fails on `create table public.users`.
+Until the history is repaired (`supabase migration repair --status applied <version>` for each
+already-applied file), apply new migrations by pasting them into the dashboard SQL editor in
+order. `00007_workouts.sql` also drops a `workout_plans` table left over from the retired Swift
+app — it holds no rows and nothing in this repo reads it, but confirm that before running.
+
 Then configure Authentication → URL Configuration with the production Site URL and any
 Vercel preview origins. Email/password signups can require confirmation; when enabled, the
 login screen tells new users to check their inbox. The auth trigger creates the matching
@@ -82,7 +104,8 @@ login screen tells new users to check their inbox. The auth trigger creates the 
 Before release, verify:
 
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` exist in every Vercel environment.
-- The migrations are applied, including `weight_logs`, the auth profile trigger, and indexes.
+- The migrations are applied, including `weight_logs`, the auth profile trigger, the unit-system
+  column, the workout tables, and indexes.
 - Supabase Site URL and Redirect URLs include production and preview origins.
 - A newly created account can add and delete an entry in each tracker without seeing another user's data.
 

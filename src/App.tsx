@@ -12,6 +12,7 @@ import { WaterScreen } from './features/water/WaterScreen'
 import { WeightScreen } from './features/weight/WeightScreen'
 import { ExerciseScreen } from './features/exercise/ExerciseScreen'
 import { HeartRateScreen } from './features/heartRate/HeartRateScreen'
+import { WorkoutTrackerScreen } from './features/workouts/WorkoutTrackerScreen'
 
 export function App() {
   return (
@@ -30,6 +31,7 @@ export function App() {
                   <Route path="log/water" element={<WaterScreen />} />
                   <Route path="log/weight" element={<WeightScreen />} />
                   <Route path="log/exercise" element={<ExerciseScreen />} />
+                  <Route path="log/workout" element={<WorkoutTrackerScreen />} />
                   <Route path="log/heart-rate" element={<HeartRateScreen />} />
                   <Route path="plans" element={<PlansScreen />} />
                   <Route path="profile" element={<ProfileScreen />} />

@@ -5,8 +5,9 @@ const ITEMS: { to: string; label: string; hint: string; icon: string; tone: stri
   { to: '/log/calories', label: 'Meals & calories', hint: 'Track food by meal', icon: '01', tone: 'var(--terracotta)' },
   { to: '/log/water', label: 'Water', hint: 'Quick-add hydration', icon: '02', tone: 'var(--saffron)' },
   { to: '/log/exercise', label: 'Exercise', hint: 'Cardio, strength & more', icon: '03', tone: 'var(--ember)' },
-  { to: '/log/weight', label: 'Weight', hint: 'Follow your trend', icon: '04', tone: 'var(--sage-deep)' },
-  { to: '/log/heart-rate', label: 'Heart rate', hint: 'Save a BPM reading', icon: '05', tone: 'var(--plum)' },
+  { to: '/log/workout', label: 'Workouts', hint: 'Push, pull, legs & cardio', icon: '04', tone: 'var(--terracotta)' },
+  { to: '/log/weight', label: 'Weight', hint: 'Follow your trend', icon: '05', tone: 'var(--sage-deep)' },
+  { to: '/log/heart-rate', label: 'Heart rate', hint: 'Save a BPM reading', icon: '06', tone: 'var(--plum)' },
 ]
 
 export function LogScreen() {

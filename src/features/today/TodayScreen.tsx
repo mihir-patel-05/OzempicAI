@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Card } from '../../components/Card'
 import { Ring } from '../../components/Ring'
-import { useUserProfile } from '../../hooks/useUserProfile'
+import { useUnitSystem, useUserProfile } from '../../hooks/useUserProfile'
 import {
   useDailyCalorieTotal,
   useDailyExerciseTotal,
@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../auth/AuthProvider'
 import { useRecentWeightLogs } from '../../hooks/useWeightLogs'
 import { useRecentHeartRateLogs } from '../../hooks/useHeartRateLogs'
+import { formatWeight } from '../../lib/units'
 
 const EXERCISE_GOAL_MINUTES = 30
 
@@ -21,6 +22,7 @@ export function TodayScreen() {
   const exercise = useDailyExerciseTotal()
   const weights = useRecentWeightLogs()
   const heartRates = useRecentHeartRateLogs()
+  const unitSystem = useUnitSystem()
 
   const firstError =
     profile.error ?? calories.error ?? water.error ?? exercise.error
@@ -81,7 +83,7 @@ export function TodayScreen() {
           <MiniProgress label="Hydration" value={`${(water.data ?? 0).toLocaleString()} ml`} percent={waterPercent} color="var(--water-fill)" />
           <MiniProgress label="Movement" value={`${exercise.data ?? 0} min`} percent={exercisePercent} color="var(--exercise-ring)" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 20 }}>
-            <SmallMetric label="Weight" value={weights.data?.[0] ? `${round1(weights.data[0].weight_kg)} kg` : '—'} />
+            <SmallMetric label="Weight" value={weights.data?.[0] ? formatWeight(weights.data[0].weight_kg, unitSystem) : '—'} />
             <SmallMetric label="Heart" value={heartRates.data?.[0] ? `${heartRates.data[0].bpm} bpm` : '—'} />
           </div>
         </Card>
@@ -95,7 +97,7 @@ export function TodayScreen() {
         <div className="quick-log-grid">
           <QuickLog to="/log/calories" icon="fork" title="Meal" hint="Calories & food" />
           <QuickLog to="/log/water" icon="drop" title="Water" hint="Stay hydrated" />
-          <QuickLog to="/log/exercise" icon="move" title="Exercise" hint="Minutes & effort" />
+          <QuickLog to="/log/workout" icon="dumbbell" title="Workout" hint="Sets, machines & load" />
           <QuickLog to="/log/weight" icon="scale" title="Weight" hint="Track the trend" />
         </div>
       </section>
@@ -132,7 +134,9 @@ function SmallMetric({ label, value }: { label: string; value: string }) {
   )
 }
 
-function QuickLog({ to, icon, title, hint }: { to: string; icon: 'fork' | 'drop' | 'move' | 'scale'; title: string; hint: string }) {
+type QuickIconName = 'fork' | 'drop' | 'move' | 'scale' | 'dumbbell'
+
+function QuickLog({ to, icon, title, hint }: { to: string; icon: QuickIconName; title: string; hint: string }) {
   return (
     <Link to={to} className="quick-log-card">
       <span className="quick-log-icon" aria-hidden="true"><QuickIcon name={icon} /></span>
@@ -144,7 +148,8 @@ function QuickLog({ to, icon, title, hint }: { to: string; icon: 'fork' | 'drop'
   )
 }
 
-function QuickIcon({ name }: { name: 'fork' | 'drop' | 'move' | 'scale' }) {
+function QuickIcon({ name }: { name: QuickIconName }) {
+  if (name === 'dumbbell') return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10" /></svg>
   if (name === 'drop') return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2S5.5 9.2 5.5 14a6.5 6.5 0 0 0 13 0C18.5 9.2 12 2 12 2Z" /></svg>
   if (name === 'move') return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="m7 8 3-3 3 3M10 5v14M17 16l-3 3-3-3" /></svg>
   if (name === 'scale') return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="4" y="3" width="16" height="18" rx="4"/><path d="M9 8a3 3 0 0 1 6 0M12 8l2-2"/></svg>
@@ -168,10 +173,6 @@ function firstName(email: string | undefined): string {
 function percent(value: number, goal: number): number {
   if (goal <= 0) return 0
   return Math.min(100, Math.max(0, Math.round((value / goal) * 100)))
-}
-
-function round1(value: number): number {
-  return Math.round(value * 10) / 10
 }
 
 function formatToday(): string {

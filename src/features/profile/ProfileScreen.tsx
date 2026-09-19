@@ -2,9 +2,25 @@ import { useEffect, useState } from 'react'
 import { Card } from '../../components/Card'
 import { Banner } from '../../components/Banner'
 import { useAuth } from '../../auth/AuthProvider'
-import { Field } from '../../components/Field'
+import { CapsLabel, Field } from '../../components/Field'
 import { PrimaryButton } from '../../components/PrimaryButton'
+import { SegmentedPicker } from '../../components/SegmentedPicker'
 import { useUpdateUserProfile, useUserProfile } from '../../hooks/useUserProfile'
+import type { UnitSystem } from '../../types/db'
+import {
+  heightFromCm,
+  heightToCm,
+  heightUnit,
+  roundForDisplay,
+  weightFromKg,
+  weightToKg,
+  weightUnit,
+} from '../../lib/units'
+
+const UNIT_OPTIONS: { value: UnitSystem; label: string }[] = [
+  { value: 'metric', label: 'Metric (kg · cm)' },
+  { value: 'imperial', label: 'Imperial (lb · in)' },
+]
 
 export function ProfileScreen() {
   const { session, signOut, updatePassword } = useAuth()
@@ -20,18 +36,30 @@ export function ProfileScreen() {
   const [age, setAge] = useState('')
   const [calorieGoal, setCalorieGoal] = useState('2000')
   const [waterGoal, setWaterGoal] = useState('2500')
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>('metric')
   const [password, setPassword] = useState('')
   const email = session?.user.email ?? '—'
 
   useEffect(() => {
     if (!profile.data) return
+    const system = profile.data.unit_system ?? 'metric'
     setName(profile.data.name ?? '')
-    setHeight(profile.data.height_cm?.toString() ?? '')
-    setWeight(profile.data.weight_kg?.toString() ?? '')
+    setHeight(displayValue(profile.data.height_cm, (cm) => heightFromCm(cm, system)))
+    setWeight(displayValue(profile.data.weight_kg, (kg) => weightFromKg(kg, system)))
     setAge(profile.data.age?.toString() ?? '')
     setCalorieGoal(profile.data.daily_calorie_goal.toString())
     setWaterGoal(profile.data.daily_water_goal_ml.toString())
+    setUnitSystem(system)
   }, [profile.data])
+
+  // Switching systems converts what is already typed in, so the fields keep
+  // describing the same body rather than reading as a sudden weight change.
+  function onUnitSystemChange(next: UnitSystem) {
+    if (next === unitSystem) return
+    setHeight(convertField(height, (v) => heightFromCm(heightToCm(v, unitSystem), next)))
+    setWeight(convertField(weight, (v) => weightFromKg(weightToKg(v, unitSystem), next)))
+    setUnitSystem(next)
+  }
 
   async function onSignOut() {
     setSigningOut(true)
@@ -57,13 +85,18 @@ export function ProfileScreen() {
       return
     }
     try {
+      const heightEntered = optionalNumber(height)
+      const weightEntered = optionalNumber(weight)
       await updateProfile.mutateAsync({
         name: name.trim(),
-        height_cm: optionalNumber(height),
-        weight_kg: optionalNumber(weight),
+        height_cm:
+          heightEntered === null ? null : heightToCm(heightEntered, unitSystem),
+        weight_kg:
+          weightEntered === null ? null : weightToKg(weightEntered, unitSystem),
         age: optionalInteger(age),
         daily_calorie_goal: calories,
         daily_water_goal_ml: water,
+        unit_system: unitSystem,
       })
       setSuccess('Profile and daily goals saved.')
     } catch (err) {
@@ -107,9 +140,15 @@ export function ProfileScreen() {
           ) : (
             <form onSubmit={onSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
               <Field label="Name" value={name} onChange={setName} placeholder="Your name" autoComplete="name" autoCapitalize="words" />
+              <div>
+                <div style={{ marginBottom: 6 }}>
+                  <CapsLabel>Units</CapsLabel>
+                </div>
+                <SegmentedPicker options={UNIT_OPTIONS} value={unitSystem} onChange={onUnitSystemChange} ariaLabel="Unit system" />
+              </div>
               <div style={twoColumns}>
-                <Field label="Height" value={height} onChange={setHeight} type="number" inputMode="decimal" placeholder="cm" min="1" />
-                <Field label="Current weight" value={weight} onChange={setWeight} type="number" inputMode="decimal" placeholder="kg" min="1" />
+                <Field label={`Height (${heightUnit(unitSystem)})`} value={height} onChange={setHeight} type="number" inputMode="decimal" placeholder={heightUnit(unitSystem)} min="1" step="0.1" />
+                <Field label={`Current weight (${weightUnit(unitSystem)})`} value={weight} onChange={setWeight} type="number" inputMode="decimal" placeholder={weightUnit(unitSystem)} min="1" step="0.1" />
               </div>
               <Field label="Age" value={age} onChange={setAge} type="number" inputMode="numeric" placeholder="Optional" min="1" max="130" />
               <h3 style={{ ...sectionTitle, marginTop: 8, marginBottom: 0, fontSize: 17 }}>Daily goals</h3>
@@ -140,6 +179,20 @@ export function ProfileScreen() {
       </div>
     </div>
   )
+}
+
+function displayValue(
+  stored: number | null,
+  convert: (value: number) => number,
+): string {
+  return stored === null || stored === undefined
+    ? ''
+    : roundForDisplay(convert(stored)).toString()
+}
+
+function convertField(value: string, convert: (n: number) => number): string {
+  const parsed = optionalNumber(value)
+  return parsed === null ? value : roundForDisplay(convert(parsed)).toString()
 }
 
 function optionalNumber(value: string): number | null {

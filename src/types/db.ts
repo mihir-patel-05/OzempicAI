@@ -22,6 +22,9 @@ export type BodyPart =
 
 export type HeartRateSource = 'healthkit' | 'manual'
 
+/** Display preference only — the database always stores metric values. */
+export type UnitSystem = 'metric' | 'imperial'
+
 export type GroceryCategory =
   | 'produce'
   | 'dairy'
@@ -40,6 +43,7 @@ export interface UserProfile {
   age: number | null
   daily_calorie_goal: number
   daily_water_goal_ml: number
+  unit_system: UnitSystem
   created_at: string
 }
 
@@ -113,4 +117,93 @@ export interface DayLabel {
   label_date: string
   label: string
   created_at: string
+}
+
+// ─── Workouts ────────────────────────────────────────────────────────────────
+// Mirrors supabase/migrations/00007_workouts.sql. Loads are always kilograms
+// and distances always kilometres here; convert at the edge with lib/units.
+
+export type WorkoutType =
+  | 'push'
+  | 'pull'
+  | 'legs'
+  | 'full_body'
+  | 'cardio'
+  | 'other'
+
+export interface WorkoutPlan {
+  id: string
+  user_id: string
+  name: string
+  workout_type: WorkoutType
+  planned_date: string
+  notes: string | null
+  completed_at: string | null
+  created_at: string
+}
+
+export interface WorkoutPlanExercise {
+  id: string
+  plan_id: string
+  user_id: string
+  position: number
+  exercise_name: string
+  machine: string | null
+  target_sets: number | null
+  target_reps: number | null
+  target_weight_kg: number | null
+  target_duration_minutes: number | null
+  target_distance_km: number | null
+  created_at: string
+}
+
+export interface WorkoutSession {
+  id: string
+  user_id: string
+  plan_id: string | null
+  name: string
+  workout_type: WorkoutType
+  performed_at: string
+  duration_minutes: number | null
+  notes: string | null
+  created_at: string
+}
+
+export interface WorkoutSessionExercise {
+  id: string
+  session_id: string
+  user_id: string
+  position: number
+  exercise_name: string
+  machine: string | null
+  sets: number | null
+  reps_per_set: number | null
+  weight_kg: number | null
+  duration_minutes: number | null
+  distance_km: number | null
+  created_at: string
+}
+
+/**
+ * One exercise as the forms collect it, before it is split into the planned
+ * (target_*) or performed column names. Metric values, same as the tables.
+ */
+export interface WorkoutExerciseDraft {
+  exercise_name: string
+  machine: string | null
+  sets: number | null
+  reps: number | null
+  weight_kg: number | null
+  duration_minutes: number | null
+  distance_km: number | null
+}
+
+/** A plan with its exercises, as the planner screen renders it. */
+export interface WorkoutPlanWithExercises extends WorkoutPlan {
+  exercises: WorkoutPlanExercise[]
+}
+
+/** A logged session with its exercises, as the tracker screen renders it. */
+export interface WorkoutSessionWithExercises extends WorkoutSession {
+  exercises: WorkoutSessionExercise[]
 }

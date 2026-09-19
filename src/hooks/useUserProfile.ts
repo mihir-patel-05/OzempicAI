@@ -1,9 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
-import type { UserProfile } from '../types/db'
+import type { UnitSystem, UserProfile } from '../types/db'
 
-const DEFAULTS = { daily_calorie_goal: 2000, daily_water_goal_ml: 2500 }
+const DEFAULTS = {
+  daily_calorie_goal: 2000,
+  daily_water_goal_ml: 2500,
+  unit_system: 'metric' as UnitSystem,
+}
 
 export function useUserProfile() {
   const { session } = useAuth()
@@ -35,6 +39,7 @@ export function useUserProfile() {
           name,
           daily_calorie_goal: DEFAULTS.daily_calorie_goal,
           daily_water_goal_ml: DEFAULTS.daily_water_goal_ml,
+          unit_system: DEFAULTS.unit_system,
         })
         .select()
         .single()
@@ -55,7 +60,13 @@ export function useUserProfile() {
 
 export type UpdateProfileInput = Pick<
   UserProfile,
-  'name' | 'height_cm' | 'weight_kg' | 'age' | 'daily_calorie_goal' | 'daily_water_goal_ml'
+  | 'name'
+  | 'height_cm'
+  | 'weight_kg'
+  | 'age'
+  | 'daily_calorie_goal'
+  | 'daily_water_goal_ml'
+  | 'unit_system'
 >
 
 export function useUpdateUserProfile() {
@@ -74,4 +85,13 @@ export function useUpdateUserProfile() {
       queryClient.invalidateQueries({ queryKey: ['daily-total'] })
     },
   })
+}
+
+/**
+ * The unit system to render in. Falls back to metric while the profile is
+ * still loading so numbers never flash in the wrong unit.
+ */
+export function useUnitSystem(): UnitSystem {
+  const profile = useUserProfile()
+  return profile.data?.unit_system ?? 'metric'
 }
