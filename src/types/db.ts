@@ -184,6 +184,20 @@ export interface WorkoutSessionExercise {
   created_at: string
 }
 
+/**
+ * One exercise as the forms collect it, before it is split into the planned
+ * (target_*) or performed column names. Metric values, same as the tables.
+ */
+export interface WorkoutExerciseDraft {
+  exercise_name: string
+  machine: string | null
+  sets: number | null
+  reps: number | null
+  weight_kg: number | null
+  duration_minutes: number | null
+  distance_km: number | null
+}
+
 /** A plan with its exercises, as the planner screen renders it. */
 export interface WorkoutPlanWithExercises extends WorkoutPlan {
   exercises: WorkoutPlanExercise[]
