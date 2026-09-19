@@ -14,8 +14,9 @@ import {
   useUpcomingMealPlans,
 } from '../../hooks/usePlans'
 import type { GroceryCategory, MealPlan, MealType } from '../../types/db'
+import { WorkoutPlanner } from '../workouts/WorkoutPlanner'
 
-type Tab = 'meals' | 'groceries'
+type Tab = 'meals' | 'workouts' | 'groceries'
 const MEALS: { value: MealType; label: string }[] = [
   { value: 'breakfast', label: 'Breakfast' },
   { value: 'lunch', label: 'Lunch' },
@@ -30,13 +31,15 @@ export function PlansScreen() {
     <div className="screen-stack">
       <header>
         <p style={eyebrowStyle}>Plan ahead</p>
-        <h1 style={titleStyle}>Meals made simpler.</h1>
-        <p style={subtitleStyle}>Sketch out upcoming meals and keep a grocery list that travels with you.</p>
+        <h1 style={titleStyle}>Plan it once, follow it all week.</h1>
+        <p style={subtitleStyle}>Sketch out upcoming meals and workouts, and keep a grocery list that travels with you.</p>
       </header>
-      <div style={{ maxWidth: 420 }}>
-        <SegmentedPicker options={[{ value: 'meals', label: 'Meal plan' }, { value: 'groceries', label: 'Groceries' }]} value={tab} onChange={setTab} ariaLabel="Planning view" />
+      <div style={{ maxWidth: 480 }}>
+        <SegmentedPicker options={[{ value: 'meals', label: 'Meal plan' }, { value: 'workouts', label: 'Workouts' }, { value: 'groceries', label: 'Groceries' }]} value={tab} onChange={setTab} ariaLabel="Planning view" />
       </div>
-      {tab === 'meals' ? <MealPlanner /> : <GroceryList />}
+      {tab === 'meals' && <MealPlanner />}
+      {tab === 'workouts' && <WorkoutPlanner />}
+      {tab === 'groceries' && <GroceryList />}
     </div>
   )
 }
