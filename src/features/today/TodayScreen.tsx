@@ -97,7 +97,7 @@ export function TodayScreen() {
         <div className="quick-log-grid">
           <QuickLog to="/log/calories" icon="fork" title="Meal" hint="Calories & food" />
           <QuickLog to="/log/water" icon="drop" title="Water" hint="Stay hydrated" />
-          <QuickLog to="/log/exercise" icon="move" title="Exercise" hint="Minutes & effort" />
+          <QuickLog to="/log/workout" icon="dumbbell" title="Workout" hint="Sets, machines & load" />
           <QuickLog to="/log/weight" icon="scale" title="Weight" hint="Track the trend" />
         </div>
       </section>
@@ -134,7 +134,9 @@ function SmallMetric({ label, value }: { label: string; value: string }) {
   )
 }
 
-function QuickLog({ to, icon, title, hint }: { to: string; icon: 'fork' | 'drop' | 'move' | 'scale'; title: string; hint: string }) {
+type QuickIconName = 'fork' | 'drop' | 'move' | 'scale' | 'dumbbell'
+
+function QuickLog({ to, icon, title, hint }: { to: string; icon: QuickIconName; title: string; hint: string }) {
   return (
     <Link to={to} className="quick-log-card">
       <span className="quick-log-icon" aria-hidden="true"><QuickIcon name={icon} /></span>
@@ -146,7 +148,8 @@ function QuickLog({ to, icon, title, hint }: { to: string; icon: 'fork' | 'drop'
   )
 }
 
-function QuickIcon({ name }: { name: 'fork' | 'drop' | 'move' | 'scale' }) {
+function QuickIcon({ name }: { name: QuickIconName }) {
+  if (name === 'dumbbell') return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10" /></svg>
   if (name === 'drop') return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2S5.5 9.2 5.5 14a6.5 6.5 0 0 0 13 0C18.5 9.2 12 2 12 2Z" /></svg>
   if (name === 'move') return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="m7 8 3-3 3 3M10 5v14M17 16l-3 3-3-3" /></svg>
   if (name === 'scale') return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="4" y="3" width="16" height="18" rx="4"/><path d="M9 8a3 3 0 0 1 6 0M12 8l2-2"/></svg>
