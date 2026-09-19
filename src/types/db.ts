@@ -22,6 +22,9 @@ export type BodyPart =
 
 export type HeartRateSource = 'healthkit' | 'manual'
 
+/** Display preference only — the database always stores metric values. */
+export type UnitSystem = 'metric' | 'imperial'
+
 export type GroceryCategory =
   | 'produce'
   | 'dairy'
@@ -40,6 +43,7 @@ export interface UserProfile {
   age: number | null
   daily_calorie_goal: number
   daily_water_goal_ml: number
+  unit_system: UnitSystem
   created_at: string
 }
 
