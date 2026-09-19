@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Card } from '../../components/Card'
 import { Ring } from '../../components/Ring'
-import { useUserProfile } from '../../hooks/useUserProfile'
+import { useUnitSystem, useUserProfile } from '../../hooks/useUserProfile'
 import {
   useDailyCalorieTotal,
   useDailyExerciseTotal,
@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../auth/AuthProvider'
 import { useRecentWeightLogs } from '../../hooks/useWeightLogs'
 import { useRecentHeartRateLogs } from '../../hooks/useHeartRateLogs'
+import { formatWeight } from '../../lib/units'
 
 const EXERCISE_GOAL_MINUTES = 30
 
@@ -21,6 +22,7 @@ export function TodayScreen() {
   const exercise = useDailyExerciseTotal()
   const weights = useRecentWeightLogs()
   const heartRates = useRecentHeartRateLogs()
+  const unitSystem = useUnitSystem()
 
   const firstError =
     profile.error ?? calories.error ?? water.error ?? exercise.error
@@ -81,7 +83,7 @@ export function TodayScreen() {
           <MiniProgress label="Hydration" value={`${(water.data ?? 0).toLocaleString()} ml`} percent={waterPercent} color="var(--water-fill)" />
           <MiniProgress label="Movement" value={`${exercise.data ?? 0} min`} percent={exercisePercent} color="var(--exercise-ring)" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 20 }}>
-            <SmallMetric label="Weight" value={weights.data?.[0] ? `${round1(weights.data[0].weight_kg)} kg` : '—'} />
+            <SmallMetric label="Weight" value={weights.data?.[0] ? formatWeight(weights.data[0].weight_kg, unitSystem) : '—'} />
             <SmallMetric label="Heart" value={heartRates.data?.[0] ? `${heartRates.data[0].bpm} bpm` : '—'} />
           </div>
         </Card>
@@ -168,10 +170,6 @@ function firstName(email: string | undefined): string {
 function percent(value: number, goal: number): number {
   if (goal <= 0) return 0
   return Math.min(100, Math.max(0, Math.round((value / goal) * 100)))
-}
-
-function round1(value: number): number {
-  return Math.round(value * 10) / 10
 }
 
 function formatToday(): string {

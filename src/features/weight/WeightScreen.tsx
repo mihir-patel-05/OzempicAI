@@ -9,11 +9,21 @@ import {
   useLogWeight,
   useRecentWeightLogs,
 } from '../../hooks/useWeightLogs'
+import { useUnitSystem } from '../../hooks/useUserProfile'
+import type { UnitSystem } from '../../types/db'
+import {
+  roundForDisplay,
+  weightFromKg,
+  weightToKg,
+  weightUnit,
+} from '../../lib/units'
 
 export function WeightScreen() {
   const logs = useRecentWeightLogs()
   const logWeight = useLogWeight()
   const deleteLog = useDeleteWeightLog()
+  const unitSystem = useUnitSystem()
+  const unit = weightUnit(unitSystem)
 
   const [weight, setWeight] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -31,7 +41,7 @@ export function WeightScreen() {
     if (!canSubmit) return
     setError(null)
     try {
-      await logWeight.mutateAsync(round2(weightNum))
+      await logWeight.mutateAsync(round2(weightToKg(weightNum, unitSystem)))
       setWeight('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log weight.')
@@ -42,7 +52,7 @@ export function WeightScreen() {
     <div
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
     >
-      <ScreenHeader title="Weight" subtitle="Recent entries" />
+      <ScreenHeader title="Weight" subtitle={`Recent entries · ${unit}`} />
 
       <Card padding="lg">
         <div
@@ -72,12 +82,10 @@ export function WeightScreen() {
               color: 'var(--text-primary)',
             }}
           >
-            {latest ? round2(latest.weight_kg) : '—'}
+            {latest ? displayWeight(latest.weight_kg, unitSystem) : '—'}
           </span>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: 14 }}>kg</span>
-          {delta !== null && (
-            <DeltaPill delta={delta} />
-          )}
+          <span style={{ color: 'var(--text-tertiary)', fontSize: 14 }}>{unit}</span>
+          {delta !== null && <DeltaPill deltaKg={delta} unitSystem={unitSystem} />}
         </div>
         {latest && (
           <div
@@ -99,7 +107,7 @@ export function WeightScreen() {
             onChange={setWeight}
             type="number"
             inputMode="decimal"
-            placeholder="kg"
+            placeholder={unit}
           />
           {error && <Banner tone="error">{error}</Banner>}
           <PrimaryButton
@@ -145,7 +153,7 @@ export function WeightScreen() {
             >
               <div>
                 <div style={{ fontSize: 15, color: 'var(--text-primary)' }}>
-                  {round2(row.weight_kg)} kg
+                  {displayWeight(row.weight_kg, unitSystem)} {unit}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                   {formatDate(row.logged_at)}
@@ -169,7 +177,14 @@ export function WeightScreen() {
   )
 }
 
-function DeltaPill({ delta }: { delta: number }) {
+function DeltaPill({
+  deltaKg,
+  unitSystem,
+}: {
+  deltaKg: number
+  unitSystem: UnitSystem
+}) {
+  const delta = weightFromKg(deltaKg, unitSystem)
   if (Math.abs(delta) < 0.05) return null
   const up = delta > 0
   const color = up ? 'var(--ember)' : 'var(--sage-deep)'
@@ -184,9 +199,13 @@ function DeltaPill({ delta }: { delta: number }) {
       }}
     >
       {sign}
-      {round2(delta)} kg
+      {round2(delta)} {weightUnit(unitSystem)}
     </span>
   )
+}
+
+function displayWeight(kg: number, unitSystem: UnitSystem): number {
+  return roundForDisplay(weightFromKg(kg, unitSystem), 2)
 }
 
 function round2(n: number): number {
