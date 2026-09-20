@@ -44,7 +44,13 @@ export function AnalyticsLineChart({
             minTickGap={28}
             tick={axisTick}
           />
-          <YAxis tickLine={false} axisLine={false} tick={axisTick} width={48} />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={axisTick}
+            width={48}
+            domain={['auto', 'auto']}
+          />
           <Tooltip
             labelFormatter={(label) => formatLongDate(String(label))}
             formatter={(value, name) => [
@@ -149,4 +155,3 @@ const tooltipStyle = {
   color: 'var(--text-primary)',
   fontSize: 12,
 }
-
