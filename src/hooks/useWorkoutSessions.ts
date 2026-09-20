@@ -103,6 +103,7 @@ export function useLogWorkoutSession() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workout-sessions'] })
       queryClient.invalidateQueries({ queryKey: ['workout-plans'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }
@@ -123,8 +124,10 @@ export function useDeleteWorkoutSession() {
         .eq('user_id', userId)
       if (error) throw error
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['workout-sessions'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workout-sessions'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
+    },
   })
 }
 

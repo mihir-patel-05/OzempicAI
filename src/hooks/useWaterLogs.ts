@@ -41,6 +41,7 @@ export function useLogWater() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['water-logs'] })
       queryClient.invalidateQueries({ queryKey: ['daily-total', 'water'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }
@@ -62,6 +63,7 @@ export function useDeleteWaterLog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['water-logs'] })
       queryClient.invalidateQueries({ queryKey: ['daily-total', 'water'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }

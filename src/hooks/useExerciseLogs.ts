@@ -32,6 +32,7 @@ export interface LogExerciseInput {
   calories_burned: number
   sets: number | null
   reps_per_set: number | null
+  weight_kg: number | null
   body_part: BodyPart | null
 }
 
@@ -50,6 +51,7 @@ export function useLogExercise() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exercise-logs'] })
       queryClient.invalidateQueries({ queryKey: ['daily-total', 'exercise'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }
@@ -71,6 +73,7 @@ export function useDeleteExerciseLog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exercise-logs'] })
       queryClient.invalidateQueries({ queryKey: ['daily-total', 'exercise'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }

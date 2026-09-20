@@ -46,6 +46,7 @@ create table public.exercise_logs (
   calories_burned  int not null,
   sets             int,
   reps_per_set     int,
+  weight_kg        double precision check (weight_kg >= 0),
   body_part        text check (body_part in ('chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full_body')),
   logged_at        timestamptz not null default now()
 );

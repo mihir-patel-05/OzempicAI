@@ -72,6 +72,7 @@ export interface ExerciseLog {
   calories_burned: number
   sets: number | null
   reps_per_set: number | null
+  weight_kg: number | null
   body_part: BodyPart | null
   logged_at: string
 }

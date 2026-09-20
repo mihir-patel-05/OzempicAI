@@ -77,7 +77,10 @@ export function useUpdateUserProfile() {
     mutationFn: async (input: UpdateProfileInput) => {
       if (!userId) throw new Error('Not signed in')
       const { data, error } = await supabase.from('users').update(input).eq('id', userId).select().single()
-      if (error) throw error
+      // PostgrestError is a plain object, not an Error instance. Normalize it
+      // so profile screens show the database's useful message instead of the
+      // generic fallback.
+      if (error) throw new Error(error.message, { cause: error })
       return data as UserProfile
     },
     onSuccess: (profile) => {
