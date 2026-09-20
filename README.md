@@ -4,8 +4,8 @@ Personal health & fitness tracker. Delivered as an installable PWA — bookmark 
 
 The web app includes email/password authentication, password recovery, a daily dashboard,
 calorie/meal tracking, water, exercise, weight and heart-rate logs, workout planning and
-tracking, meal planning, groceries, and editable personal goals. Every user-owned table is
-protected with Supabase Row Level Security.
+tracking, a range-based analytics dashboard, meal planning, groceries, and editable personal
+goals. Every user-owned table is protected with Supabase Row Level Security.
 
 Vite + React 18 + TypeScript · `@supabase/supabase-js` · `@tanstack/react-query` · `react-router-dom` · `vite-plugin-pwa` (Workbox).
 
@@ -105,9 +105,10 @@ Before release, verify:
 
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` exist in every Vercel environment.
 - The migrations are applied, including `weight_logs`, the auth profile trigger, the unit-system
-  column, the workout tables, and indexes.
+  column, the workout tables, analytics RPCs, and indexes.
 - Supabase Site URL and Redirect URLs include production and preview origins.
 - A newly created account can add and delete an entry in each tracker without seeing another user's data.
+- The Analytics tab loads the 30-day view and cannot expose another account's aggregates.
 
 ## Theme
 
