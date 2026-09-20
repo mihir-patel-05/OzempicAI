@@ -102,8 +102,10 @@ export function useCreateWorkoutPlan() {
       }
       return created as WorkoutPlan
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['workout-plans'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workout-plans'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
+    },
   })
 }
 
@@ -123,8 +125,10 @@ export function useSetWorkoutPlanCompleted() {
         .eq('user_id', userId)
       if (error) throw error
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['workout-plans'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workout-plans'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
+    },
   })
 }
 
@@ -144,8 +148,10 @@ export function useDeleteWorkoutPlan() {
         .eq('user_id', userId)
       if (error) throw error
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['workout-plans'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workout-plans'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
+    },
   })
 }
 
