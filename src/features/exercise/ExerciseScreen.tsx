@@ -10,7 +10,11 @@ import {
   useExerciseLogsToday,
   useLogExercise,
 } from '../../hooks/useExerciseLogs'
+import { useUnitSystem } from '../../hooks/useUserProfile'
+import { formatWeight, weightToKg } from '../../lib/units'
 import type { BodyPart, ExerciseCategory } from '../../types/db'
+
+type WeightInputUnit = 'kg' | 'lb'
 
 const CATEGORY_OPTIONS: { value: ExerciseCategory; label: string }[] = [
   { value: 'cardio', label: 'Cardio' },
@@ -31,6 +35,7 @@ const BODY_PARTS: BodyPart[] = [
 ]
 
 export function ExerciseScreen() {
+  const unitSystem = useUnitSystem()
   const logs = useExerciseLogsToday()
   const logExercise = useLogExercise()
   const deleteLog = useDeleteExerciseLog()
@@ -41,19 +46,28 @@ export function ExerciseScreen() {
   const [caloriesBurned, setCaloriesBurned] = useState('')
   const [sets, setSets] = useState('')
   const [reps, setReps] = useState('')
+  const [weight, setWeight] = useState('')
+  const [selectedWeightUnit, setSelectedWeightUnit] =
+    useState<WeightInputUnit | null>(null)
   const [bodyPart, setBodyPart] = useState<BodyPart | ''>('')
   const [error, setError] = useState<string | null>(null)
+
+  const weightUnit =
+    selectedWeightUnit ?? (unitSystem === 'imperial' ? 'lb' : 'kg')
 
   const durationNum = Number(duration)
   const caloriesNum = Number(caloriesBurned)
   const hasSets = sets.trim().length > 0
   const hasReps = reps.trim().length > 0
+  const hasWeight = weight.trim().length > 0
   const setsNum = Number(sets)
   const repsNum = Number(reps)
+  const weightNum = Number(weight)
   const strengthFieldsValid =
     category !== 'strength' ||
     ((!hasSets || (Number.isFinite(setsNum) && setsNum > 0)) &&
-      (!hasReps || (Number.isFinite(repsNum) && repsNum > 0)))
+      (!hasReps || (Number.isFinite(repsNum) && repsNum > 0)) &&
+      (!hasWeight || (Number.isFinite(weightNum) && weightNum >= 0)))
   const canSubmit =
     name.trim().length > 0 &&
     Number.isFinite(durationNum) &&
@@ -75,6 +89,13 @@ export function ExerciseScreen() {
         sets: category === 'strength' && hasSets ? Math.round(setsNum) : null,
         reps_per_set:
           category === 'strength' && hasReps ? Math.round(repsNum) : null,
+        weight_kg:
+          category === 'strength' && hasWeight
+            ? weightToKg(
+                weightNum,
+                weightUnit === 'lb' ? 'imperial' : 'metric',
+              )
+            : null,
         body_part: category === 'strength' && bodyPart ? bodyPart : null,
       })
       setName('')
@@ -82,6 +103,7 @@ export function ExerciseScreen() {
       setCaloriesBurned('')
       setSets('')
       setReps('')
+      setWeight('')
       setBodyPart('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log exercise.')
@@ -177,6 +199,60 @@ export function ExerciseScreen() {
                 />
               </div>
               <div>
+                <label htmlFor="exercise-weight">
+                  <CapsLabel>Weight (optional)</CapsLabel>
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    marginTop: 6,
+                  }}
+                >
+                  <input
+                    id="exercise-weight"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0"
+                    min="0"
+                    step="0.5"
+                    style={{
+                      minWidth: 0,
+                      flex: 1,
+                      background: 'var(--cream-dim)',
+                      border: '1px solid var(--divider)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '12px 14px',
+                      fontSize: 16,
+                      color: 'var(--text-primary)',
+                    }}
+                  />
+                  <select
+                    value={weightUnit}
+                    onChange={(e) =>
+                      setSelectedWeightUnit(e.target.value as WeightInputUnit)
+                    }
+                    aria-label="Weight unit"
+                    style={{
+                      flex: '0 0 auto',
+                      width: 82,
+                      background: 'var(--cream-dim)',
+                      border: '1px solid var(--divider)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '12px 10px',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <option value="lb">lbs</option>
+                    <option value="kg">kg</option>
+                  </select>
+                </div>
+              </div>
+              <div>
                 <div style={{ marginBottom: 6 }}>
                   <CapsLabel>Body part (optional)</CapsLabel>
                 </div>
@@ -262,6 +338,9 @@ export function ExerciseScreen() {
                   {row.category} · {row.duration_minutes} min · {row.calories_burned} kcal
                   {row.sets && row.reps_per_set
                     ? ` · ${row.sets}×${row.reps_per_set}`
+                    : ''}
+                  {row.weight_kg !== null
+                    ? ` · ${formatWeight(row.weight_kg, unitSystem)}`
                     : ''}
                   {row.body_part ? ` · ${labelForBodyPart(row.body_part)}` : ''}
                 </div>
