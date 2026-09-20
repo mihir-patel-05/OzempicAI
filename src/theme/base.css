@@ -109,7 +109,7 @@ a {
   bottom: 0;
   left: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   border-top: 1px solid var(--divider);
   background: rgba(251, 247, 240, 0.94);
   padding-bottom: var(--sa-bottom);
@@ -128,7 +128,7 @@ a {
   color: var(--text-tertiary);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.65px;
+  letter-spacing: 0.45px;
   text-transform: uppercase;
   transition: color 160ms ease, transform 160ms ease;
 }

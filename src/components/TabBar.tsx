@@ -11,6 +11,7 @@ const TABS: Tab[] = [
   { to: '/', label: 'Today', icon: <IconSun /> },
   { to: '/log', label: 'Log', icon: <IconPlus /> },
   { to: '/plans', label: 'Plans', icon: <IconList /> },
+  { to: '/analytics', label: 'Analytics', icon: <IconChart /> },
   { to: '/profile', label: 'Profile', icon: <IconPerson /> },
 ]
 
@@ -90,6 +91,15 @@ function IconPerson() {
     <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+    </svg>
+  )
+}
+
+function IconChart() {
+  return (
+    <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19V9M10 19V5M16 19v-7M22 19V3" />
+      <path d="M2 19h20" />
     </svg>
   )
 }

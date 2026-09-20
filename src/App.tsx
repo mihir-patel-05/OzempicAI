@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { LoginScreen } from './auth/LoginScreen'
@@ -13,6 +14,12 @@ import { WeightScreen } from './features/weight/WeightScreen'
 import { ExerciseScreen } from './features/exercise/ExerciseScreen'
 import { HeartRateScreen } from './features/heartRate/HeartRateScreen'
 import { WorkoutTrackerScreen } from './features/workouts/WorkoutTrackerScreen'
+
+const AnalyticsScreen = lazy(() =>
+  import('./features/analytics/AnalyticsScreen').then((module) => ({
+    default: module.AnalyticsScreen,
+  })),
+)
 
 export function App() {
   return (
@@ -34,6 +41,14 @@ export function App() {
                   <Route path="log/workout" element={<WorkoutTrackerScreen />} />
                   <Route path="log/heart-rate" element={<HeartRateScreen />} />
                   <Route path="plans" element={<PlansScreen />} />
+                  <Route
+                    path="analytics"
+                    element={
+                      <Suspense fallback={<p role="status">Loading analytics…</p>}>
+                        <AnalyticsScreen />
+                      </Suspense>
+                    }
+                  />
                   <Route path="profile" element={<ProfileScreen />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
