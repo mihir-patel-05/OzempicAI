@@ -71,6 +71,17 @@ export interface WellnessSummary {
   heartRateReadings: number
 }
 
+export interface WeeklyActivityPoint {
+  week: string
+  workouts: number
+  workoutMinutes: number
+}
+
+export interface WeeklyVolumePoint {
+  week: string
+  volumeKg: number
+}
+
 export function buildOverview(rows: AnalyticsDailyRow[]): OverviewSummary {
   const totalWorkouts = sum(rows, (row) => row.workout_count)
   const totalWorkoutMinutes = sum(rows, (row) => row.workout_minutes)
@@ -140,6 +151,24 @@ export function buildWeightSummary(rows: AnalyticsDailyRow[]): WeightSummary {
   }
 }
 
+export function buildWeeklyActivity(
+  rows: AnalyticsDailyRow[],
+): WeeklyActivityPoint[] {
+  const grouped = new Map<string, WeeklyActivityPoint>()
+  for (const row of rows) {
+    const key = weekKey(row.day)
+    const current = grouped.get(key) ?? {
+      week: key,
+      workouts: 0,
+      workoutMinutes: 0,
+    }
+    current.workouts += row.workout_count
+    current.workoutMinutes += row.workout_minutes
+    grouped.set(key, current)
+  }
+  return [...grouped.values()]
+}
+
 export function getExerciseOptions(
   rows: AnalyticsExerciseRow[],
   kind: 'strength' | 'cardio',
@@ -184,6 +213,19 @@ export function buildStrengthSummary(
       matching.map((row) => row.estimated_1rm_kg),
     ),
   }
+}
+
+export function buildWeeklyStrengthVolume(
+  points: StrengthPoint[],
+): WeeklyVolumePoint[] {
+  const grouped = new Map<string, WeeklyVolumePoint>()
+  for (const point of points) {
+    const key = weekKey(point.day)
+    const current = grouped.get(key) ?? { week: key, volumeKg: 0 }
+    current.volumeKg += point.volumeKg
+    grouped.set(key, current)
+  }
+  return [...grouped.values()]
 }
 
 export function buildCardioSummary(
@@ -292,4 +334,3 @@ function minimum(values: (number | null)[]): number | null {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
-
