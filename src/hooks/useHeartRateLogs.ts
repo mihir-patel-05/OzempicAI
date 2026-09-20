@@ -38,6 +38,7 @@ export function useLogHeartRate() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['heart-rate-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }
@@ -58,6 +59,7 @@ export function useDeleteHeartRateLog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['heart-rate-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }

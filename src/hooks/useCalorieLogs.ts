@@ -51,6 +51,7 @@ export function useLogCalorie() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calorie-logs'] })
       queryClient.invalidateQueries({ queryKey: ['daily-total', 'calories'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }
@@ -72,6 +73,7 @@ export function useDeleteCalorieLog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calorie-logs'] })
       queryClient.invalidateQueries({ queryKey: ['daily-total', 'calories'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }

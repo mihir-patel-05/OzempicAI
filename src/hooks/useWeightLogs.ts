@@ -38,6 +38,7 @@ export function useLogWeight() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['weight-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }
@@ -58,6 +59,7 @@ export function useDeleteWeightLog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['weight-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }

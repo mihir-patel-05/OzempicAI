@@ -51,6 +51,7 @@ export function useLogExercise() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exercise-logs'] })
       queryClient.invalidateQueries({ queryKey: ['daily-total', 'exercise'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }
@@ -72,6 +73,7 @@ export function useDeleteExerciseLog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exercise-logs'] })
       queryClient.invalidateQueries({ queryKey: ['daily-total', 'exercise'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 }
