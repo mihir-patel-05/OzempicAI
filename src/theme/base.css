@@ -357,6 +357,35 @@ a {
   margin-top: 6px;
 }
 
+.analytics-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  list-style: none;
+}
+
+.analytics-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.analytics-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.analytics-legend-swatch.dashed {
+  height: 0;
+  border-top: 2px dashed var(--text-tertiary);
+  border-radius: 0;
+}
+
 .analytics-select {
   display: flex;
   flex-direction: column;
