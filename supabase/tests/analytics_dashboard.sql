@@ -98,6 +98,7 @@ do $$
 declare
   result record;
   progress record;
+  meal record;
 begin
   if (select count(*) from public.get_analytics_daily('2026-09-18', '2026-09-20', 'UTC')) <> 3 then
     raise exception 'daily analytics must return one row per requested day';
@@ -160,6 +161,32 @@ begin
     raise exception 'estimated one-rep-max calculation failed';
   end if;
 
+  if (select count(*)
+      from public.get_analytics_meal_entries('2026-09-20', '2026-09-20', 'UTC')) <> 2 then
+    raise exception 'meal entries user isolation failed';
+  end if;
+
+  select * into meal
+  from public.get_analytics_meal_entries('2026-09-19', '2026-09-20', 'America/Detroit')
+  where meal_type = 'snack';
+
+  if meal.day <> '2026-09-19' or meal.minute_of_day <> 21 * 60 + 30 or meal.iso_dow <> 6 then
+    raise exception 'meal entries timezone conversion failed';
+  end if;
+  if meal.calories <> 200 then
+    raise exception 'meal entries calories mismatch';
+  end if;
+
+  begin
+    perform * from public.get_analytics_meal_entries('2026-09-20', '2026-09-19', 'UTC');
+    raise exception 'invalid meal entries range was accepted';
+  exception
+    when others then
+      if sqlerrm = 'invalid meal entries range was accepted' then
+        raise;
+      end if;
+  end;
+
   begin
     perform * from public.get_analytics_daily('2026-09-20', '2026-09-19', 'UTC');
     raise exception 'invalid date range was accepted';
@@ -191,6 +218,9 @@ begin
   end if;
   if has_function_privilege('anon', 'public.get_analytics_exercise_progress(date,date,text)', 'execute') then
     raise exception 'anon can execute exercise analytics';
+  end if;
+  if has_function_privilege('anon', 'public.get_analytics_meal_entries(date,date,text)', 'execute') then
+    raise exception 'anon can execute meal analytics';
   end if;
 end;
 $$;

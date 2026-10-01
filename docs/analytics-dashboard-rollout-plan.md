@@ -52,3 +52,11 @@ The feature will launch to all users after staging validation. Analytics will be
 - Exercise naming remains free text; a canonical exercise catalog and historical alias merging are deferred.
 - Weight targets, body measurements, sleep, steps, wearable synchronization, and medical interpretations are outside this release.
 - “Best” means best within the selected date range, not an all-time personal record.
+
+## Addendum: Nutrition Analytics
+
+- The calorie form gains an optional "eaten at" time (today only, defaulting to now) that writes the existing `logged_at` column. This supersedes "no new user-entered fields" above. Entries made earlier keep the time they were logged.
+- New RPC `get_analytics_meal_entries(start, end, timezone)` returns one row per calorie entry with its local day, minute of day, ISO weekday, meal type, and calories. It uses the same validation, security-invoker execution, and grants as the other analytics RPCs. Migration: `20261001000000_analytics_nutrition.sql`.
+- A Nutrition section shows calorie intake against the current goal with a seven-day average, average calories per logged day by hour stacked by meal type, the meal split, eating window and late-eating share, weekday versus weekend intake, net calories after logged exercise, and an estimated maintenance intake.
+- The maintenance estimate is average intake minus the weight-trend change times 7,700 kcal/kg over the span. It is shown only with weight entries at least 14 days apart and at least 14 logged calorie days, and it warns when fewer than 80% of days in that span have logged calories.
+- Apply the migration before deploying the frontend; the dashboard fails to load if the RPC is missing.

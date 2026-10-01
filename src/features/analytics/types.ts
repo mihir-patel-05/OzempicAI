@@ -1,4 +1,4 @@
-import type { WorkoutType } from '../../types/db'
+import type { MealType, WorkoutType } from '../../types/db'
 
 export type AnalyticsRange = '30d' | '90d' | '6m' | '1y'
 
@@ -49,9 +49,18 @@ export interface AnalyticsExerciseRow {
   pace_minutes_per_km: number | null
 }
 
+export interface AnalyticsMealEntryRow {
+  day: string
+  minute_of_day: number
+  iso_dow: number
+  meal_type: MealType
+  calories: number
+}
+
 export interface AnalyticsDashboardData {
   daily: AnalyticsDailyRow[]
   exercises: AnalyticsExerciseRow[]
+  meals: AnalyticsMealEntryRow[]
 }
 
 export interface ExerciseOption {

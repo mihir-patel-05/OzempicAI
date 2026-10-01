@@ -29,6 +29,8 @@ export function CalorieScreen() {
   const [foodName, setFoodName] = useState('')
   const [calories, setCalories] = useState('')
   const [mealType, setMealType] = useState<MealType>(defaultMealForNow())
+  const [mealTouched, setMealTouched] = useState(false)
+  const [eatenAt, setEatenAt] = useState(currentTimeValue)
   const [error, setError] = useState<string | null>(null)
 
   const grouped = useMemo(() => groupByMeal(logs.data ?? []), [logs.data])
@@ -56,17 +58,31 @@ export function CalorieScreen() {
     e.preventDefault()
     if (!canSubmit) return
     setError(null)
+    const eatenDate = todayAtTime(eatenAt)
+    if (eatenDate && eatenDate.getTime() > Date.now() + 60_000) {
+      setError("The eaten-at time can't be in the future.")
+      return
+    }
     try {
       await logCalorie.mutateAsync({
         food_name: foodName.trim(),
         calories: roundedCalories,
         meal_type: mealType,
+        logged_at: eatenDate?.toISOString(),
       })
       setFoodName('')
       setCalories('')
+      setEatenAt(currentTimeValue())
+      setMealTouched(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log meal.')
     }
+  }
+
+  function onEatenAtChange(value: string) {
+    setEatenAt(value)
+    const date = todayAtTime(value)
+    if (date && !mealTouched) setMealType(mealForHour(date.getHours()))
   }
 
   return (
@@ -111,6 +127,13 @@ export function CalorieScreen() {
             inputMode="numeric"
             placeholder="kcal"
           />
+          <Field
+            label="Eaten at"
+            value={eatenAt}
+            onChange={onEatenAtChange}
+            type="time"
+            hint="Today. Used for the time-of-day analytics."
+          />
           <div>
             <div style={{ marginBottom: 6 }}>
               <span
@@ -128,7 +151,10 @@ export function CalorieScreen() {
             <SegmentedPicker
               options={MEAL_OPTIONS}
               value={mealType}
-              onChange={setMealType}
+              onChange={(value) => {
+                setMealType(value)
+                setMealTouched(true)
+              }}
               ariaLabel="Meal"
             />
           </div>
@@ -274,9 +300,25 @@ function formatTime(iso: string): string {
 }
 
 function defaultMealForNow(): MealType {
-  const h = new Date().getHours()
+  return mealForHour(new Date().getHours())
+}
+
+function mealForHour(h: number): MealType {
   if (h < 10) return 'breakfast'
   if (h < 15) return 'lunch'
   if (h < 21) return 'dinner'
   return 'snack'
+}
+
+function currentTimeValue(): string {
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+}
+
+function todayAtTime(value: string): Date | null {
+  const match = /^(\d{2}):(\d{2})$/.exec(value)
+  if (!match) return null
+  const date = new Date()
+  date.setHours(Number(match[1]), Number(match[2]), 0, 0)
+  return date
 }
