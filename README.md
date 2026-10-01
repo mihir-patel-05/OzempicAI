@@ -105,7 +105,7 @@ Before release, verify:
 
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` exist in every Vercel environment.
 - The migrations are applied, including `weight_logs`, the auth profile trigger, the unit-system
-  column, the workout tables, analytics RPCs, and indexes.
+  column, the workout tables, analytics RPCs (including `get_analytics_meal_entries`), and indexes.
 - Supabase Site URL and Redirect URLs include production and preview origins.
 - A newly created account can add and delete an entry in each tracker without seeing another user's data.
 - The Analytics tab loads the 30-day view and cannot expose another account's aggregates.
