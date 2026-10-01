@@ -30,6 +30,7 @@ interface LogCalorieInput {
   food_name: string
   calories: number
   meal_type: MealType
+  logged_at?: string
 }
 
 export function useLogCalorie() {
@@ -45,6 +46,7 @@ export function useLogCalorie() {
         food_name: input.food_name,
         calories: input.calories,
         meal_type: input.meal_type,
+        ...(input.logged_at ? { logged_at: input.logged_at } : {}),
       })
       if (error) throw error
     },
