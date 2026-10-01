@@ -5,6 +5,7 @@ import type {
   AnalyticsDailyRow,
   AnalyticsDashboardData,
   AnalyticsExerciseRow,
+  AnalyticsMealEntryRow,
   AnalyticsRange,
 } from '../features/analytics/types'
 import { supabase } from '../lib/supabase'
@@ -24,17 +25,20 @@ export function useAnalyticsDashboard(range: AnalyticsRange) {
         p_end: dates.end,
         p_timezone: timezone,
       }
-      const [dailyResult, exerciseResult] = await Promise.all([
+      const [dailyResult, exerciseResult, mealResult] = await Promise.all([
         supabase.rpc('get_analytics_daily', args),
         supabase.rpc('get_analytics_exercise_progress', args),
+        supabase.rpc('get_analytics_meal_entries', args),
       ])
 
       if (dailyResult.error) throw dailyResult.error
       if (exerciseResult.error) throw exerciseResult.error
+      if (mealResult.error) throw mealResult.error
 
       return {
         daily: (dailyResult.data ?? []) as AnalyticsDailyRow[],
         exercises: (exerciseResult.data ?? []) as AnalyticsExerciseRow[],
+        meals: (mealResult.data ?? []) as AnalyticsMealEntryRow[],
       }
     },
   })
