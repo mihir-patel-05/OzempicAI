@@ -15,11 +15,16 @@ import {
   weightUnit,
 } from '../../lib/units'
 import { workoutTypeLabel } from '../workouts/constants'
-import type { UnitSystem } from '../../types/db'
+import type { MealType, UnitSystem } from '../../types/db'
 import { AnalyticsBarChart, AnalyticsLineChart } from './AnalyticsCharts'
 import { ANALYTICS_RANGE_OPTIONS, getAnalyticsDateRange } from './range'
 import {
+  buildCalorieSummary,
   buildCardioSummary,
+  buildEatingWindow,
+  buildEnergyBalance,
+  buildMealSplit,
+  buildMealTiming,
   buildOverview,
   buildStrengthSummary,
   buildWeeklyActivity,
@@ -27,6 +32,8 @@ import {
   buildWeightSummary,
   buildWellnessSummary,
   getExerciseOptions,
+  LATE_EATING_MINUTE,
+  MEAL_TYPES,
 } from './transform'
 import type {
   AnalyticsDailyRow,
@@ -35,6 +42,20 @@ import type {
 } from './types'
 
 const RANGE_STORAGE_KEY = 'ozempicai.analytics.range'
+
+const MEAL_LABELS: Record<MealType, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snack',
+}
+
+const MEAL_COLORS: Record<MealType, string> = {
+  breakfast: 'var(--meal-breakfast)',
+  lunch: 'var(--meal-lunch)',
+  dinner: 'var(--meal-dinner)',
+  snack: 'var(--meal-snack)',
+}
 
 export function AnalyticsScreen() {
   const [range, setRange] = useState<AnalyticsRange>(readStoredRange)
@@ -45,6 +66,8 @@ export function AnalyticsScreen() {
   const unitSystem = useUnitSystem()
   const rows = analytics.data?.daily ?? []
   const exercises = analytics.data?.exercises ?? []
+  const meals = analytics.data?.meals ?? []
+  const calorieGoal = profile.data?.daily_calorie_goal ?? 2000
   const dateRange = getAnalyticsDateRange(range)
 
   const overview = useMemo(() => buildOverview(rows), [rows])
@@ -91,6 +114,14 @@ export function AnalyticsScreen() {
       ),
     [profile.data?.daily_water_goal_ml, rows],
   )
+  const calorieSummary = useMemo(
+    () => buildCalorieSummary(rows, calorieGoal),
+    [calorieGoal, rows],
+  )
+  const mealTiming = useMemo(() => buildMealTiming(meals), [meals])
+  const eatingWindow = useMemo(() => buildEatingWindow(meals), [meals])
+  const mealSplit = useMemo(() => buildMealSplit(meals), [meals])
+  const energyBalance = useMemo(() => buildEnergyBalance(rows), [rows])
   const hasData = rows.some(hasAnalyticsData)
 
   return (
@@ -214,6 +245,220 @@ export function AnalyticsScreen() {
                 />
               )}
             </Card>
+          </section>
+
+          <section aria-labelledby="nutrition-heading">
+            <SectionHeading
+              id="nutrition-heading"
+              title="Nutrition"
+              hint="Averages use logged days only. Goal comparisons use your current goal."
+            />
+            {calorieSummary.loggedDays > 0 ? (
+              <div className="screen-stack">
+                <Card padding="lg" radius="hero">
+                  <SectionHeading
+                    title="Calorie intake"
+                    hint="The softer line is a seven-calendar-day rolling average."
+                  />
+                  <div className="analytics-inline-metrics">
+                    <InlineMetric
+                      label="Avg / day"
+                      value={formatNullableCalories(calorieSummary.averageCalories)}
+                    />
+                    <InlineMetric
+                      label="At or under goal"
+                      value={`${calorieSummary.daysOnGoal}/${calorieSummary.loggedDays} days`}
+                    />
+                    <InlineMetric
+                      label="Days logged"
+                      value={`${calorieSummary.loggedDays}/${calorieSummary.totalDays}`}
+                    />
+                  </div>
+                  <AnalyticsLineChart
+                    data={calorieSummary.points.map((point) => ({
+                      day: point.day,
+                      calories: point.calories,
+                      trend: point.trend,
+                    }))}
+                    xKey="day"
+                    series={[
+                      { dataKey: 'calories', label: 'Logged calories', color: 'var(--terracotta)' },
+                      { dataKey: 'trend', label: '7-day average', color: 'var(--chart-trend)' },
+                    ]}
+                    referenceLine={{
+                      value: calorieGoal,
+                      label: `Goal ${calorieGoal.toLocaleString()} kcal`,
+                    }}
+                    ariaLabel={`Daily calories on ${calorieSummary.loggedDays} logged days, averaging ${formatNullableCalories(calorieSummary.averageCalories)} against a ${calorieGoal} kcal goal.`}
+                    valueFormatter={(value) => formatCalories(value)}
+                  />
+                </Card>
+
+                <div className="analytics-two-column">
+                  <Card padding="lg" radius="hero">
+                    <SectionHeading
+                      title="When you eat"
+                      hint="Average calories per logged day, by hour. Meals logged before the eaten-at time was added use the time they were logged."
+                    />
+                    <div className="analytics-inline-metrics">
+                      <InlineMetric
+                        label="Peak hour"
+                        value={
+                          mealTiming.peakHour === null
+                            ? '—'
+                            : formatMinuteOfDay(mealTiming.peakHour * 60)
+                        }
+                      />
+                      <InlineMetric
+                        label="First meal"
+                        value={formatNullableMinute(eatingWindow.averageFirstMinute)}
+                      />
+                      <InlineMetric
+                        label="Last meal"
+                        value={formatNullableMinute(eatingWindow.averageLastMinute)}
+                      />
+                    </div>
+                    <AnalyticsBarChart
+                      data={mealTiming.buckets.map((bucket) => ({
+                        hour: bucket.hour,
+                        breakfast: bucket.breakfast,
+                        lunch: bucket.lunch,
+                        dinner: bucket.dinner,
+                        snack: bucket.snack,
+                      }))}
+                      xKey="hour"
+                      stacked
+                      series={MEAL_TYPES.map((mealType) => ({
+                        dataKey: mealType,
+                        label: MEAL_LABELS[mealType],
+                        color: MEAL_COLORS[mealType],
+                      }))}
+                      xTickFormatter={(value) => formatHourTick(Number(value))}
+                      tooltipLabelFormatter={(value) => formatHourRange(Number(value))}
+                      ariaLabel={`Calories by hour of day across ${mealTiming.loggedDays} logged days.${mealTiming.peakHour === null ? '' : ` Most calories are eaten around ${formatMinuteOfDay(mealTiming.peakHour * 60)}.`}`}
+                      valueFormatter={(value) => formatCalories(value)}
+                    />
+                  </Card>
+
+                  <Card padding="lg" radius="hero">
+                    <SectionHeading
+                      title="Meal split"
+                      hint="Share of logged calories by meal type."
+                    />
+                    <div className="meal-split-bar" role="img" aria-label={mealSplit.map((entry) => `${MEAL_LABELS[entry.mealType]} ${Math.round(entry.percent)}%`).join(', ')}>
+                      {mealSplit
+                        .filter((entry) => entry.percent > 0)
+                        .map((entry) => (
+                          <span
+                            key={entry.mealType}
+                            style={{
+                              flexGrow: entry.percent,
+                              background: MEAL_COLORS[entry.mealType],
+                            }}
+                          />
+                        ))}
+                    </div>
+                    <ul className="meal-split-list">
+                      {mealSplit.map((entry) => (
+                        <li key={entry.mealType}>
+                          <span
+                            className="analytics-legend-swatch"
+                            style={{ background: MEAL_COLORS[entry.mealType] }}
+                          />
+                          <span>{MEAL_LABELS[entry.mealType]}</span>
+                          <strong>{Math.round(entry.percent)}%</strong>
+                          <small>
+                            {entry.entries > 0
+                              ? `${formatCalories(entry.calories)} total · ${formatNullableCalories(entry.averagePerEntry)} per entry`
+                              : 'Nothing logged'}
+                          </small>
+                        </li>
+                      ))}
+                    </ul>
+                  </Card>
+
+                  <Card padding="lg" radius="hero">
+                    <SectionHeading
+                      title="Energy balance"
+                      hint="Estimated from logged intake and your weight trend (about 7,700 kcal per kg). Treat it as a guide, not a measurement."
+                    />
+                    {energyBalance.maintenance ? (
+                      <>
+                        <span className="metric-label">Estimated maintenance</span>
+                        <strong className="wellness-value">
+                          {formatCalories(energyBalance.maintenance.estimatedCalories)}
+                        </strong>
+                        <p className="wellness-detail">
+                          {`${energyBalance.maintenance.loggedDays} logged days over ${energyBalance.maintenance.spanDays} days · weight trend ${formatWeightChange(energyBalance.maintenance.trendChangeKg, unitSystem)}`}
+                          {energyBalance.maintenance.coveragePercent < 80 &&
+                            '. Some days are missing, so this may be off.'}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="analytics-muted">
+                        {energyBalance.insufficientReason}
+                      </p>
+                    )}
+                    <div className="analytics-inline-metrics compact">
+                      <InlineMetric
+                        label="Avg intake"
+                        value={formatNullableCalories(calorieSummary.averageCalories)}
+                      />
+                      <InlineMetric
+                        label="Exercise"
+                        value={formatNullableCalories(energyBalance.averageExerciseCalories)}
+                      />
+                      <InlineMetric
+                        label="Net"
+                        value={formatNullableCalories(energyBalance.averageNetCalories)}
+                      />
+                    </div>
+                  </Card>
+
+                  <Card padding="lg" radius="hero">
+                    <SectionHeading
+                      title="Eating habits"
+                      hint="The eating window uses days with at least two meals."
+                    />
+                    <div className="analytics-inline-metrics pairs">
+                      <InlineMetric
+                        label="Eating window"
+                        value={
+                          eatingWindow.averageWindowHours === null
+                            ? '—'
+                            : `${roundForDisplay(eatingWindow.averageWindowHours, 1)} h`
+                        }
+                      />
+                      <InlineMetric
+                        label={`After ${formatMinuteOfDay(LATE_EATING_MINUTE)}`}
+                        value={
+                          mealTiming.lateCaloriesPercent === null
+                            ? '—'
+                            : `${Math.round(mealTiming.lateCaloriesPercent)}% of kcal`
+                        }
+                      />
+                      <InlineMetric
+                        label="Weekdays"
+                        value={formatNullableCalories(calorieSummary.weekdayAverage)}
+                      />
+                      <InlineMetric
+                        label="Weekends"
+                        value={formatNullableCalories(calorieSummary.weekendAverage)}
+                      />
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            ) : (
+              <Card padding="lg" radius="hero">
+                <EmptyState
+                  title="No meals in this range"
+                  body="Log meals with the time you ate them to see intake trends, meal timing, and energy balance."
+                  to="/log/calories"
+                  action="Log a meal"
+                />
+              </Card>
+            )}
           </section>
 
           <section aria-labelledby="training-heading">
@@ -353,20 +598,7 @@ export function AnalyticsScreen() {
               title="Wellness logs"
               hint="Averages use logged days only; missing days are not treated as zero."
             />
-            <div className="analytics-three-column">
-              <WellnessCard
-                title="Calories"
-                value={
-                  wellness.calorieAverage === null
-                    ? '—'
-                    : `${Math.round(wellness.calorieAverage).toLocaleString()} kcal`
-                }
-                detail={`Average across ${wellness.calorieLoggedDays} logged days · current goal ${profile.data?.daily_calorie_goal ?? 2000} kcal`}
-                rows={rows.filter((row) => row.calorie_entries > 0).map((row) => ({ day: row.day, value: row.calories_logged }))}
-                color="var(--terracotta)"
-                ariaLabel="Logged calories by day"
-                to="/log/calories"
-              />
+            <div className="analytics-two-column">
               <WellnessCard
                 title="Hydration"
                 value={
@@ -609,6 +841,31 @@ function formatPace(
 
 function selectedLabel(options: ExerciseOption[], key: string | null): string {
   return options.find((option) => option.key === key)?.label ?? 'selected exercise'
+}
+
+function formatCalories(value: number): string {
+  return `${Math.round(value).toLocaleString()} kcal`
+}
+
+function formatNullableCalories(value: number | null): string {
+  return value === null ? '—' : formatCalories(value)
+}
+
+function formatMinuteOfDay(minute: number): string {
+  const date = new Date(2000, 0, 1, Math.floor(minute / 60), Math.round(minute % 60))
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+
+function formatNullableMinute(minute: number | null): string {
+  return minute === null ? '—' : formatMinuteOfDay(minute)
+}
+
+function formatHourTick(hour: number): string {
+  return `${hour % 12 || 12}${hour < 12 ? 'a' : 'p'}`
+}
+
+function formatHourRange(hour: number): string {
+  return `${formatMinuteOfDay(hour * 60)}–${formatMinuteOfDay(((hour + 1) % 24) * 60)}`
 }
 
 function hasAnalyticsData(row: AnalyticsDailyRow): boolean {

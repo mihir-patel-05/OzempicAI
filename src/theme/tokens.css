@@ -24,6 +24,13 @@
   --sage-deep: #5e7854;
   --plum: #6b3e4a;
 
+  /* Chart series validated for colour-vision deficiency on --paper-bright. */
+  --chart-trend: #1f74b0;
+  --meal-breakfast: #b97f12;
+  --meal-lunch: #1f74b0;
+  --meal-dinner: #c2492f;
+  --meal-snack: #8b5fc0;
+
   /* Lines / shadow (rgba(42,30,22, x)) */
   --ring-track: rgba(42, 30, 22, 0.07);
   --divider: rgba(42, 30, 22, 0.08);
