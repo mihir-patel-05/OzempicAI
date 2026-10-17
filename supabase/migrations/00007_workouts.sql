@@ -9,11 +9,26 @@
 
 -- The hosted project carries a public.workout_plans left over from the retired
 -- Swift app (one row per exercise: exercise_name, sets, weight, weight_unit,
--- is_completed). Nothing in this repo reads it and it holds no rows, so it is
--- dropped to free the name for the model below. No `cascade`: nothing should
--- depend on it, and if something does we want this to fail loudly rather than
--- quietly take that object with it. No-op on a clean database.
-drop table if exists public.workout_plans;
+-- is_completed). Nothing in this repo reads it, but it still holds that app's
+-- rows, so it is renamed rather than dropped to free the name for the model
+-- below. Its primary key and foreign key are renamed too, since the new table
+-- creates constraints with the same names. No-op on a clean database.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name   = 'workout_plans'
+      and column_name  = 'exercise_name'
+  ) then
+    alter table public.workout_plans rename to workout_plans_legacy;
+    alter table public.workout_plans_legacy
+      rename constraint workout_plans_pkey to workout_plans_legacy_pkey;
+    alter table public.workout_plans_legacy
+      rename constraint workout_plans_user_id_fkey to workout_plans_legacy_user_id_fkey;
+  end if;
+end
+$$;
 
 -- ─── Plans ───────────────────────────────────────────────────────────────────
 create table public.workout_plans (
