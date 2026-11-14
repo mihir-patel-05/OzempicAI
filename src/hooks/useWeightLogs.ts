@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { useAuth } from '../auth/AuthProvider'
 import type { WeightLog } from '../types/db'
 
@@ -11,16 +11,7 @@ export function useRecentWeightLogs() {
   return useQuery({
     enabled: !!userId,
     queryKey: ['weight-logs', userId],
-    queryFn: async (): Promise<WeightLog[]> => {
-      const { data, error } = await supabase
-        .from('weight_logs')
-        .select('*')
-        .eq('user_id', userId!)
-        .order('logged_at', { ascending: false })
-        .limit(RECENT_LIMIT)
-      if (error) throw error
-      return (data ?? []) as WeightLog[]
-    },
+    queryFn: () => api<WeightLog[]>('/weight-logs', { query: { limit: RECENT_LIMIT } }),
   })
 }
 
@@ -31,10 +22,7 @@ export function useLogWeight() {
   return useMutation({
     mutationFn: async (weight_kg: number) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase
-        .from('weight_logs')
-        .insert({ user_id: userId, weight_kg })
-      if (error) throw error
+      await api('/weight-logs', { method: 'POST', body: { weight_kg } })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['weight-logs'] })
@@ -50,12 +38,7 @@ export function useDeleteWeightLog() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase
-        .from('weight_logs')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', userId)
-      if (error) throw error
+      await api(`/weight-logs/${id}`, { method: 'DELETE' })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['weight-logs'] })

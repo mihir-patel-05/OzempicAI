@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { LoginScreen } from './auth/LoginScreen'
 import { RequireAuth } from './auth/RequireAuth'
+import { ResetPasswordScreen } from './auth/ResetPasswordScreen'
 import { Shell } from './components/Shell'
 import { TodayScreen } from './features/today/TodayScreen'
 import { LogScreen } from './features/log/LogScreen'
@@ -26,6 +27,7 @@ export function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginScreen />} />
+        <Route path="/reset-password" element={<ResetPasswordScreen />} />
         <Route
           path="/*"
           element={

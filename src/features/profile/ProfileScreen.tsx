@@ -165,7 +165,7 @@ export function ProfileScreen() {
           <Card padding="lg" radius="hero" style={{ boxShadow: 'var(--shadow-card)' }}>
             <h2 style={sectionTitle}>Security</h2>
             <form onSubmit={onUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-              <Field label="New password" value={password} onChange={setPassword} type="password" autoComplete="new-password" placeholder="At least 8 characters" hint="Use this after following a password reset link, or anytime you want a new password." />
+              <Field label="New password" value={password} onChange={setPassword} type="password" autoComplete="new-password" placeholder="At least 8 characters" hint="Change it anytime. Your other devices will be signed out." />
               <PrimaryButton type="submit" variant="outline" loading={updatingPassword} disabled={password.length < 8}>Update password</PrimaryButton>
             </form>
           </Card>

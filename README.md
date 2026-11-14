@@ -5,9 +5,10 @@ Personal health & fitness tracker. Delivered as an installable PWA — bookmark 
 The web app includes email/password authentication, password recovery, a daily dashboard,
 calorie/meal tracking, water, exercise, weight and heart-rate logs, workout planning and
 tracking, a range-based analytics dashboard, meal planning, groceries, and editable personal
-goals. Every user-owned table is protected with Supabase Row Level Security.
+goals. Every user-owned table is protected with Postgres Row Level Security.
 
-Vite + React 18 + TypeScript · `@supabase/supabase-js` · `@tanstack/react-query` · `react-router-dom` · `vite-plugin-pwa` (Workbox).
+Vite + React 18 + TypeScript · `@tanstack/react-query` · `react-router-dom` · `vite-plugin-pwa` (Workbox).
+API: Node + Hono + `pg` (`server/`). Hosted on Railway.
 
 ## Workouts
 
@@ -22,12 +23,44 @@ Every measurement is stored in metric (kg, cm, km). Profile → Units switches t
 between metric and imperial, which relabels and converts what you read and type without
 touching stored history. Conversions live in one place, `src/lib/units.ts`.
 
-## Setup
+## Architecture
+
+Everything runs in one Railway project (`OzempicAI`, environment `production`):
+
+| Service    | What it is                                                                 | Source                           |
+|------------|----------------------------------------------------------------------------|----------------------------------|
+| `web`      | The built PWA served by Caddy; forwards `/api/*` to `api` over the private network | repo root (`Dockerfile`, `Caddyfile`) |
+| `api`      | Node + Hono REST API: email/password auth, data endpoints, analytics      | `server/` (`server/Dockerfile`)  |
+| `Postgres` | Railway Postgres                                                            | Railway template                 |
+
+The browser only ever talks to `web`, so the API shares the app's origin (no CORS, no
+build-time API URL) and `api` has no public domain.
+
+**Data access and security.** The API connects as the database owner, and every user request
+runs in a transaction that does `set local role authenticated` and sets
+`request.jwt.claim.sub` to the caller's id. `auth.uid()` therefore resolves to the signed-in
+user and the row level security policies from the migrations stay the authority on who sees
+which row, exactly as they were on Supabase. The analytics SQL functions are unchanged.
+
+**Auth.** Email/password with bcrypt hashes in `auth.users`. Signing in returns an opaque
+bearer token (only its SHA-256 is stored in `auth.sessions`), valid for 30 days and extended
+while the app is in use. Changing the password signs out other devices. Password reset emails a
+single-use link (`/reset-password#token=…`, valid 60 minutes) through
+[Resend](https://resend.com).
+
+## Local development
 
 ```bash
+# API (needs a Postgres you can reach)
+cd server
 npm install
-cp .env.example .env.local   # fill in VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
-npm run dev
+cp .env.example .env          # set DATABASE_URL
+npm run migrate:dev           # apply server/migrations
+npm run dev                   # http://localhost:8787
+
+# Web (in another terminal, from the repo root)
+npm install
+npm run dev                   # http://localhost:5173, proxies /api to :8787
 ```
 
 Open `http://localhost:5173` (or your LAN IP — `--host` is on) in mobile Safari to test the PWA flow.
@@ -36,79 +69,39 @@ Open `http://localhost:5173` (or your LAN IP — `--host` is on) in mobile Safar
 
 ```bash
 npm run build      # tsc + vite build → dist/
-npm run preview    # serve dist locally
+npm run preview    # serve dist locally (also proxies /api)
 npm run typecheck  # tsc --noEmit
+npm test           # analytics unit tests
+(cd server && npm run build)
 ```
 
-## Deploy
+## Deploy (Railway)
 
-### Vercel (primary)
+Both app services build from this GitHub repo with their Dockerfiles and redeploy on push.
 
-Static hosting on Vercel, auto-deploying on push to `main`. Build settings live in
-`vercel.json` (framework preset `vite`, build `npm run build`, output `dist`), which also
-handles the SPA fallback rewrite (`react-router-dom` uses `BrowserRouter`, so deep links must
-resolve to `/index.html`) and the PWA cache headers (hashed `/assets/**` are immutable; the
-service-worker/manifest entry points are `no-store` so clients always pick up new deploys).
+- `web`: root directory `/`, healthcheck `/`. Variable `API_UPSTREAM=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:8080`.
+- `api`: root directory `/server`, pre-deploy command `node dist/migrate.js` (applies any new
+  file in `server/migrations/`, each in a transaction, tracked in
+  `platform.schema_migrations`), healthcheck `/api/health`. Variables:
+  - `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `PORT=8080`
+  - `APP_URL=https://${{web.RAILWAY_PUBLIC_DOMAIN}}` (or the custom domain) — base of reset links
+  - `RESEND_API_KEY`, `EMAIL_FROM` — password reset email. Without them, reset requests are
+    accepted but no email is sent (a warning is logged).
 
-One-time setup:
-
-1. Vercel → Add New → Project → import this repo. The framework preset, build command,
-   output directory, and rewrites are picked up from `vercel.json`; leave the root directory as
-   the repo root.
-2. Project → Settings → Environment Variables: add `VITE_SUPABASE_URL` and
-   `VITE_SUPABASE_ANON_KEY` (all environments). Vite inlines these at build time, so they must
-   be set before the first build; a build without them fails fast (`src/lib/supabase.ts`
-   throws), so redeploy after adding them.
-3. In Supabase → Authentication → URL Configuration, set Site URL to the deployed origin and
-   add it (plus any preview domains) to Additional Redirect URLs, or signup confirmation emails
-   will point at the old host.
-
-HTTPS + Add-to-Home-Screen on iPhone Safari works once deployed.
-
-Prefer the CLI? `npm i -g vercel`, then `vercel` (preview) or `vercel --prod`.
-
-### AWS Amplify (alternative)
-
-`amplify.yml` is kept for AWS Amplify Hosting. It is plain static hosting, not Amplify Gen 2 —
-there is no `ampx` backend, since Supabase is the backend. Set the same two env vars under
-Advanced settings and add a `200 (Rewrite)` to `/index.html` for deep links:
-
-```
-</^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webmanifest)$)([^.]+$)/>
-```
-
-## Backend
-
-Supabase. Hosted project for prod; the optional local Docker stack in `supabase/docker-compose.yml` mirrors it. Schema lives in `supabase/migrations/`.
-
-For a new hosted project, link the Supabase CLI and apply all ordered migrations:
-
-```bash
-supabase link --project-ref your-project-ref
-supabase db push
-```
-
-**The existing hosted project has drifted from these files.** Its recorded migration history
-holds only `align_hosted_schema_and_rls`; `00001`–`00005` were never registered, so
-`supabase db push` starts at `00001_init_schema.sql` and fails on `create table public.users`.
-Until the history is repaired (`supabase migration repair --status applied <version>` for each
-already-applied file), apply new migrations by pasting them into the dashboard SQL editor in
-order. `00007_workouts.sql` also drops a `workout_plans` table left over from the retired Swift
-app — it holds no rows and nothing in this repo reads it, but confirm that before running.
-
-Then configure Authentication → URL Configuration with the production Site URL and any
-Vercel preview origins. Email/password signups can require confirmation; when enabled, the
-login screen tells new users to check their inbox. The auth trigger creates the matching
-`public.users` profile as soon as an account is created.
+Schema changes: add the next numbered `.sql` file to `server/migrations/`. Never edit one that
+has already run.
 
 Before release, verify:
 
-- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` exist in every Vercel environment.
-- The migrations are applied, including `weight_logs`, the auth profile trigger, the unit-system
-  column, the workout tables, analytics RPCs (including `get_analytics_meal_entries`), and indexes.
-- Supabase Site URL and Redirect URLs include production and preview origins.
 - A newly created account can add and delete an entry in each tracker without seeing another user's data.
 - The Analytics tab loads the 30-day view and cannot expose another account's aggregates.
+- Password reset sends an email and the link signs you in.
+
+## Legacy Supabase files
+
+`supabase/` holds the old hosted-Supabase migrations and local Docker stack. They are kept only
+as the reference for importing data from the hosted project; `server/migrations/` is the source
+of truth (its `00001`–`00010` are those files, renumbered, on top of `00000_platform.sql`).
 
 ## Theme
 

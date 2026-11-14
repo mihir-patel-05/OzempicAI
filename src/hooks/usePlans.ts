@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../auth/AuthProvider'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import type { GroceryCategory, GroceryItem, MealPlan, MealType } from '../types/db'
 
 export interface CreateMealPlanInput {
@@ -23,11 +23,7 @@ export function useUpcomingMealPlans() {
   return useQuery({
     enabled: !!userId,
     queryKey: ['meal-plans', userId, today],
-    queryFn: async (): Promise<MealPlan[]> => {
-      const { data, error } = await supabase.from('meal_plans').select('*').eq('user_id', userId!).gte('planned_date', today).order('planned_date').order('meal_type').limit(50)
-      if (error) throw error
-      return (data ?? []) as MealPlan[]
-    },
+    queryFn: () => api<MealPlan[]>('/meal-plans', { query: { from_date: today, limit: 50 } }),
   })
 }
 
@@ -38,8 +34,7 @@ export function useCreateMealPlan() {
   return useMutation({
     mutationFn: async (input: CreateMealPlanInput) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase.from('meal_plans').insert({ user_id: userId, ...input })
-      if (error) throw error
+      await api('/meal-plans', { method: 'POST', body: input })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meal-plans'] }),
   })
@@ -52,8 +47,7 @@ export function useDeleteMealPlan() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase.from('meal_plans').delete().eq('id', id).eq('user_id', userId)
-      if (error) throw error
+      await api(`/meal-plans/${id}`, { method: 'DELETE' })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meal-plans'] }),
   })
@@ -65,11 +59,7 @@ export function useGroceryItems() {
   return useQuery({
     enabled: !!userId,
     queryKey: ['grocery-items', userId],
-    queryFn: async (): Promise<GroceryItem[]> => {
-      const { data, error } = await supabase.from('grocery_items').select('*').eq('user_id', userId!).order('is_purchased').order('created_at', { ascending: false })
-      if (error) throw error
-      return (data ?? []) as GroceryItem[]
-    },
+    queryFn: () => api<GroceryItem[]>('/grocery-items'),
   })
 }
 
@@ -80,8 +70,7 @@ export function useCreateGroceryItem() {
   return useMutation({
     mutationFn: async (input: CreateGroceryItemInput) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase.from('grocery_items').insert({ user_id: userId, ...input })
-      if (error) throw error
+      await api('/grocery-items', { method: 'POST', body: input })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['grocery-items'] }),
   })
@@ -94,8 +83,7 @@ export function useToggleGroceryItem() {
   return useMutation({
     mutationFn: async ({ id, is_purchased }: Pick<GroceryItem, 'id' | 'is_purchased'>) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase.from('grocery_items').update({ is_purchased }).eq('id', id).eq('user_id', userId)
-      if (error) throw error
+      await api(`/grocery-items/${id}`, { method: 'PATCH', body: { is_purchased } })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['grocery-items'] }),
   })
@@ -108,8 +96,7 @@ export function useDeleteGroceryItem() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase.from('grocery_items').delete().eq('id', id).eq('user_id', userId)
-      if (error) throw error
+      await api(`/grocery-items/${id}`, { method: 'DELETE' })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['grocery-items'] }),
   })

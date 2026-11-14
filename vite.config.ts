@@ -31,6 +31,8 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
+        // API calls are never navigations, but keep the SPA fallback off them.
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>
@@ -46,5 +48,14 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    // `npm run dev` in server/ serves the API on 8787.
+    proxy: {
+      '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:8787',
+    },
+  },
+  preview: {
+    proxy: {
+      '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:8787',
+    },
   },
 })

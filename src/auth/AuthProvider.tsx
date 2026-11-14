@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { api, loadSession, onSessionChange, storeSession } from '../lib/api'
+import type { Session, SessionUser } from '../lib/api'
+
+export type { Session } from '../lib/api'
 
 interface AuthContextValue {
   session: Session | null
@@ -9,33 +11,44 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>
   signUp: (name: string, email: string, password: string) => Promise<boolean>
   resetPassword: (email: string) => Promise<void>
+  completePasswordReset: (token: string, password: string) => Promise<void>
   updatePassword: (password: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+// Supabase kept its session under this key; clear it so it doesn't linger.
+const LEGACY_SUPABASE_KEY = 'ozempicai.auth'
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  // The stored session is trusted immediately so the installed PWA opens
+  // straight into the app (and works offline); it is re-checked below.
+  const [session, setSession] = useState<Session | null>(() => loadSession())
+  // Nothing to wait for: the stored session (or its absence) is known up front.
+  const loading = false
 
   useEffect(() => {
-    let mounted = true
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return
-      setSession(data.session)
-      setLoading(false)
-    })
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next)
-    })
-
-    return () => {
-      mounted = false
-      sub.subscription.unsubscribe()
+    try {
+      localStorage.removeItem(LEGACY_SUPABASE_KEY)
+    } catch {
+      // ignore
     }
+
+    const unsubscribe = onSessionChange(setSession)
+    const stored = loadSession()
+    if (stored) {
+      // Refresh the cached user. A 401 clears the session inside api(), which
+      // sends the app back to login; a network error keeps it for offline use.
+      api<{ user: SessionUser }>('/auth/user')
+        .then(({ user }) => {
+          if (loadSession()?.access_token === stored.access_token) {
+            storeSession({ ...stored, user })
+          }
+        })
+        .catch(() => {})
+    }
+    return unsubscribe
   }, [])
 
   const value = useMemo<AuthContextValue>(
@@ -43,34 +56,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       loading,
       signIn: async (email, password) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
+        const next = await api<Session>('/auth/login', {
+          method: 'POST',
+          body: { email: email.trim(), password },
+        })
+        storeSession(next)
       },
       signUp: async (name, email, password) => {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { name: name.trim() },
-            emailRedirectTo: window.location.origin,
-          },
+        const next = await api<Session>('/auth/signup', {
+          method: 'POST',
+          body: { name: name.trim(), email: email.trim(), password },
         })
-        if (error) throw error
-        return !!data.session
+        storeSession(next)
+        return true
       },
       resetPassword: async (email) => {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/profile`,
+        await api('/auth/recover', { method: 'POST', body: { email } })
+      },
+      completePasswordReset: async (token, password) => {
+        const next = await api<Session>('/auth/reset', {
+          method: 'POST',
+          body: { token, password },
         })
-        if (error) throw error
+        storeSession(next)
       },
       updatePassword: async (password) => {
-        const { error } = await supabase.auth.updateUser({ password })
-        if (error) throw error
+        await api('/auth/password', { method: 'POST', body: { password } })
       },
       signOut: async () => {
-        const { error } = await supabase.auth.signOut()
-        if (error) throw error
+        try {
+          await api('/auth/logout', { method: 'POST' })
+        } finally {
+          storeSession(null)
+        }
       },
     }),
     [session, loading],
