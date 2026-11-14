@@ -100,11 +100,13 @@ aiRoutes.post('/ai/chat', async (c) => {
 
   return streamSSE(c, async (stream) => {
     const started = Date.now()
-    // The turn keeps running if the browser goes away, so the reply and any
-    // writes are saved and show up on reload. Writes to a closed stream fail
-    // quietly.
+    // Writes are queued so events stay in order and the stream isn't closed
+    // with some still pending. The turn keeps running if the browser goes
+    // away, so the reply and any writes are saved and show up on reload;
+    // writes to a closed stream fail quietly.
+    let queue = Promise.resolve()
     const send = (event: string, data: unknown) => {
-      stream.writeSSE({ event, data: JSON.stringify(data) }).catch(() => {})
+      queue = queue.then(() => stream.writeSSE({ event, data: JSON.stringify(data) })).catch(() => {})
     }
     const emit = (event: CoachEvent) => {
       const { type, ...data } = event
@@ -128,6 +130,7 @@ aiRoutes.post('/ai/chat', async (c) => {
       clearInterval(ping)
       activeTurns.delete(conversationId)
       send('done', { conversation_id: conversationId })
+      await queue
     }
   })
 })
