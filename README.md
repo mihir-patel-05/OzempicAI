@@ -48,6 +48,22 @@ while the app is in use. Changing the password signs out other devices. Password
 single-use link (`/reset-password#token=…`, valid 60 minutes) through
 [Resend](https://resend.com).
 
+**AI coach (backend).** `POST /api/ai/chat` runs a Claude tool-use loop (`server/src/ai/`) and
+streams the reply as server-sent events. The coach reads calorie, weight and exercise history,
+the grocery list and meal plans, and can *insert* grocery items and planned meals; it has no
+tool that deletes or edits existing rows. Every tool runs through `withUser()`, so row level
+security applies to the AI exactly as it does to the user. Conversations are stored in
+`ai_conversations` / `ai_messages` (migration `00012`), with the raw API content blocks kept
+append-only. Limits: 4,000 characters per message, `AI_MAX_TURNS_PER_HOUR` messages per user per
+hour, 8 model calls per message. Design and rationale: `docs/ai-coach-integration-plan.md`.
+
+| Route | |
+|-------|-|
+| `POST /api/ai/chat` `{ conversation_id?, message, timezone }` | SSE: `conversation`, `text`, `tool_start`, `tool`, `error`, `ping`, `done` |
+| `GET /api/ai/conversations` | latest first |
+| `GET /api/ai/conversations/:id` | chat bubbles for the UI, with write cards |
+| `DELETE /api/ai/conversations/:id` | |
+
 ## Local development
 
 ```bash
@@ -73,6 +89,8 @@ npm run preview    # serve dist locally (also proxies /api)
 npm run typecheck  # tsc --noEmit
 npm test           # analytics unit tests
 (cd server && npm run build)
+(cd server && npm test)                # AI coach unit tests
+(cd server && npm run smoke:ai -- --yes)  # real Claude API, ~$1-2; never against production
 ```
 
 ## Deploy (Railway)
@@ -87,6 +105,10 @@ Both app services build from this GitHub repo with their Dockerfiles and redeplo
   - `APP_URL=https://${{web.RAILWAY_PUBLIC_DOMAIN}}` (or the custom domain) — base of reset links
   - `RESEND_API_KEY`, `EMAIL_FROM` — password reset email. Without them, reset requests are
     accepted but no email is sent (a warning is logged).
+  - `ANTHROPIC_API_KEY` — enables the AI coach. Without it every `/api/ai/*` route returns 503
+    and the rest of the app works normally (this is also the rollback switch).
+  - `AI_MODEL` (default `claude-opus-5-5`, e.g. `claude-sonnet-5-5` to cut cost) and
+    `AI_MAX_TURNS_PER_HOUR` (default `40`) — optional.
 
 Schema changes: add the next numbered `.sql` file to `server/migrations/`. Never edit one that
 has already run.
@@ -96,6 +118,8 @@ Before release, verify:
 - A newly created account can add and delete an entry in each tracker without seeing another user's data.
 - The Analytics tab loads the 30-day view and cannot expose another account's aggregates.
 - Password reset sends an email and the link signs you in.
+- The AI coach streams token by token through `web` (not in one burst), and another account's
+  conversation id returns 404.
 
 ## Importing data from the old Supabase project
 
