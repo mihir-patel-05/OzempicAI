@@ -81,6 +81,17 @@ export function TodayScreen() {
         </div>
       </header>
 
+      <Link to="/coach" className="coach-entry">
+        <span className="coach-entry-mark" aria-hidden="true">
+          <Icon name="sparkle" size={20} />
+        </span>
+        <span className="coach-entry-main">
+          <strong>Ask your coach</strong>
+          <span>Feedback on your week, meal plans, grocery lists</span>
+        </span>
+        <Icon name="chevron" size={18} />
+      </Link>
+
       <div className="today-columns">
         <div className="today-col">
           {/* Calories hero */}
