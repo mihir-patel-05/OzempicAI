@@ -1654,3 +1654,10 @@ h3 {
 .coach-history-open[aria-current='true'] .row-title {
   color: var(--accent);
 }
+
+.coach-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}

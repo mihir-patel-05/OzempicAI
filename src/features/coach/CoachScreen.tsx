@@ -5,6 +5,7 @@ import { Icon } from '../../components/Icon'
 import { PageHeader } from '../../components/PageHeader'
 import { isCoachNotConfigured, useConversation, useConversations, useSendMessage } from '../../hooks/useCoach'
 import { ApiError } from '../../lib/api'
+import { ChatHistory } from './ChatHistory'
 import { Composer, type ComposerHandle } from './Composer'
 import { MessageBubble } from './MessageBubble'
 import { useLiveTools } from './liveTools'
@@ -36,6 +37,7 @@ export function CoachScreen() {
   // so a refetch can't show the same reply twice. An unsaved turn isn't in it.
   const conversation = useConversation(conversationId, !!turn && !turn.unsaved)
   const live = useLiveTools()
+  const [showHistory, setShowHistory] = useState(false)
   const composer = useRef<ComposerHandle>(null)
 
   // Opened with ?new=1 or ?draft=: start fresh once, then tidy the URL.
@@ -74,8 +76,17 @@ export function CoachScreen() {
     if (isSending) return
     clearTurn()
     setChosenId(null)
+    setShowHistory(false)
     pinned.current = true
     composer.current?.focus()
+  }
+
+  function openChat(id: string) {
+    if (isSending) return
+    clearTurn()
+    setChosenId(id)
+    setShowHistory(false)
+    pinned.current = true
   }
 
   function submit(message: string) {
@@ -115,11 +126,39 @@ export function CoachScreen() {
         back="/"
         backLabel="Today"
         action={
-          <button type="button" className="chip" onClick={startNewChat} disabled={isSending || (empty && conversationId === null)}>
-            <Icon name="plus" size={16} strokeWidth={2.2} /> New chat
-          </button>
+          <div className="coach-header-actions">
+            {(conversations.data?.length ?? 0) > 0 && (
+              <button
+                type="button"
+                className="chip chip-toggle"
+                aria-pressed={showHistory}
+                aria-expanded={showHistory}
+                aria-controls="coach-history"
+                onClick={() => setShowHistory((open) => !open)}
+                disabled={isSending}
+              >
+                <Icon name="chat" size={16} /> Chats
+              </button>
+            )}
+            <button type="button" className="chip" onClick={startNewChat} disabled={isSending || (empty && conversationId === null)}>
+              <Icon name="plus" size={16} strokeWidth={2.2} /> New chat
+            </button>
+          </div>
         }
       />
+
+      {showHistory && (
+        <div id="coach-history">
+          <ChatHistory
+            conversations={conversations.data ?? []}
+            activeId={conversationId}
+            onOpen={openChat}
+            onDeleted={(id) => {
+              if (id === conversationId) setChosenId(null)
+            }}
+          />
+        </div>
+      )}
 
       <section className="coach-messages" aria-label="Conversation" aria-live="polite" aria-busy={isSending || undefined}>
         {loadingHistory && <p className="empty-note">Loading your chat…</p>}
