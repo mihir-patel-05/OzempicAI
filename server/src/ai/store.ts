@@ -82,7 +82,7 @@ export async function appendMessages(
     const result = await db.query(
       `insert into public.ai_messages
          (conversation_id, user_id, position, role, content, input_tokens, output_tokens, cache_read_tokens)
-       select c.id, c.user_id, $3, $4, $5::jsonb, $6, $7, $8
+       select c.id, c.user_id, $3::int, $4::text, $5::jsonb, $6::int, $7::int, $8::int
          from public.ai_conversations c
         where c.id = $1 and c.user_id = $2`,
       [
