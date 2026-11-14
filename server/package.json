@@ -14,7 +14,8 @@
     "migrate": "node dist/migrate.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test 'src/**/*.test.ts'",
-    "import:supabase": "node dist/import-supabase.js"
+    "import:supabase": "node dist/import-supabase.js",
+    "smoke:ai": "tsx --env-file-if-exists=.env src/ai/smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
