@@ -97,6 +97,23 @@ Before release, verify:
 - The Analytics tab loads the 30-day view and cannot expose another account's aggregates.
 - Password reset sends an email and the link signs you in.
 
+## Importing data from the old Supabase project
+
+`server/src/import-supabase.ts` copies accounts (ids and bcrypt password hashes, so everyone
+keeps their password) and every tracker table into the Railway database, in one transaction.
+It copies only columns present on both sides and skips ids that already exist, so it is safe to
+rerun. Use `--dry-run` first.
+
+```bash
+cd server && npm ci && npm run build
+SOURCE_DATABASE_URL='<Supabase → Connect → session pooler URI>' \
+DATABASE_URL='<Railway → Postgres → Variables → DATABASE_PUBLIC_URL>' \
+npm run import:supabase -- --dry-run      # then again without --dry-run
+```
+
+Signed-in sessions don't carry over: after the switch, everyone signs in once with their
+existing password.
+
 ## Legacy Supabase files
 
 `supabase/` holds the old hosted-Supabase migrations and local Docker stack. They are kept only

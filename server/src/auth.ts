@@ -170,7 +170,11 @@ authRoutes.post('/login', async (c) => {
     [email],
   )
   const user = rows[0]
-  const ok = user ? await bcrypt.compare(password, user.encrypted_password) : false
+  // An unusable hash (e.g. '!' on an imported account with no password) makes
+  // bcryptjs reject rather than return false.
+  const ok = user
+    ? await bcrypt.compare(password, user.encrypted_password).catch(() => false)
+    : false
   if (!user || !ok) throw new HttpError(400, 'Invalid login credentials')
 
   return c.json(await createSession(pool, { id: user.id, email: user.email, name: user.name }))
