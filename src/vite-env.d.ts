@@ -2,8 +2,8 @@
 /// <reference types="vite-plugin-pwa/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_SUPABASE_URL: string
-  readonly VITE_SUPABASE_ANON_KEY: string
+  /** Only when the API is on another origin; production proxies /api same-origin. */
+  readonly VITE_API_URL?: string
 }
 
 interface ImportMeta {

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { useAuth } from '../auth/AuthProvider'
 import { todayRangeISO } from '../lib/date'
 import type { WaterLog } from '../types/db'
@@ -12,17 +12,7 @@ export function useWaterLogsToday() {
   return useQuery({
     enabled: !!userId,
     queryKey: ['water-logs', userId, startISO.slice(0, 10)],
-    queryFn: async (): Promise<WaterLog[]> => {
-      const { data, error } = await supabase
-        .from('water_logs')
-        .select('*')
-        .eq('user_id', userId!)
-        .gte('logged_at', startISO)
-        .lte('logged_at', endISO)
-        .order('logged_at', { ascending: false })
-      if (error) throw error
-      return (data ?? []) as WaterLog[]
-    },
+    queryFn: () => api<WaterLog[]>('/water-logs', { query: { from: startISO, to: endISO } }),
   })
 }
 
@@ -33,10 +23,7 @@ export function useLogWater() {
   return useMutation({
     mutationFn: async (amount_ml: number) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase
-        .from('water_logs')
-        .insert({ user_id: userId, amount_ml })
-      if (error) throw error
+      await api('/water-logs', { method: 'POST', body: { amount_ml } })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['water-logs'] })
@@ -53,12 +40,7 @@ export function useDeleteWaterLog() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase
-        .from('water_logs')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', userId)
-      if (error) throw error
+      await api(`/water-logs/${id}`, { method: 'DELETE' })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['water-logs'] })

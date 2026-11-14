@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { useAuth } from '../auth/AuthProvider'
 import { todayRangeISO } from '../lib/date'
 import type { CalorieLog, MealType } from '../types/db'
@@ -12,17 +12,8 @@ export function useCalorieLogsToday() {
   return useQuery({
     enabled: !!userId,
     queryKey: ['calorie-logs', userId, startISO.slice(0, 10)],
-    queryFn: async (): Promise<CalorieLog[]> => {
-      const { data, error } = await supabase
-        .from('calorie_logs')
-        .select('*')
-        .eq('user_id', userId!)
-        .gte('logged_at', startISO)
-        .lte('logged_at', endISO)
-        .order('logged_at', { ascending: false })
-      if (error) throw error
-      return (data ?? []) as CalorieLog[]
-    },
+    queryFn: () =>
+      api<CalorieLog[]>('/calorie-logs', { query: { from: startISO, to: endISO } }),
   })
 }
 
@@ -41,14 +32,15 @@ export function useLogCalorie() {
   return useMutation({
     mutationFn: async (input: LogCalorieInput) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase.from('calorie_logs').insert({
-        user_id: userId,
-        food_name: input.food_name,
-        calories: input.calories,
-        meal_type: input.meal_type,
-        ...(input.logged_at ? { logged_at: input.logged_at } : {}),
+      await api('/calorie-logs', {
+        method: 'POST',
+        body: {
+          food_name: input.food_name,
+          calories: input.calories,
+          meal_type: input.meal_type,
+          ...(input.logged_at ? { logged_at: input.logged_at } : {}),
+        },
       })
-      if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calorie-logs'] })
@@ -65,12 +57,7 @@ export function useDeleteCalorieLog() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase
-        .from('calorie_logs')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', userId)
-      if (error) throw error
+      await api(`/calorie-logs/${id}`, { method: 'DELETE' })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calorie-logs'] })

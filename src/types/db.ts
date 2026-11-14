@@ -1,6 +1,6 @@
-// Mirrors supabase/migrations/00001_init_schema.sql (+ 00004_day_labels and
-// supabase-weight-logs.md). Keep field names matching the Postgres columns
-// (snake_case) so we can pass these straight to .insert()/.select().
+// Mirrors server/migrations/00001_init_schema.sql (+ 00002_weight_logs and
+// 00004_day_labels). Keep field names matching the Postgres columns
+// (snake_case): the API returns rows exactly as stored.
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
@@ -121,7 +121,7 @@ export interface DayLabel {
 }
 
 // ─── Workouts ────────────────────────────────────────────────────────────────
-// Mirrors supabase/migrations/00007_workouts.sql. Loads are always kilograms
+// Mirrors server/migrations/00007_workouts.sql. Loads are always kilograms
 // and distances always kilometres here; convert at the edge with lib/units.
 
 export type WorkoutType =

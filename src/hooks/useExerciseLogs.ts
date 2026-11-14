@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { useAuth } from '../auth/AuthProvider'
 import { todayRangeISO } from '../lib/date'
 import type { BodyPart, ExerciseCategory, ExerciseLog } from '../types/db'
@@ -11,17 +11,8 @@ export function useExerciseLogsToday() {
   return useQuery({
     enabled: !!userId,
     queryKey: ['exercise-logs', userId, startISO.slice(0, 10)],
-    queryFn: async (): Promise<ExerciseLog[]> => {
-      const { data, error } = await supabase
-        .from('exercise_logs')
-        .select('*')
-        .eq('user_id', userId!)
-        .gte('logged_at', startISO)
-        .lte('logged_at', endISO)
-        .order('logged_at', { ascending: false })
-      if (error) throw error
-      return (data ?? []) as ExerciseLog[]
-    },
+    queryFn: () =>
+      api<ExerciseLog[]>('/exercise-logs', { query: { from: startISO, to: endISO } }),
   })
 }
 
@@ -43,10 +34,7 @@ export function useLogExercise() {
   return useMutation({
     mutationFn: async (input: LogExerciseInput) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase
-        .from('exercise_logs')
-        .insert({ user_id: userId, ...input })
-      if (error) throw error
+      await api('/exercise-logs', { method: 'POST', body: input })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exercise-logs'] })
@@ -63,12 +51,7 @@ export function useDeleteExerciseLog() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!userId) throw new Error('Not signed in')
-      const { error } = await supabase
-        .from('exercise_logs')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', userId)
-      if (error) throw error
+      await api(`/exercise-logs/${id}`, { method: 'DELETE' })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exercise-logs'] })
