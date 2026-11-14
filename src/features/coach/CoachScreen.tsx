@@ -57,8 +57,8 @@ export function CoachScreen() {
   const saved = useMemo(() => (conversationId ? conversation.data?.messages ?? [] : []), [conversationId, conversation.data])
 
   // Keep the newest message in view while it streams, unless the user has
-  // scrolled up to read something earlier.
-  const end = useRef<HTMLDivElement>(null)
+  // scrolled up to read something earlier. Scrolling to the very bottom (not
+  // to the last message) keeps it clear of the sticky composer.
   const pinned = useRef(true)
   useEffect(() => {
     const onScroll = () => {
@@ -69,7 +69,7 @@ export function CoachScreen() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
   useLayoutEffect(() => {
-    if (pinned.current) end.current?.scrollIntoView({ block: 'end' })
+    if (pinned.current) window.scrollTo({ top: document.documentElement.scrollHeight })
   }, [saved, turn])
 
   function startNewChat() {
@@ -210,7 +210,6 @@ export function CoachScreen() {
             )}
           </>
         )}
-        <div ref={end} />
       </section>
 
       <div className="coach-composer-dock">
