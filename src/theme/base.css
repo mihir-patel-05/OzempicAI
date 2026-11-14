@@ -399,6 +399,11 @@ h3 {
     calc(104px + var(--sa-bottom));
 }
 
+/* Sub-screens without the mobile tab bar (the coach chat) need no room for it. */
+.app-content.is-immersive {
+  padding-bottom: 0;
+}
+
 .desktop-sidebar {
   display: none;
 }
