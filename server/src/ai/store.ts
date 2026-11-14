@@ -1,4 +1,5 @@
 import type { Db } from '../db.js'
+import { HttpError } from '../http.js'
 import type { StoredMessage } from './history.js'
 
 /**
@@ -53,12 +54,12 @@ export async function deleteConversation(db: Db, userId: string, id: string): Pr
   return (result.rowCount ?? 0) > 0
 }
 
-export async function loadMessages(db: Db, conversationId: string): Promise<StoredMessage[]> {
+export async function loadMessages(db: Db, userId: string, conversationId: string): Promise<StoredMessage[]> {
   const { rows } = await db.query<StoredMessage>(
     `select id, position, role, content from public.ai_messages
-      where conversation_id = $1
+      where conversation_id = $1 and user_id = $2
       order by position`,
-    [conversationId],
+    [conversationId, userId],
   )
   return rows
 }
@@ -77,10 +78,13 @@ export async function appendMessages(
 ): Promise<number> {
   let position = nextPosition
   for (const message of messages) {
-    await db.query(
+    // Insert only into a conversation the caller owns.
+    const result = await db.query(
       `insert into public.ai_messages
          (conversation_id, user_id, position, role, content, input_tokens, output_tokens, cache_read_tokens)
-       values ($1, $2, $3, $4, $5::jsonb, $6, $7, $8)`,
+       select c.id, c.user_id, $3, $4, $5::jsonb, $6, $7, $8
+         from public.ai_conversations c
+        where c.id = $1 and c.user_id = $2`,
       [
         conversationId,
         userId,
@@ -92,8 +96,12 @@ export async function appendMessages(
         message.usage?.cache_read_tokens ?? null,
       ],
     )
+    if (result.rowCount !== 1) throw new HttpError(404, 'Conversation not found')
     position += 1
   }
-  await db.query('update public.ai_conversations set updated_at = now() where id = $1', [conversationId])
+  await db.query('update public.ai_conversations set updated_at = now() where id = $1 and user_id = $2', [
+    conversationId,
+    userId,
+  ])
   return position
 }
