@@ -2,17 +2,19 @@ import { useSyncExternalStore } from 'react'
 import type { CoachToolCall } from './types'
 
 /**
- * Tool calls seen live in this session, keyed by the saved assistant message
- * they belong to. The server's history doesn't keep inserted ids, so this is
- * what lets an action card offer Undo after the reply is saved, and after
- * visiting Plans and coming back. It lasts until the page reloads.
+ * What was seen live in this session, keyed by the saved assistant message it
+ * belongs to. The server's history doesn't keep inserted ids or stream errors,
+ * so this is what lets an action card offer Undo after the reply is saved (and
+ * after visiting Plans and coming back), and keeps an error note on the reply
+ * it interrupted. It lasts until the page reloads.
  */
 interface LiveToolsState {
   byMessage: ReadonlyMap<string, CoachToolCall[]>
+  errors: ReadonlyMap<string, string>
   undone: ReadonlySet<string>
 }
 
-let state: LiveToolsState = { byMessage: new Map(), undone: new Set() }
+let state: LiveToolsState = { byMessage: new Map(), errors: new Map(), undone: new Set() }
 const listeners = new Set<() => void>()
 
 function update(next: LiveToolsState) {
@@ -20,11 +22,12 @@ function update(next: LiveToolsState) {
   for (const listener of listeners) listener()
 }
 
-export function rememberLiveTools(messageId: string, tools: CoachToolCall[]) {
-  if (tools.length === 0) return
+export function rememberLiveTurn(messageId: string, turn: { tools: CoachToolCall[]; error?: string }) {
   const byMessage = new Map(state.byMessage)
-  byMessage.set(messageId, tools)
-  update({ ...state, byMessage })
+  const errors = new Map(state.errors)
+  if (turn.tools.length > 0) byMessage.set(messageId, turn.tools)
+  if (turn.error) errors.set(messageId, turn.error)
+  update({ ...state, byMessage, errors })
 }
 
 export function markUndone(toolId: string) {
