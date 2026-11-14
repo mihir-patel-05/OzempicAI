@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Banner } from '../../components/Banner'
 import { Card } from '../../components/Card'
 import { CapsLabel, Field } from '../../components/Field'
@@ -20,6 +21,7 @@ import type { GroceryCategory, MealPlan, MealType } from '../../types/db'
 import { WorkoutPlanner } from '../workouts/WorkoutPlanner'
 
 type Tab = 'meals' | 'workouts' | 'groceries'
+const TABS: readonly Tab[] = ['meals', 'workouts', 'groceries']
 const MEALS: { value: MealType; label: string }[] = [
   { value: 'breakfast', label: 'Breakfast' },
   { value: 'lunch', label: 'Lunch' },
@@ -35,7 +37,11 @@ const MEAL_TONE: Record<MealType, string> = {
 const CATEGORIES: GroceryCategory[] = ['produce', 'dairy', 'protein', 'grains', 'beverages', 'snacks', 'other']
 
 export function PlansScreen() {
-  const [tab, setTab] = useState<Tab>('meals')
+  // The tab lives in the URL (?tab=groceries) so other screens can link to it.
+  const [params, setParams] = useSearchParams()
+  const requested = params.get('tab') as Tab | null
+  const tab: Tab = requested && TABS.includes(requested) ? requested : 'meals'
+  const setTab = (next: Tab) => setParams(next === 'meals' ? {} : { tab: next }, { replace: true })
   return (
     <div className="screen-stack">
       <PageHeader title="Plans" subtitle="Meals, workouts and groceries for the week ahead" />
