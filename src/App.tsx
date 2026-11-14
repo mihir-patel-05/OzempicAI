@@ -16,6 +16,12 @@ import { ExerciseScreen } from './features/exercise/ExerciseScreen'
 import { HeartRateScreen } from './features/heartRate/HeartRateScreen'
 import { WorkoutTrackerScreen } from './features/workouts/WorkoutTrackerScreen'
 
+const CoachScreen = lazy(() =>
+  import('./features/coach/CoachScreen').then((module) => ({
+    default: module.CoachScreen,
+  })),
+)
+
 const AnalyticsScreen = lazy(() =>
   import('./features/analytics/AnalyticsScreen').then((module) => ({
     default: module.AnalyticsScreen,
@@ -48,6 +54,14 @@ export function App() {
                     element={
                       <Suspense fallback={<p role="status">Loading analytics…</p>}>
                         <AnalyticsScreen />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="coach"
+                    element={
+                      <Suspense fallback={<p role="status">Loading your coach…</p>}>
+                        <CoachScreen />
                       </Suspense>
                     }
                   />
