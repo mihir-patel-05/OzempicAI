@@ -66,7 +66,12 @@ function readPassword(value: unknown): string {
 // password guessing and reset-email spam without another moving part.
 const buckets = new Map<string, { count: number; resetAt: number }>()
 
-function rateLimit(key: string, limit: number, windowMs: number) {
+export function rateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+  message = 'Too many attempts. Please wait a few minutes and try again.',
+) {
   const now = Date.now()
   const bucket = buckets.get(key)
   if (!bucket || bucket.resetAt <= now) {
@@ -75,7 +80,7 @@ function rateLimit(key: string, limit: number, windowMs: number) {
   }
   bucket.count += 1
   if (bucket.count > limit) {
-    throw new HttpError(429, 'Too many attempts. Please wait a few minutes and try again.')
+    throw new HttpError(429, message)
   }
 }
 
