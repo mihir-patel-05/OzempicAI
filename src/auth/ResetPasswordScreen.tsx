@@ -41,21 +41,21 @@ export function ResetPasswordScreen() {
     <div className="auth-layout">
       <section className="auth-panel" style={{ gridColumn: '1 / -1' }}>
         <div className="auth-card">
-          <p style={{ margin: '0 0 6px', color: 'var(--accent)', fontSize: 11, fontWeight: 700, letterSpacing: 1.3, textTransform: 'uppercase' }}>
+          <p className="eyebrow accent" style={{ marginBottom: 6 }}>
             Account recovery
           </p>
-          <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 500, letterSpacing: -0.8 }}>
+          <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 'var(--text-title)', fontWeight: 500, letterSpacing: 'var(--tracking-title)', lineHeight: 1.08 }}>
             Choose a new password
           </h1>
-          <p style={{ margin: '9px 0 28px', color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
+          <p style={{ margin: '10px 0 var(--space-xl)', color: 'var(--text-secondary)', fontSize: 'var(--text-md)', lineHeight: 1.55 }}>
             You’ll be signed in here, and signed out on your other devices.
           </p>
 
           {!token ? (
             <>
               <Banner tone="error">This reset link is incomplete. Request a new one from the sign-in screen.</Banner>
-              <p style={{ marginTop: 20, textAlign: 'center', fontSize: 13 }}>
-                <Link to="/login" style={{ color: 'var(--accent)', fontWeight: 600 }}>Back to sign in</Link>
+              <p style={{ margin: 'var(--space-ml) 0 0', textAlign: 'center', fontSize: 'var(--text-sm)' }}>
+                <Link to="/login" style={linkStyle}>Back to sign in</Link>
               </p>
             </>
           ) : (
@@ -80,8 +80,8 @@ export function ResetPasswordScreen() {
               <PrimaryButton type="submit" loading={submitting} disabled={password.length < 8 || !confirm}>
                 Set new password
               </PrimaryButton>
-              <p style={{ margin: 0, textAlign: 'center', fontSize: 13 }}>
-                <Link to="/login" style={{ color: 'var(--text-secondary)' }}>Back to sign in</Link>
+              <p style={{ margin: 0, textAlign: 'center', fontSize: 'var(--text-sm)' }}>
+                <Link to="/login" style={{ ...linkStyle, color: 'var(--text-secondary)', fontWeight: 500 }}>Back to sign in</Link>
               </p>
             </form>
           )}
@@ -89,4 +89,13 @@ export function ResetPasswordScreen() {
       </section>
     </div>
   )
+}
+
+const linkStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  minHeight: 'var(--tap)',
+  alignItems: 'center',
+  padding: '0 8px',
+  color: 'var(--accent)',
+  fontWeight: 600,
 }

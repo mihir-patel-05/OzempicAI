@@ -88,13 +88,18 @@ export function roundForDisplay(value: number, decimals = 1): number {
   return Math.round(value * factor) / factor
 }
 
+/** Rounded and grouped for display, e.g. 26150 → "26,150". */
+function formatNumber(value: number, decimals: number): string {
+  return roundForDisplay(value, decimals).toLocaleString(undefined, { maximumFractionDigits: decimals })
+}
+
 /** e.g. formatWeight(72.5, 'imperial') === '159.8 lb' */
 export function formatWeight(
   kg: number,
   system: UnitSystem,
   decimals = 1,
 ): string {
-  return `${roundForDisplay(weightFromKg(kg, system), decimals)} ${weightUnit(system)}`
+  return `${formatNumber(weightFromKg(kg, system), decimals)} ${weightUnit(system)}`
 }
 
 /** e.g. formatHeight(180, 'imperial') === '70.9 in' */
@@ -103,7 +108,7 @@ export function formatHeight(
   system: UnitSystem,
   decimals = 1,
 ): string {
-  return `${roundForDisplay(heightFromCm(cm, system), decimals)} ${heightUnit(system)}`
+  return `${formatNumber(heightFromCm(cm, system), decimals)} ${heightUnit(system)}`
 }
 
 /** e.g. formatDistance(5, 'imperial') === '3.1 mi' */
@@ -112,5 +117,5 @@ export function formatDistance(
   system: UnitSystem,
   decimals = 2,
 ): string {
-  return `${roundForDisplay(distanceFromKm(km, system), decimals)} ${distanceUnit(system)}`
+  return `${formatNumber(distanceFromKm(km, system), decimals)} ${distanceUnit(system)}`
 }
