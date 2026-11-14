@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Card } from '../../components/Card'
-import { Field } from '../../components/Field'
+import { SPARK_POINTS, ShowAllButton, Sparkline } from '../../components/Sparkline'
+import { CapsLabel } from '../../components/Field'
+import { IconButton } from '../../components/IconButton'
+import { SectionHeader } from '../../components/PageHeader'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { Banner } from '../../components/Banner'
 import { ScreenHeader } from '../../components/ScreenHeader'
@@ -18,6 +21,8 @@ import {
   weightUnit,
 } from '../../lib/units'
 
+const HISTORY_PREVIEW = 5
+
 export function WeightScreen() {
   const logs = useRecentWeightLogs()
   const logWeight = useLogWeight()
@@ -27,6 +32,7 @@ export function WeightScreen() {
 
   const [weight, setWeight] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [showAll, setShowAll] = useState(false)
 
   const sorted = logs.data ?? []
   const latest = sorted[0]
@@ -48,161 +54,148 @@ export function WeightScreen() {
     }
   }
 
+  const visible = showAll ? sorted : sorted.slice(0, HISTORY_PREVIEW)
+  const trend = sorted.slice(0, SPARK_POINTS).map((row) => row.weight_kg).reverse()
+  const deltaDisplay = delta === null ? null : weightFromKg(delta, unitSystem)
+
   return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
-    >
-      <ScreenHeader title="Weight" subtitle={`Recent entries · ${unit}`} />
+    <div className="screen-stack">
+      <ScreenHeader
+        title="Weight"
+        subtitle={latest ? `Last logged ${formatDate(latest.logged_at)}` : `Track your weight in ${unit}`}
+      />
 
-      <Card padding="lg">
-        <div
-          style={{
-            fontSize: 11,
-            letterSpacing: 0.8,
-            textTransform: 'uppercase',
-            color: 'var(--text-tertiary)',
-            fontWeight: 600,
-          }}
-        >
-          Latest
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 8,
-            marginTop: 4,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 44,
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-            }}
-          >
-            {latest ? displayWeight(latest.weight_kg, unitSystem) : '—'}
-          </span>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: 14 }}>{unit}</span>
-          {delta !== null && <DeltaPill deltaKg={delta} unitSystem={unitSystem} />}
-        </div>
-        {latest && (
-          <div
-            style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}
-          >
-            Logged {formatDate(latest.logged_at)}
-          </div>
-        )}
-      </Card>
-
-      <Card padding="md">
-        <form
-          onSubmit={onSubmit}
-          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
-        >
-          <Field
-            label="New entry"
-            value={weight}
-            onChange={setWeight}
-            type="number"
-            inputMode="decimal"
-            placeholder={unit}
-          />
-          {error && <Banner tone="error">{error}</Banner>}
-          <PrimaryButton
-            type="submit"
-            loading={logWeight.isPending}
-            disabled={!canSubmit}
-          >
-            Log weight
-          </PrimaryButton>
-        </form>
-      </Card>
-
-      <Card padding="md">
-        {logs.isLoading && (
-          <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 13 }}>
-            Loading…
-          </p>
-        )}
-        {!logs.isLoading && sorted.length === 0 && (
-          <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 13 }}>
-            No weight logged yet.
-          </p>
-        )}
-        <ul
-          style={{
-            listStyle: 'none',
-            padding: 0,
-            margin: 0,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {sorted.map((row) => (
-            <li
-              key={row.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '8px 0',
-                borderBottom: '1px solid var(--divider)',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 15, color: 'var(--text-primary)' }}>
-                  {displayWeight(row.weight_kg, unitSystem)} {unit}
+      <div className="tracker-grid">
+        <div className="screen-stack">
+          <Card padding="lg" radius="hero">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 'var(--space-md)' }}>
+              <div style={{ minWidth: 0 }}>
+                <p className="eyebrow">Latest</p>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
+                  <strong
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 'var(--text-stat)',
+                      fontWeight: 500,
+                      lineHeight: 1,
+                      letterSpacing: 'var(--tracking-title)',
+                    }}
+                  >
+                    {latest ? displayWeight(latest.weight_kg, unitSystem) : '—'}
+                  </strong>
+                  <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>{unit}</span>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  {formatDate(row.logged_at)}
-                </div>
+                <DeltaLine delta={deltaDisplay} hasLatest={!!latest} unit={unit} />
               </div>
-              <button
-                type="button"
-                onClick={() => deleteLog.mutate(row.id)}
-                aria-label="Delete entry"
-                style={{ color: 'var(--text-tertiary)', padding: 8 }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" />
-                </svg>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Card>
+              <Sparkline
+                values={trend}
+                color="var(--sage-deep)"
+                label={`Weight trend over the last ${trend.length} entries`}
+              />
+            </div>
+          </Card>
+
+          <Card padding="lg">
+            <form onSubmit={onSubmit}>
+              <label htmlFor="weight-entry" style={{ display: 'block', marginBottom: 6 }}>
+                <CapsLabel>New entry</CapsLabel>
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 'var(--space-sm)' }}>
+                <input
+                  id="weight-entry"
+                  className="field-input"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  placeholder={unit}
+                />
+                <PrimaryButton
+                  type="submit"
+                  loading={logWeight.isPending}
+                  disabled={!canSubmit}
+                  aria-label="Log weight"
+                  style={{ minHeight: 'var(--tap)', paddingInline: 22 }}
+                >
+                  Log
+                </PrimaryButton>
+              </div>
+              {error && (
+                <div style={{ marginTop: 'var(--space-sm)' }}>
+                  <Banner tone="error">{error}</Banner>
+                </div>
+              )}
+            </form>
+          </Card>
+        </div>
+
+        <Card padding="lg">
+          <SectionHeader
+            title="History"
+            meta={sorted.length ? `${sorted.length} ${sorted.length === 1 ? 'entry' : 'entries'}` : undefined}
+          />
+          {logs.isLoading && <p className="empty-note">Loading…</p>}
+          {!logs.isLoading && sorted.length === 0 && (
+            <p className="empty-note">No weight logged yet.</p>
+          )}
+          <ul className="row-list">
+            {visible.map((row) => {
+              const value = `${displayWeight(row.weight_kg, unitSystem)} ${unit}`
+              const date = formatDate(row.logged_at)
+              return (
+                <li key={row.id}>
+                  <span className="row-dot" style={{ background: 'var(--sage-deep)' }} aria-hidden="true" />
+                  <div className="row-main">
+                    <div className="row-title">{value}</div>
+                    <div className="row-meta">{date}</div>
+                  </div>
+                  <IconButton
+                    icon="trash"
+                    tone="danger"
+                    label={`Delete ${value}, ${date}`}
+                    onClick={() => deleteLog.mutate(row.id)}
+                    style={{ marginRight: -10 }}
+                  />
+                </li>
+              )
+            })}
+          </ul>
+          {sorted.length > HISTORY_PREVIEW && (
+            <ShowAllButton expanded={showAll} total={sorted.length} onToggle={() => setShowAll((v) => !v)} />
+          )}
+        </Card>
+      </div>
     </div>
   )
 }
 
-function DeltaPill({
-  deltaKg,
-  unitSystem,
-}: {
-  deltaKg: number
-  unitSystem: UnitSystem
-}) {
-  const delta = weightFromKg(deltaKg, unitSystem)
-  if (Math.abs(delta) < 0.05) return null
-  const up = delta > 0
-  const color = up ? 'var(--ember)' : 'var(--sage-deep)'
-  const sign = up ? '+' : ''
+function DeltaLine({ delta, hasLatest, unit }: { delta: number | null; hasLatest: boolean; unit: string }) {
+  const flat = delta === null || Math.abs(delta) < 0.05
+  const text =
+    delta === null
+      ? hasLatest
+        ? 'First entry'
+        : 'No entries yet'
+      : flat
+        ? 'No change since last entry'
+        : `${delta < 0 ? '↓' : '↑'} ${round2(Math.abs(delta))} ${unit} since last entry`
   return (
-    <span
+    <p
+      className={flat ? undefined : delta! < 0 ? 'delta-down' : 'delta-up'}
       style={{
-        marginLeft: 4,
-        fontSize: 13,
-        fontWeight: 600,
-        color,
+        margin: '8px 0 0',
+        fontSize: 'var(--text-sm)',
+        fontWeight: flat ? 400 : 600,
+        color: flat ? 'var(--text-tertiary)' : undefined,
       }}
     >
-      {sign}
-      {round2(delta)} {weightUnit(unitSystem)}
-    </span>
+      {text}
+    </p>
   )
 }
+
+/** Tiny trend line of recent entries, oldest → newest. */
 
 function displayWeight(kg: number, unitSystem: UnitSystem): number {
   return roundForDisplay(weightFromKg(kg, unitSystem), 2)

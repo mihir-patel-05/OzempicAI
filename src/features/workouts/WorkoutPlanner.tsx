@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react'
 import { Banner } from '../../components/Banner'
 import { Card } from '../../components/Card'
 import { CapsLabel, Field } from '../../components/Field'
+import { Icon } from '../../components/Icon'
+import { IconButton } from '../../components/IconButton'
+import { SectionHeader } from '../../components/PageHeader'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { SegmentedPicker } from '../../components/SegmentedPicker'
 import { useUnitSystem } from '../../hooks/useUserProfile'
@@ -63,9 +66,9 @@ export function WorkoutPlanner() {
 
   return (
     <div className="tracker-grid">
-      <Card padding="lg" radius="hero" style={{ boxShadow: 'var(--shadow-card)' }}>
-        <h2 style={sectionTitleStyle}>Plan a workout</h2>
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+      <Card padding="lg">
+        <SectionHeader title="Plan a workout" />
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           <div>
             <div style={{ marginBottom: 6 }}>
               <CapsLabel>Split</CapsLabel>
@@ -77,7 +80,13 @@ export function WorkoutPlanner() {
               ariaLabel="Workout split"
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.25fr .75fr', gap: 10 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gap: 'var(--space-sm)',
+            }}
+          >
             <Field
               label="Workout name"
               value={name}
@@ -85,7 +94,14 @@ export function WorkoutPlanner() {
               placeholder={`${workoutTypeLabel(workoutType)} day`}
               autoCapitalize="sentences"
             />
-            <Field label="Date" value={date} onChange={setDate} type="date" min={today} />
+            <Field
+              label="Date"
+              value={date}
+              onChange={setDate}
+              type="date"
+              min={today}
+              style={{ paddingInline: 10 }}
+            />
           </div>
 
           <ExerciseRowsEditor
@@ -100,7 +116,7 @@ export function WorkoutPlanner() {
             label="Notes"
             value={notes}
             onChange={setNotes}
-            placeholder="Warm up on the bike first"
+            placeholder="Optional"
             autoCapitalize="sentences"
           />
 
@@ -115,133 +131,119 @@ export function WorkoutPlanner() {
         </form>
       </Card>
 
-      <Card padding="lg" radius="hero" style={{ boxShadow: 'var(--shadow-card)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-          <h2 style={sectionTitleStyle}>Upcoming</h2>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
-            {plans.data?.length ?? 0} workouts
-          </span>
-        </div>
-        {plans.isLoading && <MutedText>Loading your plan…</MutedText>}
+      <Card padding="lg">
+        <SectionHeader
+          title="Upcoming"
+          meta={`${plans.data?.length ?? 0} ${(plans.data?.length ?? 0) === 1 ? 'workout' : 'workouts'}`}
+        />
+        {plans.isLoading && <p className="empty-note">Loading your plan…</p>}
         {plans.isError && <Banner tone="error">Could not load your workout plan.</Banner>}
         {!plans.isLoading && !plans.isError && !plans.data?.length && (
-          <MutedText>Nothing planned yet. Sketch out your next session.</MutedText>
+          <p className="empty-note">Nothing planned yet. Sketch out your next session.</p>
         )}
-        {Object.entries(grouped).map(([plannedDate, entries]) => (
-          <div key={plannedDate} style={{ marginTop: 18 }}>
-            <p style={{ ...eyebrowStyle, marginBottom: 6 }}>{formatPlanDate(plannedDate)}</p>
-            {entries.map((plan) => (
-              <div
-                key={plan.id}
-                style={{ padding: '11px 0', borderBottom: '1px solid var(--divider)' }}
-              >
-                <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    aria-label={
-                      plan.completed_at
-                        ? `Mark ${plan.name} as not done`
-                        : `Mark ${plan.name} as done`
-                    }
-                    onClick={() =>
-                      setCompleted.mutate({
-                        id: plan.id,
-                        completed: !plan.completed_at,
-                      })
-                    }
-                    style={{
-                      display: 'grid',
-                      flex: '0 0 auto',
-                      width: 24,
-                      height: 24,
-                      placeItems: 'center',
-                      borderRadius: 8,
-                      border: `1px solid ${plan.completed_at ? 'var(--sage-deep)' : 'var(--dust)'}`,
-                      background: plan.completed_at ? 'var(--sage-deep)' : 'transparent',
-                      color: 'white',
-                    }}
-                  >
-                    {plan.completed_at ? '✓' : ''}
-                  </button>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        textDecoration: plan.completed_at ? 'line-through' : 'none',
-                        color: plan.completed_at
-                          ? 'var(--text-tertiary)'
-                          : 'var(--text-primary)',
-                      }}
-                    >
-                      {plan.name}
-                    </div>
-                    <div style={{ marginTop: 2, color: 'var(--text-tertiary)', fontSize: 10 }}>
-                      {workoutTypeLabel(plan.workout_type)} ·{' '}
-                      {plan.exercises.length}{' '}
-                      {plan.exercises.length === 1 ? 'exercise' : 'exercises'}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label={`Delete ${plan.name}`}
-                    onClick={() => deletePlan.mutate(plan.id)}
-                    style={{ padding: 8, color: 'var(--text-tertiary)', fontSize: 17 }}
-                  >
-                    ×
-                  </button>
-                </div>
-                {plan.exercises.length > 0 && (
-                  <ul
-                    style={{
-                      listStyle: 'none',
-                      margin: '6px 0 0 35px',
-                      padding: 0,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 2,
-                    }}
-                  >
-                    {plan.exercises.map((exercise) => {
-                      const meta = describePlanExercise(exercise, unitSystem)
-                      return (
-                        <li key={exercise.id} style={{ fontSize: 12 }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>
-                            {exercise.exercise_name}
-                          </span>
-                          {meta && (
-                            <span style={{ color: 'var(--text-tertiary)' }}> — {meta}</span>
-                          )}
-                        </li>
-                      )
-                    })}
-                  </ul>
-                )}
-                {plan.notes && (
-                  <p
-                    style={{
-                      margin: '6px 0 0 35px',
-                      fontSize: 11,
-                      color: 'var(--text-secondary)',
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    {plan.notes}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          {Object.entries(grouped).map(([plannedDate, entries]) => (
+            <section key={plannedDate}>
+              <p className="eyebrow" style={{ marginBottom: 2 }}>
+                {formatPlanDate(plannedDate)}
+              </p>
+              <ul className="row-list">
+                {entries.map((plan) => {
+                  const done = !!plan.completed_at
+                  return (
+                    <li key={plan.id} style={{ alignItems: 'flex-start', paddingTop: 6 }}>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label={done ? `Mark ${plan.name} as not done` : `Mark ${plan.name} as done`}
+                        aria-pressed={done}
+                        onClick={() =>
+                          setCompleted.mutate({
+                            id: plan.id,
+                            completed: !plan.completed_at,
+                          })
+                        }
+                        style={{ marginLeft: -10, marginRight: -6 }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            display: 'grid',
+                            width: 24,
+                            height: 24,
+                            placeItems: 'center',
+                            borderRadius: 8,
+                            border: `1.5px solid ${done ? 'var(--success)' : 'var(--field-border)'}`,
+                            background: done ? 'var(--success)' : 'transparent',
+                            color: 'var(--on-accent)',
+                          }}
+                        >
+                          {done && <Icon name="check" size={15} strokeWidth={2.6} />}
+                        </span>
+                      </button>
+                      <div className="row-main" style={{ paddingTop: 4 }}>
+                        <div
+                          className="row-title"
+                          style={done ? { textDecoration: 'line-through', color: 'var(--text-tertiary)' } : undefined}
+                        >
+                          {plan.name}
+                        </div>
+                        <div className="row-meta">
+                          {workoutTypeLabel(plan.workout_type)} · {plan.exercises.length}{' '}
+                          {plan.exercises.length === 1 ? 'exercise' : 'exercises'}
+                        </div>
+                        {plan.exercises.length > 0 && (
+                          <ul
+                            style={{
+                              listStyle: 'none',
+                              margin: '6px 0 0',
+                              padding: 0,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 2,
+                            }}
+                          >
+                            {plan.exercises.map((exercise) => {
+                              const meta = describePlanExercise(exercise, unitSystem)
+                              return (
+                                <li key={exercise.id} style={{ fontSize: 'var(--text-sm)', overflowWrap: 'anywhere' }}>
+                                  <span style={{ color: 'var(--text-secondary)' }}>{exercise.exercise_name}</span>
+                                  {meta && <span style={{ color: 'var(--text-tertiary)' }}> — {meta}</span>}
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        )}
+                        {plan.notes && (
+                          <p
+                            style={{
+                              margin: '6px 0 0',
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--text-secondary)',
+                              fontStyle: 'italic',
+                              overflowWrap: 'anywhere',
+                            }}
+                          >
+                            {plan.notes}
+                          </p>
+                        )}
+                      </div>
+                      <IconButton
+                        icon="trash"
+                        tone="danger"
+                        label={`Delete ${plan.name}, ${formatPlanDate(plannedDate)}`}
+                        onClick={() => deletePlan.mutate(plan.id)}
+                        style={{ marginRight: -8 }}
+                      />
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
       </Card>
     </div>
-  )
-}
-
-function MutedText({ children }: { children: React.ReactNode }) {
-  return (
-    <p style={{ margin: '16px 0 0', color: 'var(--text-tertiary)', fontSize: 13 }}>
-      {children}
-    </p>
   )
 }
 
@@ -260,19 +262,4 @@ function formatPlanDate(value: string): string {
     month: 'short',
     day: 'numeric',
   })
-}
-
-const eyebrowStyle: React.CSSProperties = {
-  margin: '0 0 3px',
-  color: 'var(--text-tertiary)',
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: 1.1,
-  textTransform: 'uppercase',
-}
-const sectionTitleStyle: React.CSSProperties = {
-  margin: '0 0 16px',
-  fontFamily: 'var(--font-display)',
-  fontSize: 20,
-  fontWeight: 600,
 }

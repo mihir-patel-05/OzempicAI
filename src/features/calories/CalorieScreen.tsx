@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Card } from '../../components/Card'
-import { Field } from '../../components/Field'
+import { Field, CapsLabel } from '../../components/Field'
+import { IconButton } from '../../components/IconButton'
+import { SectionHeader } from '../../components/PageHeader'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { Banner } from '../../components/Banner'
 import { SegmentedPicker } from '../../components/SegmentedPicker'
@@ -19,6 +21,13 @@ const MEAL_OPTIONS: { value: MealType; label: string }[] = [
   { value: 'dinner', label: 'Dinner' },
   { value: 'snack', label: 'Snack' },
 ]
+
+const MEAL_TONE: Record<MealType, string> = {
+  breakfast: 'var(--meal-breakfast)',
+  lunch: 'var(--meal-lunch)',
+  dinner: 'var(--meal-dinner)',
+  snack: 'var(--meal-snack)',
+}
 
 export function CalorieScreen() {
   const logs = useCalorieLogsToday()
@@ -40,6 +49,7 @@ export function CalorieScreen() {
   )
   const goal = profile.data?.daily_calorie_goal ?? 2000
   const remaining = Math.max(goal - dailyTotal, 0)
+  const over = Math.max(dailyTotal - goal, 0)
   const progress = Math.min(100, Math.round((dailyTotal / goal) * 100))
   const logsError = logs.error
     ? logs.error instanceof Error
@@ -86,199 +96,193 @@ export function CalorieScreen() {
   }
 
   return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
-    >
-      <ScreenHeader title="Calories" subtitle="Build awareness, one meal at a time" />
+    <div className="screen-stack">
+      <ScreenHeader title="Calories" subtitle={statusLine(logs.data?.length ?? 0, dailyTotal)} />
 
-      <Card padding="lg" radius="hero" style={{ boxShadow: 'var(--shadow-card)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'baseline' }}>
-          <div>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 600 }}>{dailyTotal.toLocaleString()}</span>
-            <span style={{ marginLeft: 6, color: 'var(--text-tertiary)', fontSize: 12 }}>kcal logged</span>
-          </div>
-          <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{remaining.toLocaleString()} left</span>
-        </div>
-        <div className="progress-track" style={{ marginTop: 14 }}>
-          <div className="progress-fill" style={{ width: `${progress}%`, background: 'var(--calorie-ring)' }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 7, color: 'var(--text-tertiary)', fontSize: 10 }}>
-          <span>{progress}% of goal</span><span>{goal.toLocaleString()} kcal</span>
-        </div>
-      </Card>
-
-      <Card padding="md">
-        <form
-          onSubmit={onSubmit}
-          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
-        >
-          <Field
-            label="Food"
-            value={foodName}
-            onChange={setFoodName}
-            placeholder="Greek yogurt with honey"
-            autoCapitalize="sentences"
-          />
-          <Field
-            label="Calories"
-            value={calories}
-            onChange={setCalories}
-            type="number"
-            inputMode="numeric"
-            placeholder="kcal"
-          />
-          <Field
-            label="Eaten at"
-            value={eatenAt}
-            onChange={onEatenAtChange}
-            type="time"
-            hint="Today. Used for the time-of-day analytics."
-          />
-          <div>
-            <div style={{ marginBottom: 6 }}>
-              <span
+      <div className="tracker-grid">
+        <div className="screen-stack">
+          <Card padding="lg" radius="hero">
+            <p className="eyebrow">{over > 0 ? 'Over goal' : 'Calories left'}</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-sm)', marginTop: 6 }}>
+              <strong
                 style={{
-                  fontSize: 11,
-                  letterSpacing: 0.8,
-                  textTransform: 'uppercase',
-                  color: 'var(--text-secondary)',
-                  fontWeight: 600,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--text-stat)',
+                  fontWeight: 500,
+                  lineHeight: 1,
+                  letterSpacing: 'var(--tracking-title)',
+                  color: over > 0 ? 'var(--danger)' : 'var(--text-primary)',
                 }}
               >
-                Meal
-              </span>
+                {logs.isLoading ? '—' : (over > 0 ? over : remaining).toLocaleString()}
+              </strong>
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>kcal</span>
             </div>
-            <SegmentedPicker
-              options={MEAL_OPTIONS}
-              value={mealType}
-              onChange={(value) => {
-                setMealType(value)
-                setMealTouched(true)
-              }}
-              ariaLabel="Meal"
-            />
-          </div>
-          {error && <Banner tone="error">{error}</Banner>}
-          <PrimaryButton
-            type="submit"
-            loading={logCalorie.isPending}
-            disabled={!canSubmit}
-          >
-            Log meal
-          </PrimaryButton>
-        </form>
-      </Card>
-
-      {logs.isLoading && (
-        <Card padding="md">
-          <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 13 }}>
-            Loading today's entries…
-          </p>
-        </Card>
-      )}
-
-      {logs.isError && (
-        <Card padding="md">
-          <Banner tone="error">{logsError ?? 'Failed to load meals.'}</Banner>
-        </Card>
-      )}
-
-      {!logs.isLoading && !logs.isError && (logs.data?.length ?? 0) === 0 && (
-        <Card padding="md">
-          <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 13 }}>
-            No meals logged yet today.
-          </p>
-        </Card>
-      )}
-
-      {MEAL_OPTIONS.map((meal) => {
-        const items = grouped[meal.value]
-        if (!items || items.length === 0) return null
-        const total = items.reduce((acc, row) => acc + row.calories, 0)
-        return (
-          <Card key={meal.value} padding="md">
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label="Calories eaten"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+              style={{ marginTop: 'var(--space-md)' }}
+            >
+              <div className="progress-fill" style={{ width: `${progress}%`, background: 'var(--calorie-ring)' }} />
+            </div>
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'baseline',
-                marginBottom: 8,
+                gap: 'var(--space-sm)',
+                marginTop: 'var(--space-sm)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-tertiary)',
               }}
             >
-              <span
+              <span>
+                <strong style={{ color: 'var(--text-primary)' }}>{dailyTotal.toLocaleString()}</strong> eaten
+              </span>
+              <span>Goal {goal.toLocaleString()} kcal</span>
+            </div>
+          </Card>
+
+          <Card padding="lg">
+            <form
+              onSubmit={onSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
+            >
+              <Field
+                label="Food"
+                value={foodName}
+                onChange={setFoodName}
+                placeholder="Greek yogurt with honey"
+                autoCapitalize="sentences"
+              />
+              <div
                 style={{
-                  fontSize: 11,
-                  letterSpacing: 0.8,
-                  textTransform: 'uppercase',
-                  color: 'var(--text-secondary)',
-                  fontWeight: 600,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: 'var(--space-ms)',
+                  alignItems: 'start',
                 }}
               >
-                {meal.label}
-              </span>
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-                {total} kcal
-              </span>
-            </div>
-            <ul
-              style={{
-                listStyle: 'none',
-                padding: 0,
-                margin: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 6,
-              }}
-            >
-              {items.map((row) => (
-                <li
-                  key={row.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '6px 0',
-                    borderBottom: '1px solid var(--divider)',
+                <Field
+                  label="Calories"
+                  value={calories}
+                  onChange={setCalories}
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="kcal"
+                />
+                <Field
+                  label="Eaten at"
+                  value={eatenAt}
+                  onChange={onEatenAtChange}
+                  type="time"
+                  hint="Today"
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <CapsLabel>Meal</CapsLabel>
+                <SegmentedPicker
+                  options={MEAL_OPTIONS}
+                  value={mealType}
+                  onChange={(value) => {
+                    setMealType(value)
+                    setMealTouched(true)
                   }}
-                >
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: 15,
-                        color: 'var(--text-primary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {row.food_name}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                      {row.calories} kcal · {formatTime(row.logged_at)}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => deleteLog.mutate(row.id)}
-                    aria-label={`Delete ${row.food_name}`}
+                  ariaLabel="Meal"
+                />
+              </div>
+              {error && <Banner tone="error">{error}</Banner>}
+              <PrimaryButton
+                type="submit"
+                loading={logCalorie.isPending}
+                disabled={!canSubmit}
+              >
+                Log meal
+              </PrimaryButton>
+            </form>
+          </Card>
+        </div>
+
+        <Card padding="lg">
+          <SectionHeader
+            title="Today"
+            meta={
+              logs.data?.length
+                ? `${logs.data.length} ${logs.data.length === 1 ? 'entry' : 'entries'}`
+                : undefined
+            }
+          />
+
+          {logs.isLoading && <p className="empty-note">Loading today's entries…</p>}
+
+          {logs.isError && <Banner tone="error">{logsError ?? 'Failed to load meals.'}</Banner>}
+
+          {!logs.isLoading && !logs.isError && (logs.data?.length ?? 0) === 0 && (
+            <p className="empty-note">No meals logged yet today.</p>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            {MEAL_OPTIONS.map((meal) => {
+              const items = grouped[meal.value]
+              if (!items || items.length === 0) return null
+              const total = items.reduce((acc, row) => acc + row.calories, 0)
+              return (
+                <section key={meal.value} aria-labelledby={`meal-${meal.value}`}>
+                  <div
                     style={{
-                      color: 'var(--text-tertiary)',
-                      padding: 8,
-                      marginLeft: 4,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      gap: 'var(--space-sm)',
+                      paddingBottom: 'var(--space-xs)',
+                      borderBottom: '1px solid var(--divider)',
                     }}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" />
-                    </svg>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )
-      })}
+                    <h3 id={`meal-${meal.value}`} className="eyebrow" style={{ color: 'var(--text-secondary)' }}>
+                      {meal.label}
+                    </h3>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                      {total.toLocaleString()} kcal
+                    </span>
+                  </div>
+                  <ul className="row-list">
+                    {items.map((row) => {
+                      const time = formatTime(row.logged_at)
+                      return (
+                        <li key={row.id}>
+                          <span className="row-dot" style={{ background: MEAL_TONE[row.meal_type] }} aria-hidden="true" />
+                          <div className="row-main">
+                            <div className="row-title">{row.food_name}</div>
+                            <div className="row-meta">{time}</div>
+                          </div>
+                          <span className="row-value">{row.calories} kcal</span>
+                          <IconButton
+                            icon="trash"
+                            tone="danger"
+                            label={`Delete ${row.food_name} at ${time}`}
+                            onClick={() => deleteLog.mutate(row.id)}
+                            style={{ marginRight: -10 }}
+                          />
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
+              )
+            })}
+          </div>
+        </Card>
+      </div>
     </div>
   )
+}
+
+function statusLine(count: number, total: number): string {
+  if (count === 0) return 'Nothing logged yet today'
+  return `${count} ${count === 1 ? 'meal' : 'meals'} · ${total.toLocaleString()} kcal today`
 }
 
 function groupByMeal(rows: CalorieLog[]): Record<MealType, CalorieLog[]> {

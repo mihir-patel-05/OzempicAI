@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Card } from '../../components/Card'
-import { Field } from '../../components/Field'
+import { CapsLabel } from '../../components/Field'
+import { IconButton } from '../../components/IconButton'
+import { SectionHeader } from '../../components/PageHeader'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { Banner } from '../../components/Banner'
 import { ScreenHeader } from '../../components/ScreenHeader'
@@ -46,149 +48,160 @@ export function WaterScreen() {
     if (didAdd) setCustom('')
   }
 
+  const progress = goal > 0 ? Math.min(100, Math.max(0, Math.round((total / goal) * 100))) : 0
+  const entries = logs.data ?? []
+
   return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
-    >
+    <div className="screen-stack">
       <ScreenHeader
         title="Water"
-        subtitle={`${total} of ${goal} ml · ${remaining} ml to go`}
+        subtitle={remaining > 0 ? `${remaining.toLocaleString()} ml to go today` : 'Daily goal reached'}
       />
 
-      <Card padding="md">
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${QUICK_AMOUNTS.length}, 1fr)`,
-            gap: 'var(--space-sm)',
-            marginBottom: 'var(--space-md)',
-          }}
-        >
-          {QUICK_AMOUNTS.map((ml) => (
-            <button
-              key={ml}
-              type="button"
-              onClick={() => addAmount(ml)}
-              disabled={logWater.isPending}
-              style={{
-                background: 'var(--cream-dim)',
-                color: 'var(--accent)',
-                borderRadius: 'var(--radius-md)',
-                padding: '14px 8px',
-                fontFamily: 'var(--font-display)',
-                fontSize: 18,
-                fontWeight: 600,
-                opacity: logWater.isPending ? 0.6 : 1,
-              }}
+      <div className="tracker-grid">
+        <div className="screen-stack">
+          <Card padding="lg" radius="hero">
+            <p className="eyebrow">Today</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-sm)', marginTop: 6, flexWrap: 'wrap' }}>
+              <strong
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--text-stat)',
+                  fontWeight: 500,
+                  lineHeight: 1,
+                  letterSpacing: 'var(--tracking-title)',
+                }}
+              >
+                {logs.isLoading ? '—' : total.toLocaleString()}
+              </strong>
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>
+                / {goal.toLocaleString()} ml
+              </span>
+            </div>
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label="Water"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+              style={{ marginTop: 'var(--space-md)' }}
             >
-              +{ml}
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'var(--font-ui)', marginTop: 2 }}>
-                ml
-              </div>
-            </button>
-          ))}
-        </div>
-        <form
-          onSubmit={onSubmitCustom}
-          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}
-        >
-          <Field
-            label="Custom amount"
-            value={custom}
-            onChange={setCustom}
-            type="number"
-            inputMode="numeric"
-            placeholder="ml"
-          />
-          <PrimaryButton
-            type="submit"
-            loading={logWater.isPending}
-            disabled={!canSubmitCustom}
-            variant="outline"
-          >
-            Add
-          </PrimaryButton>
-        </form>
-        {error && (
-          <div style={{ marginTop: 'var(--space-sm)' }}>
-            <Banner tone="error">{error}</Banner>
-          </div>
-        )}
-      </Card>
-
-      <Card padding="md">
-        <CapsRow label="Today" value={`${(logs.data ?? []).length} entries`} />
-        {logs.isLoading && (
-          <p style={{ margin: '8px 0 0', color: 'var(--text-tertiary)', fontSize: 13 }}>
-            Loading…
-          </p>
-        )}
-        {!logs.isLoading && (logs.data?.length ?? 0) === 0 && (
-          <p style={{ margin: '8px 0 0', color: 'var(--text-tertiary)', fontSize: 13 }}>
-            No water logged yet.
-          </p>
-        )}
-        <ul
-          style={{
-            listStyle: 'none',
-            padding: 0,
-            margin: '8px 0 0',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {(logs.data ?? []).map((row) => (
-            <li
-              key={row.id}
+              <div className="progress-fill" style={{ width: `${progress}%`, background: 'var(--water-fill)' }} />
+            </div>
+            <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '8px 0',
-                borderBottom: '1px solid var(--divider)',
+                gap: 'var(--space-sm)',
+                marginTop: 'var(--space-sm)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-tertiary)',
               }}
             >
-              <div>
-                <div style={{ fontSize: 15, color: 'var(--text-primary)' }}>
-                  {row.amount_ml} ml
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  {formatTime(row.logged_at)}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => deleteLog.mutate(row.id)}
-                aria-label="Delete entry"
-                style={{ color: 'var(--text-tertiary)', padding: 8 }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" />
-                </svg>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Card>
-    </div>
-  )
-}
+              <span>{progress}% of goal</span>
+              <span>{remaining > 0 ? `${remaining.toLocaleString()} ml left` : 'Goal reached'}</span>
+            </div>
+          </Card>
 
-function CapsRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-      <span
-        style={{
-          fontSize: 11,
-          letterSpacing: 0.8,
-          textTransform: 'uppercase',
-          color: 'var(--text-secondary)',
-          fontWeight: 600,
-        }}
-      >
-        {label}
-      </span>
-      <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{value}</span>
+          <Card padding="lg">
+            <SectionHeader title="Add water" as="h2" />
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${QUICK_AMOUNTS.length}, minmax(0, 1fr))`,
+                gap: 'var(--space-sm)',
+              }}
+            >
+              {QUICK_AMOUNTS.map((ml) => (
+                <button
+                  key={ml}
+                  type="button"
+                  className="btn"
+                  onClick={() => addAmount(ml)}
+                  disabled={logWater.isPending}
+                  aria-label={`Add ${ml} millilitres of water`}
+                  style={{
+                    minHeight: 72,
+                    flexDirection: 'column',
+                    gap: 2,
+                    padding: '10px 6px',
+                    background: 'var(--accent-tint)',
+                    color: 'var(--accent)',
+                    opacity: logWater.isPending ? 0.6 : 1,
+                  }}
+                >
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 600, lineHeight: 1.1 }}>
+                    +{ml}
+                  </span>
+                  <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-secondary)' }}>ml</span>
+                </button>
+              ))}
+            </div>
+            <form onSubmit={onSubmitCustom} style={{ marginTop: 'var(--space-ml)' }}>
+              <label htmlFor="water-custom" style={{ display: 'block', marginBottom: 6 }}>
+                <CapsLabel>Custom amount</CapsLabel>
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 'var(--space-sm)' }}>
+                <input
+                  id="water-custom"
+                  className="field-input"
+                  value={custom}
+                  onChange={(e) => setCustom(e.target.value)}
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="ml"
+                />
+                <PrimaryButton
+                  type="submit"
+                  loading={logWater.isPending}
+                  disabled={!canSubmitCustom}
+                  style={{ minHeight: 'var(--tap)', paddingInline: 22 }}
+                >
+                  Add
+                </PrimaryButton>
+              </div>
+            </form>
+            {error && (
+              <div style={{ marginTop: 'var(--space-sm)' }}>
+                <Banner tone="error">{error}</Banner>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        <Card padding="lg">
+          <SectionHeader
+            title="History"
+            meta={entries.length ? `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'} today` : undefined}
+          />
+          {logs.isLoading && <p className="empty-note">Loading…</p>}
+          {!logs.isLoading && entries.length === 0 && (
+            <p className="empty-note">No water logged yet.</p>
+          )}
+          <ul className="row-list">
+            {entries.map((row) => {
+              const time = formatTime(row.logged_at)
+              return (
+                <li key={row.id}>
+                  <span className="row-dot" style={{ background: 'var(--water-fill)' }} aria-hidden="true" />
+                  <div className="row-main">
+                    <div className="row-title">{row.amount_ml.toLocaleString()} ml</div>
+                    <div className="row-meta">{time}</div>
+                  </div>
+                  <IconButton
+                    icon="trash"
+                    tone="danger"
+                    label={`Delete ${row.amount_ml} ml at ${time}`}
+                    onClick={() => deleteLog.mutate(row.id)}
+                    style={{ marginRight: -10 }}
+                  />
+                </li>
+              )
+            })}
+          </ul>
+        </Card>
+      </div>
     </div>
   )
 }

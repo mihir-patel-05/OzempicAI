@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react'
+import type { InputHTMLAttributes, ReactNode } from 'react'
 
 interface FieldProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
@@ -8,9 +8,9 @@ interface FieldProps
   hint?: string
 }
 
-export function Field({ label, value, onChange, hint, ...rest }: FieldProps) {
+export function Field({ label, value, onChange, hint, style, ...rest }: FieldProps) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
       <CapsLabel>{label}</CapsLabel>
       <input
         value={value}
@@ -18,34 +18,20 @@ export function Field({ label, value, onChange, hint, ...rest }: FieldProps) {
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
-        style={{
-          background: 'var(--cream-dim)',
-          border: '1px solid var(--divider)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '12px 14px',
-          fontSize: 16,
-          color: 'var(--text-primary)',
-        }}
+        className="field-input"
+        style={style}
         {...rest}
       />
       {hint && (
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{hint}</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>{hint}</span>
       )}
     </label>
   )
 }
 
-export function CapsLabel({ children }: { children: React.ReactNode }) {
+export function CapsLabel({ children, id }: { children: ReactNode; id?: string }) {
   return (
-    <span
-      style={{
-        fontSize: 11,
-        letterSpacing: 0.8,
-        textTransform: 'uppercase',
-        color: 'var(--text-secondary)',
-        fontWeight: 600,
-      }}
-    >
+    <span className="eyebrow" id={id} style={{ color: 'var(--text-secondary)' }}>
       {children}
     </span>
   )

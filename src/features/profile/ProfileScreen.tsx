@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Card } from '../../components/Card'
+import { PageHeader, SectionHeader } from '../../components/PageHeader'
 import { Banner } from '../../components/Banner'
 import { useAuth } from '../../auth/AuthProvider'
 import { CapsLabel, Field } from '../../components/Field'
@@ -39,6 +40,8 @@ export function ProfileScreen() {
   const [unitSystem, setUnitSystem] = useState<UnitSystem>('metric')
   const [password, setPassword] = useState('')
   const email = session?.user.email ?? '—'
+  const savedName = profile.data?.name?.trim()
+  const subtitle = savedName && email !== '—' ? `${savedName} · ${email}` : savedName || email
 
   useEffect(() => {
     if (!profile.data) return
@@ -123,22 +126,18 @@ export function ProfileScreen() {
 
   return (
     <div className="screen-stack">
-      <header>
-        <p style={{ margin: '0 0 3px', color: 'var(--text-tertiary)', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase' }}>Your settings</p>
-        <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 'clamp(32px, 5vw, 42px)', fontWeight: 500, letterSpacing: -1 }}>Make it yours.</h1>
-        <p style={{ margin: '9px 0 8px', color: 'var(--text-secondary)', fontSize: 14 }}>{email}</p>
-      </header>
+      <PageHeader title="Profile" subtitle={<span style={{ overflowWrap: 'anywhere' }}>{subtitle}</span>} />
 
       {error && <Banner tone="error">{error}</Banner>}
       {success && <Banner tone="info">{success}</Banner>}
 
       <div className="tracker-grid">
-        <Card padding="lg" radius="hero" style={{ boxShadow: 'var(--shadow-card)' }}>
-          <h2 style={sectionTitle}>Profile & body</h2>
+        <Card padding="lg">
+          <SectionHeader title="Profile & body" />
           {profile.isLoading ? (
-            <p style={muted}>Loading your profile…</p>
+            <p className="empty-note">Loading your profile…</p>
           ) : (
-            <form onSubmit={onSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+            <form onSubmit={onSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               <Field label="Name" value={name} onChange={setName} placeholder="Your name" autoComplete="name" autoCapitalize="words" />
               <div>
                 <div style={{ marginBottom: 6 }}>
@@ -151,7 +150,18 @@ export function ProfileScreen() {
                 <Field label={`Current weight (${weightUnit(unitSystem)})`} value={weight} onChange={setWeight} type="number" inputMode="decimal" placeholder={weightUnit(unitSystem)} min="1" step="0.1" />
               </div>
               <Field label="Age" value={age} onChange={setAge} type="number" inputMode="numeric" placeholder="Optional" min="1" max="130" />
-              <h3 style={{ ...sectionTitle, marginTop: 8, marginBottom: 0, fontSize: 17 }}>Daily goals</h3>
+              <h3
+                style={{
+                  margin: 'var(--space-xs) 0 calc(-1 * var(--space-xs))',
+                  paddingTop: 'var(--space-md)',
+                  borderTop: '1px solid var(--divider)',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--text-lg)',
+                  fontWeight: 600,
+                }}
+              >
+                Daily goals
+              </h3>
               <div style={twoColumns}>
                 <Field label="Calories" value={calorieGoal} onChange={setCalorieGoal} type="number" inputMode="numeric" placeholder="kcal" min="1" />
                 <Field label="Water" value={waterGoal} onChange={setWaterGoal} type="number" inputMode="numeric" placeholder="ml" min="1" />
@@ -162,17 +172,17 @@ export function ProfileScreen() {
         </Card>
 
         <div className="screen-stack">
-          <Card padding="lg" radius="hero" style={{ boxShadow: 'var(--shadow-card)' }}>
-            <h2 style={sectionTitle}>Security</h2>
-            <form onSubmit={onUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+          <Card padding="lg">
+            <SectionHeader title="Security" />
+            <form onSubmit={onUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               <Field label="New password" value={password} onChange={setPassword} type="password" autoComplete="new-password" placeholder="At least 8 characters" hint="Change it anytime. Your other devices will be signed out." />
               <PrimaryButton type="submit" variant="outline" loading={updatingPassword} disabled={password.length < 8}>Update password</PrimaryButton>
             </form>
           </Card>
 
-          <Card padding="lg" radius="hero" style={{ boxShadow: 'var(--shadow-card)' }}>
-            <h2 style={sectionTitle}>Account</h2>
-            <p style={{ ...muted, margin: '0 0 15px' }}>Your health entries stay associated with this private account.</p>
+          <Card padding="lg">
+            <SectionHeader title="Account" />
+            <p className="empty-note" style={{ marginBottom: 'var(--space-md)' }}>Your health entries stay associated with this private account.</p>
             <PrimaryButton type="button" onClick={onSignOut} loading={signingOut} variant="outline" tone="danger" style={{ width: '100%' }}>Sign out</PrimaryButton>
           </Card>
         </div>
@@ -206,6 +216,4 @@ function optionalInteger(value: string): number | null {
   return parsed === null ? null : Math.round(parsed)
 }
 
-const sectionTitle: React.CSSProperties = { margin: '0 0 16px', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600 }
-const muted: React.CSSProperties = { color: 'var(--text-tertiary)', fontSize: 13, lineHeight: 1.6 }
-const twoColumns: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }
+const twoColumns: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 'var(--space-sm)' }

@@ -25,6 +25,8 @@ interface AnalyticsChartProps {
   valueFormatter?: (value: number, dataKey: string) => string
   xTickFormatter?: (value: string) => string
   tooltipLabelFormatter?: (value: string) => string
+  /** Counts (e.g. workouts) should never show fractional ticks. */
+  integerTicks?: boolean
 }
 
 interface AnalyticsLineChartProps extends AnalyticsChartProps {
@@ -44,13 +46,14 @@ export function AnalyticsLineChart({
   xTickFormatter = formatChartDate,
   tooltipLabelFormatter = formatLongDate,
   referenceLine,
+  integerTicks = false,
 }: AnalyticsLineChartProps) {
   return (
     <>
       <ChartLegend series={series} referenceLine={referenceLine} />
       <div className="analytics-chart" role="img" aria-label={ariaLabel}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+          <LineChart data={data} margin={CHART_MARGIN}>
             <CartesianGrid vertical={false} stroke="var(--divider)" />
             <XAxis
               dataKey={xKey}
@@ -64,7 +67,9 @@ export function AnalyticsLineChart({
               tickLine={false}
               axisLine={false}
               tick={axisTick}
-              width={48}
+              width={Y_AXIS_WIDTH}
+              tickFormatter={formatYTick}
+              allowDecimals={!integerTicks}
               domain={['auto', 'auto']}
             />
             <Tooltip
@@ -112,13 +117,14 @@ export function AnalyticsBarChart({
   xTickFormatter = formatChartDate,
   tooltipLabelFormatter = formatLongDate,
   stacked = false,
+  integerTicks = false,
 }: AnalyticsBarChartProps) {
   return (
     <>
       <ChartLegend series={series} />
       <div className="analytics-chart" role="img" aria-label={ariaLabel}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+          <BarChart data={data} margin={CHART_MARGIN}>
             <CartesianGrid vertical={false} stroke="var(--divider)" />
             <XAxis
               dataKey={xKey}
@@ -128,7 +134,14 @@ export function AnalyticsBarChart({
               minTickGap={28}
               tick={axisTick}
             />
-            <YAxis tickLine={false} axisLine={false} tick={axisTick} width={48} />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tick={axisTick}
+              width={Y_AXIS_WIDTH}
+              tickFormatter={formatYTick}
+              allowDecimals={!integerTicks}
+            />
             <Tooltip
               labelFormatter={(label) => tooltipLabelFormatter(String(label))}
               formatter={(value, name) => [
@@ -203,14 +216,25 @@ function defaultValueFormatter(value: number): string {
   return Math.round(value).toLocaleString()
 }
 
+/** Compact y-axis labels so large values (e.g. weekly volume) fit the gutter. */
+function formatYTick(value: number): string {
+  if (!Number.isFinite(value)) return ''
+  if (Math.abs(value) >= 10_000) return `${Math.round(value / 1000).toLocaleString()}k`
+  return Number.isInteger(value) ? value.toLocaleString() : String(Math.round(value * 10) / 10)
+}
+
+// No negative left margin: the y-axis gutter itself holds the labels, so nothing is clipped.
+const CHART_MARGIN = { top: 8, right: 8, bottom: 0, left: 0 }
+const Y_AXIS_WIDTH = 44
+
 const axisTick = {
   fill: 'var(--text-tertiary)',
-  fontSize: 10,
+  fontSize: 12,
 }
 
 const tooltipStyle = {
   border: '1px solid var(--divider)',
-  borderRadius: 12,
+  borderRadius: 'var(--radius-sm)',
   background: 'var(--paper-bright)',
   boxShadow: 'var(--shadow-card)',
   color: 'var(--text-primary)',

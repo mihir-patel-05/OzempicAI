@@ -4,7 +4,9 @@ import { Field, CapsLabel } from '../../components/Field'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { Banner } from '../../components/Banner'
 import { SegmentedPicker } from '../../components/SegmentedPicker'
-import { ScreenHeader } from '../../components/ScreenHeader'
+import { Icon } from '../../components/Icon'
+import { IconButton } from '../../components/IconButton'
+import { PageHeader, SectionHeader } from '../../components/PageHeader'
 import {
   useDeleteExerciseLog,
   useExerciseLogsToday,
@@ -110,21 +112,26 @@ export function ExerciseScreen() {
     }
   }
 
-  const todayMinutes = (logs.data ?? []).reduce(
-    (acc, r) => acc + r.duration_minutes,
-    0,
-  )
+  const todayRows = logs.data ?? []
+  const todayMinutes = todayRows.reduce((acc, r) => acc + r.duration_minutes, 0)
+  const todayKcal = todayRows.reduce((acc, r) => acc + r.calories_burned, 0)
 
   return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
-    >
-      <ScreenHeader
+    <div className="screen-stack">
+      <PageHeader
         title="Exercise"
-        subtitle={`${todayMinutes} minutes today`}
+        back="/log"
+        backLabel="Log"
+        subtitle={
+          logs.isLoading
+            ? 'Loading today…'
+            : todayRows.length === 0
+              ? 'Nothing logged today yet'
+              : `Today: ${todayMinutes} min · ${todayKcal.toLocaleString()} kcal burned`
+        }
       />
 
-      <Card padding="md">
+      <Card padding="lg">
         <form
           onSubmit={onSubmit}
           style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
@@ -147,13 +154,7 @@ export function ExerciseScreen() {
               ariaLabel="Category"
             />
           </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 'var(--space-sm)',
-            }}
-          >
+          <div style={twoColumns}>
             <Field
               label="Minutes"
               value={duration}
@@ -173,21 +174,25 @@ export function ExerciseScreen() {
           </div>
 
           {category === 'strength' && (
-            <>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 'var(--space-sm)',
-                }}
-              >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-ms)',
+                padding: 'var(--space-ms)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--surface-inset)',
+              }}
+            >
+              <p className="eyebrow">Strength details · optional</p>
+              <div style={threeColumns}>
                 <Field
                   label="Sets"
                   value={sets}
                   onChange={setSets}
                   type="number"
                   inputMode="numeric"
-                  placeholder="optional"
+                  placeholder="—"
                 />
                 <Field
                   label="Reps / set"
@@ -195,89 +200,60 @@ export function ExerciseScreen() {
                   onChange={setReps}
                   type="number"
                   inputMode="numeric"
-                  placeholder="optional"
+                  placeholder="—"
                 />
-              </div>
-              <div>
-                <label htmlFor="exercise-weight">
-                  <CapsLabel>Weight (optional)</CapsLabel>
+                <label htmlFor="exercise-weight" style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                  <CapsLabel>Weight</CapsLabel>
+                  <span style={{ display: 'flex', minWidth: 0 }}>
+                    <input
+                      id="exercise-weight"
+                      className="field-input"
+                      value={weight}
+                      onChange={(e) => setWeight(e.target.value)}
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="—"
+                      min="0"
+                      step="0.5"
+                      style={{ flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                    />
+                    <select
+                      className="field-input"
+                      value={weightUnit}
+                      onChange={(e) =>
+                        setSelectedWeightUnit(e.target.value as WeightInputUnit)
+                      }
+                      aria-label="Weight unit"
+                      style={{
+                        flex: 'none',
+                        width: 'auto',
+                        marginLeft: -1,
+                        padding: '0 6px',
+                        borderTopLeftRadius: 0,
+                        borderBottomLeftRadius: 0,
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      <option value="lb">lbs</option>
+                      <option value="kg">kg</option>
+                    </select>
+                  </span>
                 </label>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 8,
-                    marginTop: 6,
-                  }}
-                >
-                  <input
-                    id="exercise-weight"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="0"
-                    min="0"
-                    step="0.5"
-                    style={{
-                      minWidth: 0,
-                      flex: 1,
-                      background: 'var(--cream-dim)',
-                      border: '1px solid var(--divider)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '12px 14px',
-                      fontSize: 16,
-                      color: 'var(--text-primary)',
-                    }}
-                  />
-                  <select
-                    value={weightUnit}
-                    onChange={(e) =>
-                      setSelectedWeightUnit(e.target.value as WeightInputUnit)
-                    }
-                    aria-label="Weight unit"
-                    style={{
-                      flex: '0 0 auto',
-                      width: 82,
-                      background: 'var(--cream-dim)',
-                      border: '1px solid var(--divider)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '12px 10px',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    <option value="lb">lbs</option>
-                    <option value="kg">kg</option>
-                  </select>
-                </div>
               </div>
               <div>
-                <div style={{ marginBottom: 6 }}>
-                  <CapsLabel>Body part (optional)</CapsLabel>
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 6,
-                  }}
-                >
+                <CapsLabel>Body part</CapsLabel>
+                <div className="chip-row" style={{ marginTop: 'var(--space-sm)' }}>
                   {BODY_PARTS.map((part) => {
                     const selected = bodyPart === part
                     return (
                       <button
                         key={part}
                         type="button"
+                        className="chip chip-toggle"
+                        aria-pressed={selected}
                         onClick={() => setBodyPart(selected ? '' : part)}
-                        style={{
-                          padding: '6px 10px',
-                          borderRadius: 999,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          background: selected ? 'var(--accent)' : 'var(--cream-dim)',
-                          color: selected ? 'white' : 'var(--text-secondary)',
-                        }}
                       >
                         {labelForBodyPart(part)}
                       </button>
@@ -285,7 +261,7 @@ export function ExerciseScreen() {
                   })}
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {error && <Banner tone="error">{error}</Banner>}
@@ -299,68 +275,78 @@ export function ExerciseScreen() {
         </form>
       </Card>
 
-      <Card padding="md">
-        {logs.isLoading && (
-          <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 13 }}>
-            Loading…
-          </p>
+      <Card padding="lg">
+        <SectionHeader
+          title="Today"
+          meta={
+            todayRows.length
+              ? `${todayRows.length} ${todayRows.length === 1 ? 'entry' : 'entries'}`
+              : undefined
+          }
+        />
+        {logs.isLoading && <p className="empty-note">Loading…</p>}
+        {!logs.isLoading && todayRows.length === 0 && (
+          <p className="empty-note">No exercise logged yet today.</p>
         )}
-        {!logs.isLoading && (logs.data?.length ?? 0) === 0 && (
-          <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 13 }}>
-            No exercise logged yet today.
-          </p>
-        )}
-        <ul
-          style={{
-            listStyle: 'none',
-            padding: 0,
-            margin: 0,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {(logs.data ?? []).map((row) => (
-            <li
-              key={row.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '8px 0',
-                borderBottom: '1px solid var(--divider)',
-              }}
-            >
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 15, color: 'var(--text-primary)' }}>
-                  {row.exercise_name}
+        <ul className="row-list">
+          {todayRows.map((row) => {
+            const meta = [
+              labelForCategory(row.category),
+              formatTime(row.logged_at),
+              `${row.calories_burned} kcal`,
+              row.sets && row.reps_per_set ? `${row.sets}×${row.reps_per_set}` : null,
+              row.weight_kg !== null ? formatWeight(row.weight_kg, unitSystem) : null,
+              row.body_part ? labelForBodyPart(row.body_part) : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')
+            return (
+              <li key={row.id}>
+                <span
+                  className="tile-icon"
+                  style={{ ['--tone' as string]: 'var(--ember)', width: 36, height: 36, borderRadius: 11 }}
+                >
+                  <Icon name={row.category === 'strength' ? 'dumbbell' : 'run'} size={18} />
+                </span>
+                <div className="row-main">
+                  <div className="row-title">{row.exercise_name}</div>
+                  <div className="row-meta">{meta}</div>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  {row.category} · {row.duration_minutes} min · {row.calories_burned} kcal
-                  {row.sets && row.reps_per_set
-                    ? ` · ${row.sets}×${row.reps_per_set}`
-                    : ''}
-                  {row.weight_kg !== null
-                    ? ` · ${formatWeight(row.weight_kg, unitSystem)}`
-                    : ''}
-                  {row.body_part ? ` · ${labelForBodyPart(row.body_part)}` : ''}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => deleteLog.mutate(row.id)}
-                aria-label="Delete entry"
-                style={{ color: 'var(--text-tertiary)', padding: 8 }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" />
-                </svg>
-              </button>
-            </li>
-          ))}
+                <span className="row-value">{row.duration_minutes} min</span>
+                <IconButton
+                  icon="trash"
+                  tone="danger"
+                  label={`Delete ${row.exercise_name}, ${formatTime(row.logged_at)}`}
+                  onClick={() => deleteLog.mutate(row.id)}
+                  style={{ marginRight: -8 }}
+                />
+              </li>
+            )
+          })}
         </ul>
       </Card>
     </div>
   )
+}
+
+const twoColumns: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 'var(--space-sm)',
+}
+
+const threeColumns: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr)',
+  gap: 'var(--space-sm)',
+}
+
+function labelForCategory(category: ExerciseCategory): string {
+  return category[0].toUpperCase() + category.slice(1)
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
 function labelForBodyPart(part: BodyPart): string {

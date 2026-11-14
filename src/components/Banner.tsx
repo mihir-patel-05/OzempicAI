@@ -12,11 +12,11 @@ export function Banner({
     <div
       role={isError ? 'alert' : 'status'}
       style={{
-        background: isError ? 'rgba(184,68,31,0.12)' : 'rgba(138,160,125,0.18)',
+        background: isError ? 'var(--danger-tint)' : 'var(--success-tint)',
         color: 'var(--text-primary)',
         padding: '10px 12px',
         borderRadius: 'var(--radius-sm)',
-        fontSize: 13,
+        fontSize: 'var(--text-sm)',
         fontWeight: 500,
       }}
     >

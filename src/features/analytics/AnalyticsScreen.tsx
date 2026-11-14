@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Banner } from '../../components/Banner'
 import { Card } from '../../components/Card'
+import { PageHeader, SectionHeader } from '../../components/PageHeader'
 import { SegmentedPicker } from '../../components/SegmentedPicker'
 import { useAnalyticsDashboard } from '../../hooks/useAnalyticsDashboard'
 import { useUnitSystem, useUserProfile } from '../../hooks/useUserProfile'
@@ -126,23 +127,19 @@ export function AnalyticsScreen() {
 
   return (
     <div className="screen-stack analytics-screen">
-      <header className="analytics-header">
-        <div>
-          <p className="eyebrow">Your progress</p>
-          <h1>Analytics</h1>
-          <p>
-            {formatRange(dateRange.start, dateRange.end)} · Times use your device
-            timezone
-          </p>
-        </div>
-      </header>
-
-      <SegmentedPicker
-        options={ANALYTICS_RANGE_OPTIONS}
-        value={range}
-        onChange={setRange}
-        ariaLabel="Analytics date range"
+      <PageHeader
+        title="Analytics"
+        subtitle={`${formatRange(dateRange.start, dateRange.end)} · Times use your device timezone`}
       />
+
+      <div style={{ maxWidth: 480 }}>
+        <SegmentedPicker
+          options={ANALYTICS_RANGE_OPTIONS}
+          value={range}
+          onChange={setRange}
+          ariaLabel="Analytics date range"
+        />
+      </div>
 
       {analytics.isLoading && <AnalyticsLoading />}
       {analytics.isError && (
@@ -152,7 +149,7 @@ export function AnalyticsScreen() {
       )}
 
       {!analytics.isLoading && !analytics.isError && !hasData && (
-        <Card padding="lg" radius="hero">
+        <Card padding="lg">
           <EmptyState
             title="Your trends will build here"
             body="Log weight, meals, hydration, heart rate, or a workout to start seeing progress over time."
@@ -199,7 +196,7 @@ export function AnalyticsScreen() {
           </section>
 
           <section aria-labelledby="weight-trend-heading">
-            <Card padding="lg" radius="hero">
+            <Card padding="lg">
               <SectionHeading
                 id="weight-trend-heading"
                 title="Weight trend"
@@ -255,7 +252,7 @@ export function AnalyticsScreen() {
             />
             {calorieSummary.loggedDays > 0 ? (
               <div className="screen-stack">
-                <Card padding="lg" radius="hero">
+                <Card padding="lg">
                   <SectionHeading
                     title="Calorie intake"
                     hint="The softer line is a seven-calendar-day rolling average."
@@ -266,8 +263,8 @@ export function AnalyticsScreen() {
                       value={formatNullableCalories(calorieSummary.averageCalories)}
                     />
                     <InlineMetric
-                      label="At or under goal"
-                      value={`${calorieSummary.daysOnGoal}/${calorieSummary.loggedDays} days`}
+                      label="Days on goal"
+                      value={`${calorieSummary.daysOnGoal}/${calorieSummary.loggedDays}`}
                     />
                     <InlineMetric
                       label="Days logged"
@@ -295,7 +292,7 @@ export function AnalyticsScreen() {
                 </Card>
 
                 <div className="analytics-two-column">
-                  <Card padding="lg" radius="hero">
+                  <Card padding="lg">
                     <SectionHeading
                       title="When you eat"
                       hint="Average calories per logged day, by hour. Meals logged before the eaten-at time was added use the time they were logged."
@@ -340,7 +337,7 @@ export function AnalyticsScreen() {
                     />
                   </Card>
 
-                  <Card padding="lg" radius="hero">
+                  <Card padding="lg">
                     <SectionHeading
                       title="Meal split"
                       hint="Share of logged calories by meal type."
@@ -377,7 +374,7 @@ export function AnalyticsScreen() {
                     </ul>
                   </Card>
 
-                  <Card padding="lg" radius="hero">
+                  <Card padding="lg">
                     <SectionHeading
                       title="Energy balance"
                       hint="Estimated from logged intake and your weight trend (about 7,700 kcal per kg). Treat it as a guide, not a measurement."
@@ -415,7 +412,7 @@ export function AnalyticsScreen() {
                     </div>
                   </Card>
 
-                  <Card padding="lg" radius="hero">
+                  <Card padding="lg">
                     <SectionHeading
                       title="Eating habits"
                       hint="The eating window uses days with at least two meals."
@@ -450,7 +447,7 @@ export function AnalyticsScreen() {
                 </div>
               </div>
             ) : (
-              <Card padding="lg" radius="hero">
+              <Card padding="lg">
                 <EmptyState
                   title="No meals in this range"
                   body="Log meals with the time you ate them to see intake trends, meal timing, and energy balance."
@@ -468,7 +465,7 @@ export function AnalyticsScreen() {
               hint="General exercise logs stay separate from structured workouts to avoid double counting."
             />
             <div className="analytics-two-column">
-              <Card padding="lg" radius="hero">
+              <Card padding="lg">
                 <SectionHeading
                   title="Workout consistency"
                   hint={`${overview.totalWorkoutMinutes.toLocaleString()} structured minutes total`}
@@ -482,12 +479,13 @@ export function AnalyticsScreen() {
                   series={[
                     { dataKey: 'workouts', label: 'Workouts', color: 'var(--terracotta)' },
                   ]}
+                  integerTicks
                   ariaLabel={`${overview.totalWorkouts} structured workouts across ${overview.activeWeeks} active weeks.`}
                 />
                 <PlanAndActivity rows={rows} />
               </Card>
 
-              <Card padding="lg" radius="hero">
+              <Card padding="lg">
                 <SectionHeading
                   title="Strength progress"
                   hint="Volume is sets × reps × load. One-rep max is an estimate."
@@ -540,7 +538,7 @@ export function AnalyticsScreen() {
                 )}
               </Card>
 
-              <Card padding="lg" radius="hero">
+              <Card padding="lg">
                 <SectionHeading
                   title="Cardio progress"
                   hint="Pace appears only when a session has both time and distance."
@@ -687,9 +685,20 @@ function SectionHeading({
   hint?: string
 }) {
   return (
-    <div className="analytics-section-heading">
-      <h2 id={id}>{title}</h2>
-      {hint && <p>{hint}</p>}
+    <div style={hint ? { marginBottom: 'var(--space-ms)' } : undefined}>
+      <SectionHeader id={id} title={title} />
+      {hint && (
+        <p
+          style={{
+            margin: 'calc(-1 * var(--space-sm)) 0 0',
+            color: 'var(--text-tertiary)',
+            fontSize: 'var(--text-xs)',
+            lineHeight: 1.5,
+          }}
+        >
+          {hint}
+        </p>
+      )}
     </div>
   )
 }
@@ -737,7 +746,7 @@ function WellnessCard({
   to: string
 }) {
   return (
-    <Card padding="lg" radius="hero">
+    <Card padding="lg">
       <SectionHeading title={title} />
       <strong className="wellness-value">{value}</strong>
       <p className="wellness-detail">{detail}</p>

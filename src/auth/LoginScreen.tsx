@@ -67,39 +67,39 @@ export function LoginScreen() {
           <span className="nav-brand-mark" aria-hidden="true">
             <HeartIcon />
           </span>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 600 }}>
             OzempicAI
           </span>
         </div>
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 560 }}>
-          <p style={{ margin: '0 0 18px', color: 'rgba(255,255,255,.6)', fontSize: 12, fontWeight: 700, letterSpacing: 1.7, textTransform: 'uppercase' }}>
+          <p className="eyebrow" style={{ margin: '0 0 18px', color: 'rgba(255,255,255,.6)' }}>
             Your health, in context
           </p>
-          <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 'clamp(42px, 5vw, 72px)', fontWeight: 500, lineHeight: 1.02, letterSpacing: -2 }}>
+          <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 'clamp(42px, 5vw, 72px)', fontWeight: 500, lineHeight: 1.02, letterSpacing: 'var(--tracking-title)' }}>
             Progress lives in the everyday.
           </h1>
-          <p style={{ maxWidth: 460, margin: '24px 0 0', color: 'rgba(255,255,255,.72)', fontSize: 16, lineHeight: 1.7 }}>
+          <p style={{ maxWidth: 460, margin: '24px 0 0', color: 'rgba(255,255,255,.72)', fontSize: 'var(--text-input)', lineHeight: 1.7 }}>
             Track meals, hydration, movement, weight, and heart rate in one calm daily ritual.
           </p>
         </div>
-        <p style={{ position: 'relative', zIndex: 1, margin: 0, color: 'rgba(255,255,255,.48)', fontSize: 12 }}>
+        <p style={{ position: 'relative', zIndex: 1, margin: 0, color: 'rgba(255,255,255,.6)', fontSize: 'var(--text-xs)' }}>
           Built for steady, sustainable change.
         </p>
       </section>
 
       <section className="auth-panel">
         <div className="auth-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 36 }}>
+          <div className="nav-brand" style={{ marginBottom: 'var(--space-2xl)' }}>
             <span className="nav-brand-mark" aria-hidden="true"><HeartIcon /></span>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600 }}>OzempicAI</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 600 }}>OzempicAI</span>
           </div>
-          <p style={{ margin: '0 0 6px', color: 'var(--accent)', fontSize: 11, fontWeight: 700, letterSpacing: 1.3, textTransform: 'uppercase' }}>
+          <p className="eyebrow accent" style={{ marginBottom: 6 }}>
             {mode === 'signin' ? 'Welcome back' : mode === 'signup' ? 'Start your journey' : 'Account recovery'}
           </p>
-          <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 500, letterSpacing: -0.8 }}>
+          <h1 style={titleStyle}>
             {mode === 'signin' ? 'Sign in to continue' : mode === 'signup' ? 'Create your account' : 'Reset your password'}
           </h1>
-          <p style={{ margin: '9px 0 28px', color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
+          <p style={subtitleStyle}>
             {mode === 'forgot' ? 'We’ll send a secure reset link to your email.' : 'Private by default. Your entries are visible only to you.'}
           </p>
 
@@ -135,7 +135,7 @@ export function LoginScreen() {
           )}
 
           {mode === 'signin' && (
-            <button type="button" onClick={() => switchMode('forgot')} style={{ alignSelf: 'flex-end', marginTop: -7, color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
+            <button type="button" onClick={() => switchMode('forgot')} style={{ alignSelf: 'flex-end', minHeight: 'var(--tap)', margin: '-14px -8px -8px 0', padding: '0 8px', color: 'var(--accent)', fontSize: 'var(--text-sm)', fontWeight: 600 }}>
               Forgot password?
             </button>
           )}
@@ -151,8 +151,9 @@ export function LoginScreen() {
           type="button"
           onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
           style={{
+            minHeight: 'var(--tap)',
             textAlign: 'center',
-            fontSize: 13,
+            fontSize: 'var(--text-sm)',
             color: 'var(--text-secondary)',
           }}
         >
@@ -173,7 +174,7 @@ export function LoginScreen() {
           )}
         </button>
           </form>
-          <p style={{ margin: '28px 0 0', color: 'var(--text-tertiary)', fontSize: 11, lineHeight: 1.6, textAlign: 'center' }}>
+          <p style={{ margin: 'var(--space-lg) 0 0', color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)', lineHeight: 1.6, textAlign: 'center' }}>
             By continuing, you agree to use OzempicAI as a wellness tracker—not a substitute for medical advice.
           </p>
         </div>
@@ -194,4 +195,20 @@ function HeartIcon() {
       <path d="M12 21s-7-4.35-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.65-7 10-7 10z" />
     </svg>
   )
+}
+
+const titleStyle: React.CSSProperties = {
+  margin: 0,
+  fontFamily: 'var(--font-display)',
+  fontSize: 'var(--text-title)',
+  fontWeight: 500,
+  letterSpacing: 'var(--tracking-title)',
+  lineHeight: 1.08,
+}
+
+const subtitleStyle: React.CSSProperties = {
+  margin: '10px 0 var(--space-xl)',
+  color: 'var(--text-secondary)',
+  fontSize: 'var(--text-md)',
+  lineHeight: 1.55,
 }
