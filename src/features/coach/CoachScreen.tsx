@@ -38,6 +38,17 @@ export function CoachScreen() {
   const conversation = useConversation(conversationId, !!turn && !turn.unsaved)
   const live = useLiveTools()
   const [showHistory, setShowHistory] = useState(false)
+
+  // Screen readers hear the finished reply once, not every streamed token.
+  const [announcement, setAnnouncement] = useState('')
+  const wasStreaming = useRef(false)
+  useEffect(() => {
+    const streaming = turn?.streaming ?? false
+    if (wasStreaming.current && !streaming && turn) {
+      setAnnouncement(turn.assistant.error ?? `Coach: ${turn.assistant.text.slice(0, 400)}`)
+    }
+    wasStreaming.current = streaming
+  }, [turn])
   const composer = useRef<ComposerHandle>(null)
 
   // Opened with ?new=1 or ?draft=: start fresh once, then tidy the URL.
@@ -160,7 +171,7 @@ export function CoachScreen() {
         </div>
       )}
 
-      <section className="coach-messages" aria-label="Conversation" aria-live="polite" aria-busy={isSending || undefined}>
+      <section className="coach-messages" aria-label="Conversation" aria-busy={isSending || undefined}>
         {loadingHistory && <p className="empty-note">Loading your chat…</p>}
         {conversations.isError && !isCoachNotConfigured(conversations.error) && (
           <Banner tone="error">Couldn&rsquo;t load your chats. Check your connection and try again.</Banner>
@@ -211,6 +222,10 @@ export function CoachScreen() {
           </>
         )}
       </section>
+
+      <p className="sr-only" role="status" aria-live="polite">
+        {announcement}
+      </p>
 
       <div className="coach-composer-dock">
         <Composer ref={composer} disabled={isSending} initialValue={draft} onSend={submit} />
