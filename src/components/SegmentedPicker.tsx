@@ -45,9 +45,9 @@ export function SegmentedPicker<T extends string>({
       aria-labelledby={ariaLabelledBy}
       style={{
         display: 'flex',
-        gap: 4,
+        gap: 2,
         background: 'var(--cream-dim)',
-        padding: 4,
+        padding: 3,
         borderRadius: 'var(--radius-md)',
       }}
     >
@@ -67,13 +67,15 @@ export function SegmentedPicker<T extends string>({
             onKeyDown={(e) => onRadioKeyDown(e, index)}
             style={{
               flex: 1,
-              padding: '8px 10px',
+              minWidth: 0,
+              minHeight: 42,
+              padding: '6px 8px',
               borderRadius: 'var(--radius-sm)',
-              fontSize: 12,
+              fontSize: 'var(--text-sm)',
               fontWeight: 600,
-              background: selected ? 'var(--paper)' : 'transparent',
+              background: selected ? 'var(--paper-bright)' : 'transparent',
               color: selected ? 'var(--accent)' : 'var(--text-secondary)',
-              boxShadow: selected ? '0 1px 3px var(--shadow-soft)' : 'none',
+              boxShadow: selected ? 'var(--shadow-1)' : 'none',
               transition: 'background 120ms ease-out, color 120ms ease-out',
             }}
           >

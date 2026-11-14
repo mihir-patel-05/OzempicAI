@@ -1,105 +1,76 @@
-import { NavLink } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { Icon, type IconName } from './Icon'
 
 interface Tab {
   to: string
   label: string
-  icon: ReactNode
+  icon: IconName
 }
 
-const TABS: Tab[] = [
-  { to: '/', label: 'Today', icon: <IconSun /> },
-  { to: '/log', label: 'Log', icon: <IconPlus /> },
-  { to: '/plans', label: 'Plans', icon: <IconList /> },
-  { to: '/analytics', label: 'Analytics', icon: <IconChart /> },
-  { to: '/profile', label: 'Profile', icon: <IconPerson /> },
+const LEFT: Tab[] = [
+  { to: '/', label: 'Today', icon: 'sun' },
+  { to: '/plans', label: 'Plans', icon: 'list' },
+]
+const RIGHT: Tab[] = [
+  { to: '/analytics', label: 'Analytics', icon: 'chart' },
+  { to: '/profile', label: 'Profile', icon: 'person' },
+]
+const DESKTOP: Tab[] = [
+  { to: '/', label: 'Today', icon: 'sun' },
+  { to: '/log', label: 'Log', icon: 'plus' },
+  { to: '/plans', label: 'Plans', icon: 'list' },
+  { to: '/analytics', label: 'Analytics', icon: 'chart' },
+  { to: '/profile', label: 'Profile', icon: 'person' },
 ]
 
-export function TabBar({ variant = 'mobile' }: { variant?: 'mobile' | 'desktop' }) {
+interface TabBarProps {
+  variant?: 'mobile' | 'desktop'
+  onLog?: () => void
+  logOpen?: boolean
+}
+
+export function TabBar({ variant = 'mobile', onLog, logOpen = false }: TabBarProps) {
+  const { pathname } = useLocation()
+  if (variant === 'desktop') {
+    return (
+      <nav className="nav-links">
+        {DESKTOP.map((tab) => (
+          <TabLink key={tab.to} tab={tab} />
+        ))}
+      </nav>
+    )
+  }
+  const onLogRoute = pathname.startsWith('/log')
   return (
-    <nav
-      className={variant === 'mobile' ? 'mobile-tab-bar' : 'nav-links'}
-      aria-label={variant === 'mobile' ? 'Primary navigation' : undefined}
-    >
-      {TABS.map((tab) => (
-        <NavLink
-          key={tab.to}
-          to={tab.to}
-          end={tab.to === '/'}
-          className="nav-link"
+    <nav className="mobile-tab-bar" aria-label="Primary navigation">
+      {LEFT.map((tab) => (
+        <TabLink key={tab.to} tab={tab} />
+      ))}
+      <div className="nav-fab-slot">
+        <button
+          type="button"
+          className="nav-fab"
+          aria-label="Log something"
+          aria-haspopup="dialog"
+          aria-expanded={logOpen}
+          aria-current={onLogRoute ? 'page' : undefined}
+          onClick={onLog}
         >
-          {({ isActive }) => (
-            <>
-              {tab.icon}
-              <span>{tab.label}</span>
-              <ActiveMarker active={isActive} />
-            </>
-          )}
-        </NavLink>
+          <Icon name="plus" size={26} strokeWidth={2.2} />
+        </button>
+      </div>
+      {RIGHT.map((tab) => (
+        <TabLink key={tab.to} tab={tab} />
       ))}
     </nav>
   )
 }
 
-function ActiveMarker({ active }: { active: boolean }) {
-  return active ? (
-    <span
-      aria-hidden="true"
-      style={{
-        position: 'absolute',
-        width: 4,
-        height: 4,
-        borderRadius: 999,
-        background: 'currentColor',
-        transform: 'translateY(17px)',
-      }}
-    />
-  ) : null
-}
-
-function IconSun() {
+function TabLink({ tab }: { tab: Tab }) {
   return (
-    <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-    </svg>
-  )
-}
-
-function IconPlus() {
-  return (
-    <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 8v8M8 12h8" />
-    </svg>
-  )
-}
-
-function IconList() {
-  return (
-    <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 6h13M8 12h13M8 18h13" />
-      <circle cx="4" cy="6" r="1.2" />
-      <circle cx="4" cy="12" r="1.2" />
-      <circle cx="4" cy="18" r="1.2" />
-    </svg>
-  )
-}
-
-function IconPerson() {
-  return (
-    <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
-    </svg>
-  )
-}
-
-function IconChart() {
-  return (
-    <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19V9M10 19V5M16 19v-7M22 19V3" />
-      <path d="M2 19h20" />
-    </svg>
+    <NavLink to={tab.to} end={tab.to === '/'} className="nav-link">
+      <Icon name={tab.icon} size={22} strokeWidth={1.7} />
+      <span>{tab.label}</span>
+    </NavLink>
   )
 }

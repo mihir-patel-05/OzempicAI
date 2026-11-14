@@ -1,17 +1,26 @@
-import type { ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { TabBar } from './TabBar'
+import { LogSheet } from './LogSheet'
+import { Icon } from './Icon'
 
 export function Shell({ children }: { children: ReactNode }) {
+  const [logOpen, setLogOpen] = useState(false)
+  const openLog = useCallback(() => setLogOpen(true), [])
+  const closeLog = useCallback(() => setLogOpen(false), [])
+
   return (
     <div className="app-shell">
       <aside className="desktop-sidebar" aria-label="Primary navigation">
         <Brand />
+        <button type="button" className="btn btn-filled sidebar-log-button" onClick={openLog} aria-haspopup="dialog">
+          <Icon name="plus" size={18} strokeWidth={2.2} /> Log something
+        </button>
         <TabBar variant="desktop" />
         <p
           style={{
             margin: 'auto 8px 0',
             color: 'var(--text-tertiary)',
-            fontSize: 11,
+            fontSize: 'var(--text-xs)',
             lineHeight: 1.6,
           }}
         >
@@ -19,7 +28,8 @@ export function Shell({ children }: { children: ReactNode }) {
         </p>
       </aside>
       <main className="app-content">{children}</main>
-      <TabBar variant="mobile" />
+      <TabBar variant="mobile" onLog={openLog} logOpen={logOpen} />
+      {logOpen && <LogSheet onClose={closeLog} />}
     </div>
   )
 }
