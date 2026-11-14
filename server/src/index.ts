@@ -7,6 +7,7 @@ import { authRoutes, purgeExpiredAuthRows, requireUser } from './auth.js'
 import type { AppEnv } from './auth.js'
 import { pool } from './db.js'
 import { toHttpError } from './http.js'
+import { aiRoutes } from './routes/ai.js'
 import { analyticsRoutes } from './routes/analytics.js'
 import { profileRoutes } from './routes/profile.js'
 import { resourceRoutes } from './routes/resources.js'
@@ -41,6 +42,7 @@ data.route('/', resourceRoutes)
 data.route('/', profileRoutes)
 data.route('/', workoutRoutes)
 data.route('/', analyticsRoutes)
+data.route('/', aiRoutes)
 app.route('/api', data)
 
 app.notFound((c) => c.json({ error: 'Not found' }, 404))
