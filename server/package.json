@@ -13,7 +13,7 @@
     "start": "node dist/index.js",
     "migrate": "node dist/migrate.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test src/**/*.test.ts",
+    "test": "node --import tsx --test 'src/**/*.test.ts'",
     "import:supabase": "node dist/import-supabase.js"
   },
   "dependencies": {
