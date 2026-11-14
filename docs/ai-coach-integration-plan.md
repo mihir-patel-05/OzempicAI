@@ -59,6 +59,10 @@ CoachScreen ── POST /api/ai/chat ──► /api/* proxy ──► routes/ai.
 - **No assistant prefill.** The last message must not be an assistant turn.
 - Save the full `response.content` array for each assistant turn, not just its text, and never edit or delete earlier turns. Starting a new conversation is fine.
 - Put `strict: true` on write tools so their inputs always match the schema. Still validate inputs on the server.
+- **Strict schemas can't use `minimum`/`maximum`, `minLength`/`maxLength` or `maxItems`.** The
+  structured-outputs validator rejects them, so the schemas below that use them were implemented
+  without those keywords: the limits are stated in the tool descriptions and enforced by zod on
+  the server (`server/src/ai/tools/`). A unit test guards against reintroducing them.
 - Check `stop_reason` before running tools: `refusal` and `max_tokens` mean the turn's tools must not run.
 
 ---
