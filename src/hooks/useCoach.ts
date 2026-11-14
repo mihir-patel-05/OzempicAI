@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../auth/AuthProvider'
 import { ApiError, api, apiStream } from '../lib/api'
-import { rememberLiveTurn } from '../features/coach/liveTools'
+import { markUndone, rememberLiveTurn } from '../features/coach/liveTools'
 import type {
   CoachConversation,
   CoachConversationDetail,
@@ -185,4 +185,27 @@ export function useSendMessage(onConversation: (id: string) => void) {
   }, [])
 
   return { send, turn, isSending: turn?.streaming ?? false, clearTurn }
+}
+
+// ─── Undo ───────────────────────────────────────────────────────────────────
+
+/**
+ * Undo a coach write by deleting exactly the rows it inserted, through the
+ * same DELETE endpoints Plans uses. Rows the user already deleted are fine:
+ * DELETE of a missing id still succeeds.
+ */
+export function useUndoToolCall() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (call: CoachToolCall) => {
+      if (!call.id || !call.resource || !call.created_ids?.length) return
+      for (const rowId of call.created_ids) {
+        await api(`/${call.resource}/${rowId}`, { method: 'DELETE' })
+      }
+    },
+    onSuccess: (_data, call) => {
+      if (call.id) markUndone(call.id)
+      if (call.resource) return queryClient.invalidateQueries({ queryKey: [call.resource] })
+    },
+  })
 }
