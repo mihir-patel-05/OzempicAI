@@ -1,0 +1,177 @@
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Banner } from '../../components/Banner'
+import { Icon } from '../../components/Icon'
+import { PageHeader } from '../../components/PageHeader'
+import { isCoachNotConfigured, useConversation, useConversations, useSendMessage } from '../../hooks/useCoach'
+import { ApiError } from '../../lib/api'
+import { Composer, type ComposerHandle } from './Composer'
+import { MessageBubble } from './MessageBubble'
+import { useLiveTools } from './liveTools'
+
+export const SUGGESTED_PROMPTS = [
+  'How did this week compare to last week?',
+  'Plan my meals for next week',
+  'Add ingredients for a high-protein breakfast to my grocery list',
+]
+
+/** Within this many px of the bottom counts as "reading the latest". */
+const STICK_TO_BOTTOM_PX = 160
+
+export function CoachScreen() {
+  const [params, setParams] = useSearchParams()
+  const startNew = params.has('new')
+  const conversations = useConversations()
+
+  // null = a new, unsaved chat. undefined = not chosen yet (use the latest).
+  const [chosenId, setChosenId] = useState<string | null | undefined>(startNew ? null : undefined)
+  const latestId = conversations.data?.[0]?.id ?? null
+  const conversationId = chosenId === undefined ? latestId : chosenId
+
+  const onConversation = useCallback((id: string) => setChosenId(id), [])
+  const { send, turn, isSending, clearTurn } = useSendMessage(onConversation)
+  // Hold the saved history steady until the live turn has been swapped out,
+  // so a refetch can't show the same reply twice. An unsaved turn isn't in it.
+  const conversation = useConversation(conversationId, !!turn && !turn.unsaved)
+  const live = useLiveTools()
+  const composer = useRef<ComposerHandle>(null)
+
+  // Opened with ?new=1: start fresh once, then drop the flag from the URL.
+  useEffect(() => {
+    if (startNew) setParams({}, { replace: true })
+  }, [startNew, setParams])
+
+  // A chat deleted elsewhere (or never ours) falls back to a new one.
+  useEffect(() => {
+    if (conversation.error instanceof ApiError && conversation.error.status === 404) setChosenId(null)
+  }, [conversation.error])
+
+  const saved = useMemo(() => (conversationId ? conversation.data?.messages ?? [] : []), [conversationId, conversation.data])
+
+  // Keep the newest message in view while it streams, unless the user has
+  // scrolled up to read something earlier.
+  const end = useRef<HTMLDivElement>(null)
+  const pinned = useRef(true)
+  useEffect(() => {
+    const onScroll = () => {
+      const fromBottom = document.documentElement.scrollHeight - window.innerHeight - window.scrollY
+      pinned.current = fromBottom < STICK_TO_BOTTOM_PX
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  useLayoutEffect(() => {
+    if (pinned.current) end.current?.scrollIntoView({ block: 'end' })
+  }, [saved, turn])
+
+  function startNewChat() {
+    if (isSending) return
+    clearTurn()
+    setChosenId(null)
+    pinned.current = true
+    composer.current?.focus()
+  }
+
+  function submit(message: string) {
+    pinned.current = true
+    void send(message, conversationId)
+  }
+
+  function retry() {
+    if (!turn) return
+    const message = turn.user.text
+    clearTurn()
+    submit(message)
+  }
+
+  if (isCoachNotConfigured(conversations.error)) {
+    return (
+      <div className="screen-stack">
+        <PageHeader title="Coach" back="/" backLabel="Today" />
+        <div className="coach-empty">
+          <span className="coach-empty-mark" aria-hidden="true">
+            <Icon name="sparkle" size={26} />
+          </span>
+          <h2>AI coach isn&rsquo;t set up yet</h2>
+          <p>Once it&rsquo;s switched on, you can ask about your eating, plan meals and build your grocery list here.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const loadingHistory = conversations.isLoading || (!!conversationId && conversation.isLoading && !turn)
+  const empty = !loadingHistory && saved.length === 0 && !turn
+
+  return (
+    <div className="coach-screen">
+      <PageHeader
+        title="Coach"
+        back="/"
+        backLabel="Today"
+        action={
+          <button type="button" className="chip" onClick={startNewChat} disabled={isSending || (empty && conversationId === null)}>
+            <Icon name="plus" size={16} strokeWidth={2.2} /> New chat
+          </button>
+        }
+      />
+
+      <section className="coach-messages" aria-label="Conversation" aria-live="polite" aria-busy={isSending || undefined}>
+        {loadingHistory && <p className="empty-note">Loading your chat…</p>}
+        {conversations.isError && !isCoachNotConfigured(conversations.error) && (
+          <Banner tone="error">Couldn&rsquo;t load your chats. Check your connection and try again.</Banner>
+        )}
+
+        {empty && (
+          <div className="coach-empty">
+            <span className="coach-empty-mark" aria-hidden="true">
+              <Icon name="sparkle" size={26} />
+            </span>
+            <h2>Hi! How can I help?</h2>
+            <p>I can look at your calorie logs, give feedback, plan your meals for the week and add to your grocery list.</p>
+            <div className="coach-suggestions">
+              {SUGGESTED_PROMPTS.map((prompt) => (
+                <button key={prompt} type="button" className="coach-suggestion" onClick={() => submit(prompt)}>
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {saved.map((message) => (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            tools={live.byMessage.get(message.id)}
+            error={live.errors.get(message.id)}
+          />
+        ))}
+
+        {turn && (
+          <>
+            <MessageBubble message={turn.user} />
+            <MessageBubble
+              message={turn.assistant}
+              error={turn.assistant.error}
+              streaming={turn.streaming}
+              activeTool={turn.activeTool}
+            />
+            {turn.unsaved && !turn.streaming && (
+              <div className="coach-retry">
+                <button type="button" className="chip" onClick={retry}>
+                  Try again
+                </button>
+              </div>
+            )}
+          </>
+        )}
+        <div ref={end} />
+      </section>
+
+      <div className="coach-composer-dock">
+        <Composer ref={composer} disabled={isSending} onSend={submit} />
+        <p className="coach-disclaimer">Your coach can make mistakes and isn&rsquo;t medical advice.</p>
+      </div>
+    </div>
+  )
+}
