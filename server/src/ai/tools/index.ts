@@ -1,11 +1,18 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { DateInputError } from '../dates.js'
 import { getCalorieEntries, getCalorieSummary } from './calories.js'
+import { addGroceryItems, getGroceryList } from './groceries.js'
 import { getProfile } from './profile.js'
 import { ToolInputError } from './types.js'
 import type { CoachTool, ToolContext, ToolResource } from './types.js'
 
-const REGISTRY: CoachTool[] = [getProfile, getCalorieSummary, getCalorieEntries]
+const REGISTRY: CoachTool[] = [
+  getProfile,
+  getCalorieSummary,
+  getCalorieEntries,
+  getGroceryList,
+  addGroceryItems,
+]
 
 const BY_NAME = new Map(REGISTRY.map((tool) => [tool.definition.name, tool]))
 
