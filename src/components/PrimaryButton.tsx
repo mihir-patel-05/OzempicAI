@@ -23,11 +23,11 @@ export function PrimaryButton({
     <button
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`btn btn-${variant}${className ? ` ${className}` : ''}`}
+      className={`btn btn-${variant}${loading ? ' is-loading' : ''}${className ? ` ${className}` : ''}`}
       style={{ ...toneStyle, ...style }}
       {...rest}
     >
-      {loading ? 'Saving…' : children}
+      {children}
     </button>
   )
 }

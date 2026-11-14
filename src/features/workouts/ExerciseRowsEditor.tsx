@@ -1,4 +1,6 @@
-import { Field, CapsLabel } from '../../components/Field'
+import { Field } from '../../components/Field'
+import { Icon } from '../../components/Icon'
+import { IconButton } from '../../components/IconButton'
 import type {
   UnitSystem,
   WorkoutExerciseDraft,
@@ -102,134 +104,143 @@ export function ExerciseRowsEditor({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
       <datalist id={listId}>
         {MACHINE_SUGGESTIONS[workoutType].map((machine) => (
           <option key={machine} value={machine} />
         ))}
       </datalist>
 
-      {rows.map((row, index) => (
-        <div
-          key={row.key}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            padding: 12,
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--cream-dim)',
-          }}
-        >
+      {rows.map((row, index) => {
+        const n = index + 1
+        return (
           <div
+            key={row.key}
             style={{
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
+              flexDirection: 'column',
+              gap: 'var(--space-sm)',
+              minWidth: 0,
+              padding: 'var(--space-ms)',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--surface-inset)',
             }}
           >
-            <CapsLabel>Exercise {index + 1}</CapsLabel>
-            <button
-              type="button"
-              onClick={() => remove(row.key)}
-              aria-label={`Remove exercise ${index + 1}`}
-              style={{
-                color: 'var(--text-tertiary)',
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '2px 4px',
-              }}
-            >
-              Remove
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', minWidth: 0 }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  display: 'grid',
+                  flex: 'none',
+                  width: 26,
+                  height: 26,
+                  placeItems: 'center',
+                  borderRadius: '50%',
+                  background: 'var(--card-bg)',
+                  color: 'var(--text-secondary)',
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 700,
+                }}
+              >
+                {n}
+              </span>
+              <input
+                className="field-input"
+                aria-label={`Exercise ${n} movement`}
+                value={row.exercise_name}
+                onChange={(e) => update(row.key, { exercise_name: e.target.value })}
+                placeholder={exercisePlaceholder(workoutType)}
+                autoCapitalize="sentences"
+                autoCorrect="off"
+                spellCheck={false}
+                style={{ flex: 1, fontWeight: 500 }}
+              />
+              <IconButton
+                icon="close"
+                label={`Remove exercise ${n}`}
+                onClick={() => remove(row.key)}
+                style={{ margin: '0 -6px 0 -4px' }}
+              />
+            </div>
+
+            <input
+              className="field-input"
+              aria-label={`Exercise ${n} machine or equipment`}
+              value={row.machine}
+              onChange={(e) => update(row.key, { machine: e.target.value })}
+              placeholder="Machine or equipment"
+              list={listId}
+              autoCapitalize="sentences"
+              autoCorrect="off"
+              spellCheck={false}
+              style={{ fontSize: 'var(--text-md)' }}
+            />
+
+            {cardio ? (
+              <div style={twoColumns}>
+                <Field
+                  label={planning ? 'Target min' : 'Minutes'}
+                  value={row.duration}
+                  onChange={(v) => update(row.key, { duration: v })}
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="min"
+                  min="1"
+                />
+                <Field
+                  label={planning ? `Target ${distanceUnit(unitSystem)}` : `Distance (${distanceUnit(unitSystem)})`}
+                  value={row.distance}
+                  onChange={(v) => update(row.key, { distance: v })}
+                  type="number"
+                  inputMode="decimal"
+                  placeholder={distanceUnit(unitSystem)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            ) : (
+              <div style={threeColumns}>
+                <Field
+                  label="Sets"
+                  value={row.sets}
+                  onChange={(v) => update(row.key, { sets: v })}
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="4"
+                  min="1"
+                />
+                <Field
+                  label="Reps"
+                  value={row.reps}
+                  onChange={(v) => update(row.key, { reps: v })}
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="10"
+                  min="1"
+                />
+                <Field
+                  label={`Load (${weightUnit(unitSystem)})`}
+                  value={row.weight}
+                  onChange={(v) => update(row.key, { weight: v })}
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="0"
+                  min="0"
+                  step="0.5"
+                />
+              </div>
+            )}
           </div>
-
-          <Field
-            label="Movement"
-            value={row.exercise_name}
-            onChange={(v) => update(row.key, { exercise_name: v })}
-            placeholder={exercisePlaceholder(workoutType)}
-            autoCapitalize="sentences"
-          />
-          <Field
-            label="Machine / equipment"
-            value={row.machine}
-            onChange={(v) => update(row.key, { machine: v })}
-            placeholder={MACHINE_SUGGESTIONS[workoutType][0]}
-            list={listId}
-            autoCapitalize="sentences"
-          />
-
-          {cardio ? (
-            <div style={twoColumns}>
-              <Field
-                label={planning ? 'Target minutes' : 'Minutes'}
-                value={row.duration}
-                onChange={(v) => update(row.key, { duration: v })}
-                type="number"
-                inputMode="numeric"
-                placeholder="min"
-                min="1"
-              />
-              <Field
-                label={`${planning ? 'Target distance' : 'Distance'} (${distanceUnit(unitSystem)})`}
-                value={row.distance}
-                onChange={(v) => update(row.key, { distance: v })}
-                type="number"
-                inputMode="decimal"
-                placeholder={distanceUnit(unitSystem)}
-                min="0"
-                step="0.01"
-              />
-            </div>
-          ) : (
-            <div style={threeColumns}>
-              <Field
-                label="Sets"
-                value={row.sets}
-                onChange={(v) => update(row.key, { sets: v })}
-                type="number"
-                inputMode="numeric"
-                placeholder="4"
-                min="1"
-              />
-              <Field
-                label="Reps / set"
-                value={row.reps}
-                onChange={(v) => update(row.key, { reps: v })}
-                type="number"
-                inputMode="numeric"
-                placeholder="10"
-                min="1"
-              />
-              <Field
-                label={`Weight (${weightUnit(unitSystem)})`}
-                value={row.weight}
-                onChange={(v) => update(row.key, { weight: v })}
-                type="number"
-                inputMode="decimal"
-                placeholder={weightUnit(unitSystem)}
-                min="0"
-                step="0.5"
-              />
-            </div>
-          )}
-        </div>
-      ))}
+        )
+      })}
 
       <button
         type="button"
+        className="btn btn-outline"
         onClick={() => onChange([...rows, emptyExerciseRow()])}
-        style={{
-          alignSelf: 'flex-start',
-          color: 'var(--accent)',
-          fontSize: 13,
-          fontWeight: 700,
-          padding: '4px 0',
-        }}
+        style={{ width: '100%' }}
       >
-        + Add another exercise
+        <Icon name="plus" size={18} strokeWidth={2.2} /> Add exercise
       </button>
     </div>
   )
@@ -253,12 +264,12 @@ function mapNumber(
 
 const twoColumns: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: 10,
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 'var(--space-sm)',
 }
 
 const threeColumns: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, 1fr)',
-  gap: 10,
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: 'var(--space-sm)',
 }

@@ -159,10 +159,22 @@ h3 {
   color: var(--btn-color, var(--cta));
 }
 
-.btn:disabled {
+.btn:disabled:not(.is-loading) {
   background: var(--cream-dim);
   border-color: transparent;
   color: var(--text-tertiary);
+}
+
+/* Saving: keep the label and colour (no layout jump), pulse gently. */
+.btn.is-loading {
+  cursor: progress;
+  animation: btn-pulse 900ms ease-in-out infinite alternate;
+}
+
+@keyframes btn-pulse {
+  to {
+    opacity: 0.6;
+  }
 }
 
 .icon-button {
@@ -755,8 +767,21 @@ h3 {
 }
 
 .chip-row .chip {
-  min-height: 38px;
   padding: 0 14px;
+}
+
+/* Neutral toggle chip (e.g. body part) — accent tint only once chosen. */
+.chip.chip-toggle {
+  background: var(--card-bg);
+  box-shadow: inset 0 0 0 1px var(--field-border);
+  color: var(--text-secondary);
+}
+
+.chip[aria-pressed='true'],
+.chip.chip-toggle[aria-pressed='true'] {
+  background: var(--cta);
+  box-shadow: none;
+  color: var(--on-accent);
 }
 
 .analytics-header h1 {
@@ -1215,4 +1240,19 @@ h3 {
   .sheet-backdrop {
     animation: none;
   }
+}
+
+.text-button {
+  display: inline-flex;
+  min-height: var(--tap);
+  align-items: center;
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-xs);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.text-button:hover {
+  text-decoration: underline;
 }

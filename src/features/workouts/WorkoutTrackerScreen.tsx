@@ -3,7 +3,9 @@ import { Banner } from '../../components/Banner'
 import { Card } from '../../components/Card'
 import { CapsLabel, Field } from '../../components/Field'
 import { PrimaryButton } from '../../components/PrimaryButton'
-import { ScreenHeader } from '../../components/ScreenHeader'
+import { Icon } from '../../components/Icon'
+import { IconButton } from '../../components/IconButton'
+import { PageHeader, SectionHeader } from '../../components/PageHeader'
 import { SegmentedPicker } from '../../components/SegmentedPicker'
 import { useUnitSystem } from '../../hooks/useUserProfile'
 import { useUpcomingWorkoutPlans } from '../../hooks/useWorkoutPlans'
@@ -111,47 +113,52 @@ export function WorkoutTrackerScreen() {
     }
   }
 
+  const sessionCount = sessions.data?.length ?? 0
+
   return (
     <div className="screen-stack">
-      <ScreenHeader
+      <PageHeader
         title="Workouts"
-        subtitle={`${sessions.data?.length ?? 0} recent sessions`}
+        back="/log"
+        backLabel="Log"
+        subtitle={
+          sessions.isLoading
+            ? 'Loading your sessions…'
+            : sessionCount === 0
+              ? 'No sessions logged yet'
+              : `${sessionCount} recent ${sessionCount === 1 ? 'session' : 'sessions'} · last ${formatShortDate(sessions.data![0].performed_at)}`
+        }
       />
 
-      {openPlans.length > 0 && (
-        <Card padding="md">
-          <CapsLabel>Start from a plan</CapsLabel>
-          <div
-            style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}
-          >
-            {openPlans.map((plan) => (
-              <button
-                key={plan.id}
-                type="button"
-                onClick={() => prefillFromPlan(plan)}
-                style={{
-                  padding: '7px 12px',
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background:
-                    planId === plan.id ? 'var(--accent)' : 'var(--cream-dim)',
-                  color: planId === plan.id ? 'white' : 'var(--text-secondary)',
-                }}
-              >
-                {plan.name} · {workoutTypeLabel(plan.workout_type)}
-              </button>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      <Card padding="lg" radius="hero" style={{ boxShadow: 'var(--shadow-card)' }}>
-        <h2 style={sectionTitle}>Log a workout</h2>
+      <Card padding="lg">
+        <SectionHeader title="Log a workout" />
         <form
           onSubmit={onSubmit}
-          style={{ display: 'flex', flexDirection: 'column', gap: 15 }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
         >
+          {openPlans.length > 0 && (
+            <div>
+              <CapsLabel>Start from a plan</CapsLabel>
+              <div className="chip-row" style={{ marginTop: 'var(--space-sm)' }}>
+                {openPlans.map((plan) => {
+                  const selected = planId === plan.id
+                  return (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      className="chip"
+                      aria-pressed={selected}
+                      onClick={() => prefillFromPlan(plan)}
+                    >
+                      {selected && <Icon name="check" size={14} strokeWidth={2.4} />}
+                      {plan.name} · {workoutTypeLabel(plan.workout_type)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <div>
             <div style={{ marginBottom: 6 }}>
               <CapsLabel>Split</CapsLabel>
@@ -163,24 +170,14 @@ export function WorkoutTrackerScreen() {
               ariaLabel="Workout split"
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr .6fr', gap: 10 }}>
-            <Field
-              label="Workout name"
-              value={name}
-              onChange={setName}
-              placeholder={`${workoutTypeLabel(workoutType)} day`}
-              autoCapitalize="sentences"
-            />
-            <Field
-              label="Minutes"
-              value={duration}
-              onChange={setDuration}
-              type="number"
-              inputMode="numeric"
-              placeholder="Optional"
-              min="1"
-            />
-          </div>
+
+          <Field
+            label="Workout name"
+            value={name}
+            onChange={setName}
+            placeholder={`${workoutTypeLabel(workoutType)} day`}
+            autoCapitalize="sentences"
+          />
 
           <ExerciseRowsEditor
             rows={rows}
@@ -189,13 +186,30 @@ export function WorkoutTrackerScreen() {
             unitSystem={unitSystem}
           />
 
-          <Field
-            label="Notes"
-            value={notes}
-            onChange={setNotes}
-            placeholder="Felt strong, add 5 next time"
-            autoCapitalize="sentences"
-          />
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2.4fr)',
+              gap: 'var(--space-sm)',
+            }}
+          >
+            <Field
+              label="Minutes"
+              value={duration}
+              onChange={setDuration}
+              type="number"
+              inputMode="numeric"
+              placeholder="—"
+              min="1"
+            />
+            <Field
+              label="Notes"
+              value={notes}
+              onChange={setNotes}
+              placeholder="Optional"
+              autoCapitalize="sentences"
+            />
+          </div>
 
           {error && <Banner tone="error">{error}</Banner>}
           <PrimaryButton
@@ -208,103 +222,91 @@ export function WorkoutTrackerScreen() {
         </form>
       </Card>
 
-      <Card padding="lg" radius="hero" style={{ boxShadow: 'var(--shadow-card)' }}>
-        <h2 style={sectionTitle}>Recent workouts</h2>
-        {sessions.isLoading && <p style={muted}>Loading your workouts…</p>}
+      <Card padding="lg">
+        <SectionHeader
+          title="Recent sessions"
+          meta={sessionCount ? `${sessionCount} logged` : undefined}
+        />
+        {sessions.isLoading && <p className="empty-note">Loading your workouts…</p>}
         {sessions.isError && (
           <Banner tone="error">Could not load your workouts.</Banner>
         )}
         {!sessions.isLoading && !sessions.isError && !sessions.data?.length && (
-          <p style={muted}>
+          <p className="empty-note">
             Nothing logged yet. Your first session will show up here.
           </p>
         )}
-        {(sessions.data ?? []).map((workout) => {
-          const volume = sessionVolumeKg(workout.exercises)
-          return (
-            <article
-              key={workout.id}
-              style={{
-                padding: '14px 0',
-                borderBottom: '1px solid var(--divider)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  gap: 12,
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 17,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {workout.name}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                    {workoutTypeLabel(workout.workout_type)} ·{' '}
-                    {formatDateTime(workout.performed_at)}
-                    {workout.duration_minutes
-                      ? ` · ${workout.duration_minutes} min`
-                      : ''}
-                    {!isCardio(workout.workout_type) && volume > 0
-                      ? ` · ${formatWeight(volume, unitSystem, 0)} volume`
-                      : ''}
-                  </div>
+        <ul className="row-list">
+          {(sessions.data ?? []).map((workout) => {
+            const volume = sessionVolumeKg(workout.exercises)
+            const summary = [
+              workoutTypeLabel(workout.workout_type),
+              formatDateTime(workout.performed_at),
+              workout.duration_minutes ? `${workout.duration_minutes} min` : null,
+              !isCardio(workout.workout_type) && volume > 0
+                ? `${formatWeight(volume, unitSystem, 0)} volume`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')
+            return (
+              <li key={workout.id} style={{ alignItems: 'flex-start', paddingTop: 10 }}>
+                <span
+                  className="tile-icon"
+                  style={{ ['--tone' as string]: 'var(--ember)', width: 36, height: 36, borderRadius: 11 }}
+                >
+                  <Icon name={isCardio(workout.workout_type) ? 'run' : 'dumbbell'} size={18} />
+                </span>
+                <div className="row-main">
+                  <div className="row-title">{workout.name}</div>
+                  <div className="row-meta">{summary}</div>
+                  {workout.exercises.length > 0 && (
+                    <ul
+                      style={{
+                        listStyle: 'none',
+                        padding: 0,
+                        margin: '6px 0 0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                      }}
+                    >
+                      {workout.exercises.map((exercise) => {
+                        const meta = describeSessionExercise(exercise, unitSystem)
+                        return (
+                          <li key={exercise.id} style={{ fontSize: 'var(--text-sm)', overflowWrap: 'anywhere' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>{exercise.exercise_name}</span>
+                            {meta && <span style={{ color: 'var(--text-tertiary)' }}> — {meta}</span>}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                  {workout.notes && (
+                    <p
+                      style={{
+                        margin: '6px 0 0',
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--text-secondary)',
+                        fontStyle: 'italic',
+                        overflowWrap: 'anywhere',
+                      }}
+                    >
+                      {workout.notes}
+                    </p>
+                  )}
                 </div>
-                <button
-                  type="button"
+                <IconButton
+                  icon="trash"
+                  tone="danger"
+                  label={`Delete ${workout.name}, ${formatShortDate(workout.performed_at)}`}
                   onClick={() => deleteSession.mutate(workout.id)}
-                  aria-label={`Delete ${workout.name}`}
-                  style={{ color: 'var(--text-tertiary)', padding: 4, fontSize: 12, fontWeight: 600 }}
-                >
-                  Delete
-                </button>
-              </div>
-              <ul
-                style={{
-                  listStyle: 'none',
-                  padding: 0,
-                  margin: '8px 0 0',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 3,
-                }}
-              >
-                {workout.exercises.map((exercise) => (
-                  <li key={exercise.id} style={{ fontSize: 13 }}>
-                    <span style={{ color: 'var(--text-primary)' }}>
-                      {exercise.exercise_name}
-                    </span>
-                    <span style={{ color: 'var(--text-tertiary)' }}>
-                      {describeSessionExercise(exercise, unitSystem)
-                        ? ` — ${describeSessionExercise(exercise, unitSystem)}`
-                        : ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {workout.notes && (
-                <p
-                  style={{
-                    margin: '8px 0 0',
-                    fontSize: 12,
-                    color: 'var(--text-secondary)',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {workout.notes}
-                </p>
-              )}
-            </article>
-          )
-        })}
+                  style={{ marginTop: -4, marginRight: -8 }}
+                />
+              </li>
+            )
+          })}
+        </ul>
       </Card>
     </div>
   )
@@ -315,14 +317,6 @@ function formatDateTime(iso: string): string {
   return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
 }
 
-const sectionTitle: React.CSSProperties = {
-  margin: '0 0 16px',
-  fontFamily: 'var(--font-display)',
-  fontSize: 20,
-  fontWeight: 600,
-}
-const muted: React.CSSProperties = {
-  color: 'var(--text-tertiary)',
-  fontSize: 13,
-  lineHeight: 1.6,
+function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
