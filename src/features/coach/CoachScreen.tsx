@@ -21,6 +21,8 @@ const STICK_TO_BOTTOM_PX = 160
 export function CoachScreen() {
   const [params, setParams] = useSearchParams()
   const startNew = params.has('new')
+  // ?draft= prefills the composer (e.g. "Plan with AI" on Plans); it is never sent for you.
+  const [draft] = useState(() => params.get('draft') ?? '')
   const conversations = useConversations()
 
   // null = a new, unsaved chat. undefined = not chosen yet (use the latest).
@@ -36,10 +38,14 @@ export function CoachScreen() {
   const live = useLiveTools()
   const composer = useRef<ComposerHandle>(null)
 
-  // Opened with ?new=1: start fresh once, then drop the flag from the URL.
+  // Opened with ?new=1 or ?draft=: start fresh once, then tidy the URL.
   useEffect(() => {
-    if (startNew) setParams({}, { replace: true })
-  }, [startNew, setParams])
+    if (startNew || params.has('draft')) setParams({}, { replace: true })
+  }, [startNew, params, setParams])
+
+  useEffect(() => {
+    if (draft) composer.current?.focus()
+  }, [draft])
 
   // A chat deleted elsewhere (or never ours) falls back to a new one.
   useEffect(() => {
@@ -169,7 +175,7 @@ export function CoachScreen() {
       </section>
 
       <div className="coach-composer-dock">
-        <Composer ref={composer} disabled={isSending} onSend={submit} />
+        <Composer ref={composer} disabled={isSending} initialValue={draft} onSend={submit} />
         <p className="coach-disclaimer">Your coach can make mistakes and isn&rsquo;t medical advice.</p>
       </div>
     </div>

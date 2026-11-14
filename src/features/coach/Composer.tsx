@@ -11,6 +11,8 @@ export interface ComposerHandle {
 
 interface ComposerProps {
   disabled?: boolean
+  /** Text to start with, e.g. a draft passed in from another screen. */
+  initialValue?: string
   onSend: (message: string) => void
 }
 
@@ -18,8 +20,11 @@ interface ComposerProps {
  * Message box pinned to the bottom of the chat. Enter sends and Shift+Enter
  * adds a line on a hardware keyboard; on a phone the send button is the way.
  */
-export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer({ disabled, onSend }, ref) {
-  const [value, setValue] = useState('')
+export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
+  { disabled, initialValue = '', onSend },
+  ref,
+) {
+  const [value, setValue] = useState(initialValue.slice(0, MAX_MESSAGE_CHARS))
   const textarea = useRef<HTMLTextAreaElement>(null)
   useImperativeHandle(ref, () => ({ focus: () => textarea.current?.focus() }), [])
 
