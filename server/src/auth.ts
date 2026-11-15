@@ -245,6 +245,25 @@ export const requireUser: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next()
 }
 
+/**
+ * Cut off every AI app connected to the account: unused authorization codes,
+ * connections, and the tokens issued under them. Runs inside the transaction
+ * that changes the password, so whoever held the old password (or a stolen
+ * session) keeps no way back in. The order matters: a code exchange or token
+ * refresh racing with this either commits first and is caught by the later
+ * statements, or waits on our row locks and then finds nothing left to use.
+ */
+async function revokeConnectedApps(db: Db, userId: string) {
+  await db.query('delete from auth.oauth_codes where user_id = $1', [userId])
+  await db.query('update auth.oauth_grants set revoked_at = now() where user_id = $1 and revoked_at is null', [userId])
+  await db.query(
+    `update auth.oauth_tokens set revoked_at = now()
+      where revoked_at is null
+        and grant_id in (select id from auth.oauth_grants where user_id = $1)`,
+    [userId],
+  )
+}
+
 // ─── Routes ─────────────────────────────────────────────────────────────────
 
 export const authRoutes = new Hono<AppEnv>()
@@ -304,7 +323,8 @@ authRoutes.post('/logout', requireUser, async (c) => {
 /**
  * Change the password while signed in. Needs the current password: a session
  * token alone (a borrowed phone, a stolen token) must not be enough to take
- * the account over. Other devices are signed out.
+ * the account over. Other devices are signed out and connected AI apps are
+ * disconnected.
  */
 authRoutes.post('/password', requireUser, async (c) => {
   const body = await readJson(c)
@@ -330,6 +350,9 @@ authRoutes.post('/password', requireUser, async (c) => {
       user.id,
       hashToken(c.get('token')),
     ])
+    // A reset link requested before the change must not undo it.
+    await db.query('delete from auth.password_reset_tokens where user_id = $1', [user.id])
+    await revokeConnectedApps(db, user.id)
   })
   return c.body(null, 204)
 })
@@ -358,7 +381,7 @@ authRoutes.post('/recover', async (c) => {
   return c.body(null, 204)
 })
 
-/** Redeem a reset link: set the new password, sign out everywhere, sign in here. */
+/** Redeem a reset link: set the new password, sign out everywhere, disconnect AI apps, sign in here. */
 authRoutes.post('/reset', async (c) => {
   limitByIp(c, 'reset')
   const body = await readJson(c)
@@ -394,6 +417,7 @@ authRoutes.post('/reset', async (c) => {
       [user.id, hash],
     )
     await db.query('delete from auth.sessions where user_id = $1', [user.id])
+    await revokeConnectedApps(db, user.id)
     await db.query(
       'delete from auth.password_reset_tokens where user_id = $1 and used_at is null',
       [user.id],

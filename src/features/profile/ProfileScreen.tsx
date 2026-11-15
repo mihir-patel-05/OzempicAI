@@ -179,7 +179,7 @@ export function ProfileScreen() {
             <SectionHeader title="Security" />
             <form onSubmit={onUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               <Field label="Current password" value={currentPassword} onChange={setCurrentPassword} type="password" autoComplete="current-password" placeholder="Your password now" />
-              <Field label="New password" value={password} onChange={setPassword} type="password" autoComplete="new-password" placeholder="At least 8 characters" hint="Change it anytime. Your other devices will be signed out." />
+              <Field label="New password" value={password} onChange={setPassword} type="password" autoComplete="new-password" placeholder="At least 8 characters" hint="Your other devices will be signed out and connected AI apps disconnected." />
               <PrimaryButton type="submit" variant="outline" loading={updatingPassword} disabled={password.length < 8 || !currentPassword}>Update password</PrimaryButton>
             </form>
           </Card>
