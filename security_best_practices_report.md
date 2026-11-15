@@ -4,7 +4,9 @@
 
 Reviewed 2026-11-15 at commit `92f956dbd8eb9dbb0668f7727b3372e850f19d02`. The owner confirmed they are currently the only user. **The most urgent reproduced issues are incomplete account recovery, bypassable IP rate limits, and unauthenticated event-loop denial of service in email validation.** Before adding users, also address resource/cost controls, OAuth scope reduction, consent-page framing, and cross-user foreign-key references.
 
-This report records 15 findings with distinct prerequisites and confidence levels. Eleven focused local reproductions passed. No unauthenticated arbitrary health-record read, SQL injection, remote code execution, or general RLS bypass was demonstrated. This is not a guarantee that these classes are absent. There are useful existing controls: parameterized queries, transaction-local user roles, RLS, hashed opaque credentials, mandatory S256 PKCE, refresh rotation, and MCP scope checks.
+The first pass records 15 findings with distinct prerequisites and confidence levels; the second pass brings the total to 23. Eleven focused local reproductions passed in the first pass and eight more in the second. No unauthenticated arbitrary health-record read, SQL injection, remote code execution, or general RLS bypass was demonstrated. This is not a guarantee that these classes are absent. There are useful existing controls: parameterized queries, transaction-local user roles, RLS, hashed opaque credentials, mandatory S256 PKCE, refresh rotation, and MCP scope checks.
+
+**Second pass (2026-11-15, commit `1d18a64`).** A follow-up review looked specifically for backdoors, data-theft paths and ways to take the service down. It adds eight findings, SEC-16 to SEC-23, all reproduced locally. **The most serious new issues are two ways to exhaust the API process's memory: oversized emails kept as rate-limit keys (SEC-17, unauthenticated) and list endpoints that return up to 2,000 unbounded rows (SEC-18, any signed-up account).** No backdoor, hidden account, debug route, committed secret, or cross-user read of health records was found; see "Second review pass" below for what was checked.
 
 ## Scope, method, and limits
 
@@ -229,6 +231,141 @@ Severity reflects practical confidentiality, integrity, availability, and cost i
 
 **Verification:** Synthetic existing/nonexisting addresses should have equivalent public response semantics, and timing should not expose a practical repeatable distinction.
 
+## Second review pass — additional findings (SEC-16 to SEC-23)
+
+Added 2026-11-15 at commit `1d18a64`. Same method as the first pass: a fresh loopback-only PostgreSQL 18 database with all 16 migrations, synthetic users, no production requests, no email delivery and no model calls. Each test was bounded (small counts and sizes, then extrapolated) and none was run to the point of failure. The harness is docs/security/reproduce-additional.mts; its output is in docs/security/validation-results.md. No application code was changed.
+
+| ID | Finding | Severity | Who can exploit it |
+| --- | --- | --- | --- |
+| SEC-17 | Oversized emails become long-lived rate-limit keys | High with SEC-02, Medium alone | Anyone, no account |
+| SEC-18 | List endpoints multiply unbounded rows into huge responses | High while signup is public | Any signed-up account |
+| SEC-16 | MCP batches bypass the per-connection request limit | Medium | Any connected app |
+| SEC-19 | Password hashing runs before cheap checks and without a throttle | Medium | Anyone (reset), any account (change) |
+| SEC-23 | No throttle before authentication and no database timeouts | Medium | Anyone, no account |
+| SEC-21 | Password recovery reveals which emails are registered | Low | Anyone, no account |
+| SEC-22 | Consent screen buttons navigate to attacker-chosen URL schemes | Low | Anyone, needs a victim click |
+| SEC-20 | Raw PostgreSQL error text is returned to clients | Low | Any signed-up account |
+
+### SEC-17 — Oversized emails become long-lived rate-limit keys
+
+**Severity:** High when chained with SEC-02 or sent from many addresses; Medium from a single address. **Confidence:** Reproduced, bounded memory measurement. **Classes:** CWE-770, CWE-400.
+
+**Evidence:** server/src/auth.ts:46 accepts an email of any length up to the 256 KiB body limit. server/src/auth.ts:169 and server/src/auth.ts:219 then build the keys `login:email:<email>` and `recover:email:<email>` and store them in the in-memory `buckets` map at server/src/auth.ts:67. The sweep at server/src/auth.ts:87 removes a key only after its window ends: 15 minutes for login, 60 minutes for recovery. Nothing caps the key length or the number of keys.
+
+**Attack and impact:** Each request with a new, well-formed, very long email pins roughly the size of that email in the API's heap for up to an hour. A well-formed long address passes the regex in linear time, so this is separate from SEC-12. About 5,000 requests of 200 KB each, roughly 1 GB of upload spread over an hour, retain about 1 GB and kill a typical Node process. The crash drops every in-flight request and coach turn, and because all throttles live in the same process it also resets every login, recovery and AI counter. The per-IP limit of 20 per action is the only brake, and SEC-02 removes it.
+
+**Reproduction:** 120 login and recovery requests with 200 KB emails left 24.2 MB retained after a forced garbage collection, about 200 KB per request. The process was not driven to failure.
+
+**Fix:** Reject emails longer than 254 characters before any other work (the same change fixes SEC-12). Key limiter buckets on a fixed-size value such as a hash, cap the number of buckets, and move limiter state to bounded shared storage. Lower the body limit on the auth routes to a few kilobytes.
+
+**Verification/detection:** A regression test must show an oversized email rejected with no new bucket. Export bucket count and heap size as metrics and alert on growth.
+
+### SEC-18 — List endpoints multiply unbounded rows into huge responses
+
+**Severity:** High while signup is public; Medium once accounts are invitation-only. **Confidence:** Reproduced at small scale; the full-size request was not sent. **Classes:** CWE-770, CWE-789.
+
+**Evidence:** server/src/routes/resources.ts:144 stores text fields of any size up to the body limit (SEC-03). The list handler at server/src/routes/resources.ts:108 runs `select *` with a caller-chosen limit of up to 2,000 rows for calorie, water, exercise and grocery rows (server/src/routes/resources.ts:41, 49, 67 and 99) and serializes the whole result in memory. server/src/ai/tools/groceries.ts:17 returns up to 300 grocery rows to the coach and to MCP clients with no per-field cap on rows written through REST, and server/src/ai/tools/groceries.ts:128 loads every unpurchased name with no limit on each add. server/src/ai/store.ts:57 loads a whole conversation the same way.
+
+**Attack and impact:** An attacker signs up, stores 2,000 grocery rows of 250 KB each (about 500 MB, sent once), then requests `GET /api/grocery-items?limit=2000`. Every such request makes the API hold the database rows, the JavaScript strings and the JSON body at once, several times 500 MB. A handful of concurrent requests exhausts memory on a small container and restarts the service for all users; the stored rows make it repeatable at almost no cost. The same rows flow into the coach's prompt (cost and a wedged conversation) and into MCP responses. This is the concrete denial of service that SEC-03 left unmeasured. It does not expose other users' data.
+
+**Reproduction:** Eight rows of 250 KB returned 2.0 MB from one `GET`, and 2.0 MB from the MCP `get_grocery_list` tool. Linear extrapolation gives about 500 MB per request at the 2,000-row limit.
+
+**Fix:** Enforce field lengths in the REST handlers and as database `check` constraints (the MCP tools already use 80 to 200 characters). Lower the list limits, paginate, and select only the columns a screen needs. Add per-user row quotas and a response-size ceiling. Clean up any oversized rows before adding constraints.
+
+**Verification/detection:** Test that an over-length field is rejected through REST, MCP and the coach, and that the largest possible list response stays under a set budget. Alert on response size and process memory.
+
+### SEC-16 — MCP batches bypass the per-connection request limit
+
+**Severity:** Medium. **Confidence:** Reproduced. **Class:** CWE-799.
+
+**Evidence:** server/src/mcp/routes.ts:61 counts one unit per HTTP request against the limit of 120 per 15 minutes, then hands the body to the SDK transport at server/src/mcp/routes.ts:75. The transport accepts a JSON-RPC array of up to 100 messages (`MAX_BATCH_SIZE` in `@modelcontextprotocol/sdk` 1.32.2) and runs them concurrently. Each tool call opens its own transaction in server/src/mcp/server.ts:103.
+
+**Attack and impact:** A connected app can run 12,000 read tool calls per window instead of 120, and 100 at once from a single request. Each call takes a connection from the pool of 10 (server/src/db.ts:16), so other users' requests queue behind them. Any account can connect its own client, so this needs no victim. It reads only the caller's own data; the write limit is unaffected.
+
+**Reproduction:** Two requests ran 200 tool calls, and eight ran 800, with no 429. The health check slowed from under 1 ms to between 20 and 91 ms while 600 calls were in flight. A batch of 60 writes was correctly cut off at 40.
+
+**Fix:** Count every JSON-RPC call against the limit, or reject batches (the current MCP specification no longer uses them). Cap concurrent tool calls per connection and per user.
+
+**Verification:** A batch larger than the remaining allowance must be refused or partially refused, and single calls must keep working.
+
+### SEC-19 — Password hashing runs before cheap checks and without a throttle
+
+**Severity:** Medium. **Confidence:** Reproduced. **Class:** CWE-400.
+
+**Evidence:** server/src/auth.ts:244 computes a bcrypt hash before the reset token is looked up at server/src/auth.ts:247. Signup hashes at server/src/auth.ts:149 before checking whether the email exists. The password-change route at server/src/auth.ts:196 has no rate limit at all. `bcryptjs` is pure JavaScript and runs on the API's only thread, at about 65 ms per hash at 10 rounds on the test machine.
+
+**Attack and impact:** Around 15 requests a second keep the event loop busy and slow every other user. Without an account this needs the SEC-02 header rotation to pass the per-IP limit, using reset requests with a made-up token. With an account, the password-change route accepts any number of requests. Each accepted change also signs the user's other devices out.
+
+**Reproduction:** A reset with an invalid token took 65 ms with a valid-length password and under 1 ms with a short one. Twenty-five back-to-back password changes were all accepted.
+
+**Fix:** Validate the reset token before hashing. Rate-limit password changes per user and require the current password (SEC-07). Use a native or worker-thread password hash so hashing cannot block request handling, and cap concurrent hashes.
+
+**Verification:** A bogus token must be rejected without measurable hashing time, and repeated password changes must hit a limit.
+
+### SEC-23 — No throttle before authentication and no database timeouts
+
+**Severity:** Medium as a missing safety net; it makes SEC-16 to SEC-19 worse. **Confidence:** Reproduced for the missing throttle; timeouts source-confirmed. **Class:** CWE-770.
+
+**Evidence:** The token endpoint looks the client up in the database at server/src/oauth/routes.ts:125 before any limit applies, and the limit that follows is keyed on a valid client only. The same holds for `/api/oauth/revoke`, for any bearer sent to `/api/mcp` (server/src/mcp/routes.ts:58), for any bearer on a data route (server/src/auth.ts:112) and for `/api/health`, which queries the database for anyone (server/src/app.ts:37). The pool at server/src/db.ts:14 sets no `connectionTimeoutMillis`, `statement_timeout` or idle-transaction timeout, so waiting requests queue without limit and a slow query holds its connection until it finishes.
+
+**Attack and impact:** An unauthenticated flood of cheap requests each takes a pool connection. With ten connections and an unbounded queue, legitimate requests wait instead of failing fast, and nothing sheds the load. This is a volume attack, so its effect depends on what the hosting edge already absorbs.
+
+**Reproduction:** 150 token requests from one address with unknown client IDs were all processed and none returned 429.
+
+**Fix:** Add a per-address limit ahead of every unauthenticated database lookup, once SEC-02 gives a trustworthy address. Set a pool connection timeout, a statement timeout and an idle-in-transaction timeout. Make the public health check static and keep the database check on a private path. Put edge rate limiting in front of the service.
+
+**Verification:** Under a synthetic flood, authenticated requests should still succeed or fail quickly with 503, never hang.
+
+### SEC-21 — Password recovery reveals which emails are registered
+
+**Severity:** Low, with the same privacy weight as SEC-15: membership in this app suggests a health condition. **Confidence:** Reproduced with a stubbed email provider. **Classes:** CWE-204, CWE-208.
+
+**Evidence:** server/src/auth.ts:233 awaits the email provider only when the account exists. server/src/email.ts:23 calls the provider with no timeout and no error handling, so a network failure becomes a 500. The route's comment at server/src/auth.ts:214 says the response never reveals who has an account.
+
+**Attack and impact:** The response for a registered address arrives one provider round trip later than for an unknown one. During a provider outage the difference is a 500 against a 204. Unlike the signup oracle in SEC-15, probing this way creates no account, though it does send the target a reset email.
+
+**Reproduction:** With a 300 ms simulated provider, a registered address took 302 ms and an unknown one 2 ms. With a failing provider, the registered address returned 500 and the unknown one 204.
+
+**Fix:** Return 204 immediately and send the email in the background with a timeout and logged failures. Do the same token work for unknown addresses.
+
+**Verification:** Response status and timing for registered and unknown addresses must be indistinguishable, including when the provider is down.
+
+### SEC-22 — Consent screen buttons navigate to attacker-chosen URL schemes
+
+**Severity:** Low. **Confidence:** Reproduced at the API; no device behavior was tested. **Class:** CWE-601.
+
+**Evidence:** server/src/oauth/registration.ts:11 blocks a short list of schemes and server/src/oauth/registration.ts:31 allows every other one. server/src/oauth/routes.ts:97 returns the registered redirect for a declined request, and src/auth/AuthorizeAppScreen.tsx:61 navigates to it. The "Return to" button at src/auth/AuthorizeAppScreen.tsx:110 does the same for a malformed request.
+
+**Attack and impact:** Anyone can register a client whose redirect is `tel:`, `sms:`, `shortcuts://` or another app-launching scheme, then send a signed-in user the consent link. Whichever button the user presses, including Deny, hands that URL to the browser, which may open the dialer, a shortcut or another app. An `https` redirect to a look-alike login page works the same way after Deny. No health data is exposed by this alone; the risk is phishing and unwanted app launches from a trusted screen.
+
+**Reproduction:** Registration accepted `tel:`, `sms:`, `shortcuts://` and `ms-settings:` redirects and rejected `javascript:`. A deny decision returned a `tel:` URL as `redirect_to`.
+
+**Fix:** On Deny, stay on an OzempicAI page unless the redirect is `https` or loopback `http`. Replace the blocklist with an allowlist: `https`, loopback `http`, and reverse-domain private schemes that contain a dot. Show the full destination before any navigation to a non-web scheme.
+
+**Verification:** Registration of `tel:` and similar schemes must fail, and Deny must not navigate off-site for an unverified client.
+
+### SEC-20 — Raw PostgreSQL error text is returned to clients
+
+**Severity:** Low. **Confidence:** Reproduced. **Class:** CWE-209.
+
+**Evidence:** server/src/http.ts:78 maps a set of PostgreSQL error codes to HTTP statuses and keeps the driver's message, which server/src/app.ts:70 sends to the browser. server/src/mcp/server.ts:115 and server/src/ai/loop.ts:105 pass the same text to MCP clients and to the model.
+
+**Attack and impact:** A signed-in caller learns table, column, constraint and type names, which makes other attacks easier to aim. Messages can also echo submitted values. No rows belonging to other users appear in these messages.
+
+**Reproduction:** Three malformed writes returned `violates check constraint "calorie_logs_calories_positive"`, `invalid input syntax for type uuid: "not-a-uuid"` and `violates foreign key constraint "grocery_items_meal_plan_id_fkey"`.
+
+**Fix:** Validate input types and ranges in the handlers so most of these never reach the database. Map each error code to a fixed, friendly message and log the original server-side with a request ID.
+
+**Verification:** Malformed input must produce messages that contain no schema identifiers.
+
+### What the second pass checked and did not find
+
+- **Committed secrets:** All 406 commits on every local and remote branch were searched for Anthropic, Resend, Supabase, AWS and GitHub key formats, JWTs, private keys and database URLs with passwords. The only matches were placeholders and the default passwords of the retired local Docker stack. Hosting-provider variables and build logs were not inspected.
+- **Backdoors and hidden access:** Every route in server/src was read. Each one is either public by design (health, signup, login, recovery, OAuth registration, token and revocation, discovery documents), bearer-protected MCP, or behind `requireUser`. There is no debug or admin route, no hardcoded account or password, and no secret bypass header. server/src/ai/smoke.ts and server/src/import-supabase.ts are command-line scripts that are not reachable over HTTP.
+- **Cross-user access:** A connected app could not edit another user's workout plan by ID, and the plan was unchanged afterwards. Row level security plus the explicit `user_id` filters held in every path exercised.
+- **Browser injection:** The frontend has no `dangerouslySetInnerHTML`, `innerHTML` or `eval`. The login redirect comes from router state rather than a URL parameter, so it is not an open redirect. The only script-controlled navigation is the consent redirect covered by SEC-22.
+- **Request parsing:** Bodies are copied through fixed key lists, so `__proto__` keys cannot reach an object prototype or a SQL identifier.
+
 ## Additional hardening and hypotheses — not counted as demonstrated exploits
 
 - **Prompt injection and destructive AI actions:** MCP returns user-controlled names/notes; a previously approved malicious writer could plant instructions for another connected AI. server/src/mcp/server.ts:23 warns clients to treat tool output as data, but client behavior is outside this server's control. The coach executes model-selected writes at server/src/ai/loop.ts:98 without an independent per-action confirmation gate, and profile names enter a system context at server/src/ai/prompt.ts:85. No model was called and no successful injection was demonstrated. Keep untrusted text structurally separated, require explicit confirmation for destructive edits, and exercise synthetic indirect-injection tests. RLS and tool schemas remain required even when a model follows the system prompt.
@@ -239,6 +376,16 @@ Severity reflects practical confidentiality, integrity, availability, and cost i
 - **Database privilege blast radius:** server/src/db.ts:26 uses the owner role for auth/OAuth work and switches roles for user data. No injection path was found. Separate migration ownership from a least-privileged runtime role and maintain grants explicitly; owner credentials would have a large blast radius if compromised.
 - **Legacy-only configuration:** supabase/docker-compose.yml:16 exposes PostgreSQL on all host interfaces; line 47 allows wildcard auth redirects and line 56 auto-confirms mail. README marks this stack as retired local reference. Do not deploy it as a production replacement unchanged. These are not findings about the current Railway runtime.
 - **Operational unknowns:** Verify production gateway header normalization, HTTPS termination, backup encryption/restoration, database exposure, provider retention/access policies for AI and email, MFA for infrastructure administrators, key rotation, data deletion/export, and alerts. These settings cannot be established from this repository and are not asserted to be missing. This review does not certify regulatory compliance.
+
+Added in the second pass:
+
+- **Remaining browser security headers:** Beyond the framing policy in SEC-09, Caddyfile:9 sets no `Strict-Transport-Security`, `X-Content-Type-Options`, `Referrer-Policy` or script-restricting `Content-Security-Policy`. src/theme/fonts.css:1 imports Google Fonts at runtime, which sends each visitor's address to a third party and widens what a CSP must allow. Self-host the fonts and add the headers in one change.
+- **Session lifetime and control:** server/src/auth.ts:124 extends a session by 30 days on use with no absolute limit, login creates a new session every time with no cap, and logout ends only the current one. There is no list of active sessions and no "sign out everywhere". Add an absolute lifetime and a session list beside Connected AI apps.
+- **Throttles reset on restart:** Every limiter lives in process memory (server/src/auth.ts:67), so a deploy or a crash clears login lockouts and the coach's hourly cap. A crash caused by SEC-17 or SEC-18 therefore also resets password-guessing limits. Shared storage fixes this along with SEC-02.
+- **Log contents:** The request logger at server/src/app.ts:23 records full query strings, which include analytics date ranges and OAuth `state` values. Unhandled errors are printed whole at server/src/app.ts:71, and PostgreSQL error details can contain row values. Log paths without query strings, redact error details, and set a retention period.
+- **Build and supply chain:** The Dockerfiles use moving tags (`node:22-alpine`, `caddy:2-alpine`) rather than digests, and the Caddy container runs as root. The repository has no CI configuration, so tests, `npm audit` and secret scanning do not run automatically. Pin image digests, run Caddy unprivileged, and add a pipeline that blocks merges on those checks.
+- **Account controls expected for health data:** There is no multi-factor option, no check of new passwords against breached-password lists, and no endpoint for a user to export or delete their account and data. Plan these before inviting other users.
+- **This report:** It lists unfixed weaknesses with reproduction steps. Keep the repository private, or move this file and docs/security out of it, until the high-severity items are fixed.
 
 ## Controls verified and important non-findings
 
@@ -257,5 +404,12 @@ Severity reflects practical confidentiality, integrity, availability, and cost i
 3. Implement token-specific narrowed scopes, repair public-client throttling and code-replay binding checks, and protect consent pages against framing.
 4. Enforce relationship ownership and consistent field/storage quotas. Add two-user and abuse regression tests for each correction.
 5. Upgrade vulnerable dependencies, verify database TLS identity, improve privacy responses and access auditing, and inspect the actual deployment controls.
+
+Second-pass additions, in the order they fit into the list above:
+
+- **With step 1:** Cap email length at 254 characters and shrink the auth body limit. This one change closes SEC-12 and SEC-17. Validate reset tokens before hashing (SEC-19).
+- **With step 4:** Add field-length limits and lower list limits (SEC-18). Until then this is the cheapest way for a signed-up account to take the service down, so do not open signup first.
+- **With step 3:** Count MCP calls rather than requests (SEC-16) and restrict redirect schemes (SEC-22).
+- **With step 5:** Add database and pool timeouts and a pre-authentication throttle (SEC-23), make recovery responses uniform (SEC-21), replace raw database messages (SEC-20), and add the remaining headers.
 
 Re-run the focused reproductions after fixes, changing assertions to expect secure behavior. Run the existing suites as regression coverage. Validate production-dependent findings in staging before inviting additional users. Do not interpret the current passing normal test suite as evidence that these vulnerability cases are covered.
