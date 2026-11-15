@@ -404,29 +404,39 @@ authRoutes.post('/password', requireUser, async (c) => {
   return c.body(null, 204)
 })
 
-/** Email a reset link. Always 204 so the response never reveals who has an account. */
+/**
+ * Email a reset link. Answers 204 straight away, before looking the account
+ * up, and does the rest in the background: the status and the response time
+ * are then the same whether or not the address has an account, and whether
+ * or not the email provider is up.
+ */
 authRoutes.post('/recover', async (c) => {
   limitByIp(c, 'recover')
   const body = await readJson(c)
   const email = readEmail(body.email)
   rateLimit(`recover:email:${email}`, 3, 60 * 60_000)
 
+  void sendResetLink(email).catch((err: unknown) => {
+    console.error('Password reset request failed:', err instanceof Error ? err.message : 'unknown error')
+  })
+  return c.body(null, 204)
+})
+
+async function sendResetLink(email: string) {
   const { rows } = await pool.query<{ id: string; email: string }>(
     'select id, email from auth.users where lower(email) = $1',
     [email],
   )
   const user = rows[0]
-  if (user) {
-    const token = newToken()
-    await pool.query(
-      `insert into auth.password_reset_tokens (token_hash, user_id, expires_at)
-       values ($1, $2, now() + make_interval(mins => $3))`,
-      [hashToken(token), user.id, RESET_TOKEN_MINUTES],
-    )
-    await sendPasswordResetEmail(user.email, token)
-  }
-  return c.body(null, 204)
-})
+  if (!user) return
+  const token = newToken()
+  await pool.query(
+    `insert into auth.password_reset_tokens (token_hash, user_id, expires_at)
+     values ($1, $2, now() + make_interval(mins => $3))`,
+    [hashToken(token), user.id, RESET_TOKEN_MINUTES],
+  )
+  await sendPasswordResetEmail(user.email, token)
+}
 
 /** Redeem a reset link: set the new password, sign out everywhere, disconnect AI apps, sign in here. */
 authRoutes.post('/reset', async (c) => {

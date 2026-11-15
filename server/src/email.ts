@@ -22,6 +22,8 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
   const link = `${appUrl}/reset-password#token=${encodeURIComponent(token)}`
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
+    // Never let a slow provider hold the request (or a socket) open.
+    signal: AbortSignal.timeout(10_000),
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
