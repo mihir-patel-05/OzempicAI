@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import type { Context } from 'hono'
 import type { AppEnv } from '../auth.js'
-import { clientIp, rateLimit, requireUser } from '../auth.js'
+import { clientIp, countHit, hitCount, rateLimit, requireUser } from '../auth.js'
 import { HttpError, readJson } from '../http.js'
 import { buildRedirect, checkAuthorizeRequest, describeRedirect, grantedScopes, issueCode } from './authorize.js'
 import type { AuthorizeParams } from './authorize.js'
@@ -32,7 +32,7 @@ oauthRoutes.use('/revoke', publicCors)
 
 /** Dynamic Client Registration (RFC 7591). */
 oauthRoutes.post('/register', async (c) => {
-  rateLimit(`oauth-register:ip:${clientIp(c)}`, 20, 60 * 60_000)
+  rateLimit(`oauth-register-ip:${clientIp(c)}`, 20, 60 * 60_000)
   const registration = parseRegistration(await readJson(c))
   // The per-IP limit trusts proxy headers a client can forge, so also cap
   // valid registrations overall. Hitting it only delays new connections;
@@ -120,15 +120,34 @@ async function readForm(c: Context): Promise<Record<string, string>> {
   return form
 }
 
+const TOKEN_WINDOW_MS = 15 * 60_000
+const TOKEN_REQUESTS_PER_CLIENT = 60
+
 oauthRoutes.post('/token', async (c) => {
+  // Per address, before any database work: this is what slows down guessing
+  // and floods from callers who have proved nothing yet.
+  rateLimit(`oauth-token-ip:${clientIp(c)}`, 120, TOKEN_WINDOW_MS)
   const form = await readForm(c)
   const client = await authenticateClient(c.req.header('authorization'), form)
-  rateLimit(`oauth-token:client:${client.client_id}`, 60, 15 * 60_000)
+
+  // A public client is identified by its id alone, and ids aren't secret. If
+  // every request counted, anyone could spend the client's allowance with
+  // junk and block its real users, so for public clients only requests that
+  // present a valid code or refresh token count. Confidential clients have
+  // already proved who they are with their secret.
+  const clientKey = `oauth-token:client:${client.client_id}`
+  const isPublic = client.token_endpoint_auth_method === 'none'
+  if (isPublic) {
+    if (hitCount(clientKey) >= TOKEN_REQUESTS_PER_CLIENT) throw new HttpError(429, 'Too many attempts. Please wait a few minutes and try again.')
+  } else {
+    rateLimit(clientKey, TOKEN_REQUESTS_PER_CLIENT, TOKEN_WINDOW_MS)
+  }
 
   let tokens
   if (form.grant_type === 'authorization_code') tokens = await exchangeCode(client, form)
   else if (form.grant_type === 'refresh_token') tokens = await refreshTokens(client, form)
   else throw new OAuthError('unsupported_grant_type', 'Use authorization_code or refresh_token')
+  if (isPublic) countHit(clientKey, TOKEN_WINDOW_MS)
 
   c.header('Cache-Control', 'no-store')
   c.header('Pragma', 'no-cache')
@@ -136,6 +155,7 @@ oauthRoutes.post('/token', async (c) => {
 })
 
 oauthRoutes.post('/revoke', async (c) => {
+  rateLimit(`oauth-revoke-ip:${clientIp(c)}`, 120, TOKEN_WINDOW_MS)
   const form = await readForm(c)
   const client = await authenticateClient(c.req.header('authorization'), form)
   if (form.token) await revokeToken(client, form.token)
