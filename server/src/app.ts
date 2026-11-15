@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { cors } from 'hono/cors'
+import { HTTPException } from 'hono/http-exception'
 import { authRoutes, clientIp, rateLimit, requireUser } from './auth.js'
 import type { AppEnv } from './auth.js'
 import { pool } from './db.js'
@@ -105,6 +106,11 @@ app.onError((err, c) => {
     c.header('Cache-Control', 'no-store')
     if (err.status === 401) c.header('WWW-Authenticate', 'Basic realm="OzempicAI"')
     return c.json(err.toJSON(), err.status)
+  }
+  // Raised by Hono's own middleware, e.g. 413 from the body limit.
+  if (err instanceof HTTPException) {
+    const message = err.status === 413 ? 'That request is too large.' : 'The request could not be processed.'
+    return c.json({ error: message }, err.status)
   }
   const httpError = toHttpError(err)
   if (httpError) return c.json({ error: httpError.message }, httpError.status)
