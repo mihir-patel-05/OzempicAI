@@ -46,7 +46,9 @@ export default defineConfig({
     }),
   ],
   server: {
-    host: true,
+    // This machine only. Use `npm run dev -- --host` to test from a phone on a
+    // network you trust; the dev server can read files from the project.
+    host: 'localhost',
     port: 5173,
     // `npm run dev` in server/ serves the API on 8787.
     proxy: {
