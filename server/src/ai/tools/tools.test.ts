@@ -180,10 +180,21 @@ const MAX_STRICT_TOOLS = 20
 const MAX_OPTIONAL_PARAMS = 24
 const MAX_UNION_PARAMS = 16
 
+// Tools left non-strict on purpose: their nested schemas compile to a grammar
+// over the API's internal size cap, which the counted limits below can't see
+// ("The compiled grammar is too large"). Zod still validates their input.
+// Making either strict again needs a check against the real API first
+// (npm run smoke:ai).
+const NON_STRICT_TOOLS = new Set(['create_workout_plans', 'update_workout_plan'])
+
 test('strict tool schemas avoid keywords structured outputs rejects and stay within limits', () => {
   let optional = 0
   let unions = 0
   for (const tool of TOOL_DEFINITIONS) {
+    if (NON_STRICT_TOOLS.has(tool.name)) {
+      assert.ok(!tool.strict, `${tool.name} must stay non-strict (grammar size limit)`)
+      continue
+    }
     assert.equal(tool.strict, true, `${tool.name} should be strict`)
     walk(tool.input_schema, (obj) => {
       for (const keyword of UNSUPPORTED_STRICT_KEYWORDS) {
