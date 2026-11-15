@@ -8,6 +8,54 @@ The first pass records 15 findings with distinct prerequisites and confidence le
 
 **Second pass (2026-11-15, commit `1d18a64`).** A follow-up review looked specifically for backdoors, data-theft paths and ways to take the service down. It adds eight findings, SEC-16 to SEC-23, all reproduced locally. **The most serious new issues are two ways to exhaust the API process's memory: oversized emails kept as rate-limit keys (SEC-17, unauthenticated) and list endpoints that return up to 2,000 unbounded rows (SEC-18, any signed-up account).** No backdoor, hidden account, debug route, committed secret, or cross-user read of health records was found; see "Second review pass" below for what was checked.
 
+## Remediation status
+
+Updated 2026-11-15 at commit `e250cf3`. All 23 findings have a code change on this branch, one commit each, and server/src/security.test.ts holds a regression test for each fix. Server tests: 81 passed. Web tests: 24 passed. Typecheck and production build pass. **Nothing is deployed yet, and six findings are only partly closed; those are marked "Partly" below.** The sections further down describe the system as it was before these changes.
+
+| ID | Status | What changed | Commit |
+| --- | --- | --- | --- |
+| SEC-01 | Fixed | Password reset and password change revoke every connected app, its tokens and unused codes in the same transaction. Issuing a code re-checks the session under a row lock. | `873466f`, `189ffef` |
+| SEC-02 | Fixed | Tested on production: Railway overwrites `X-Real-IP`, so the bypass never worked there. The API now accepts only a well-formed IP from that header, ignores `X-Forwarded-For`, and groups IPv6 by /64. | `7e36583` |
+| SEC-03 | Partly | Sign-ups are closed by default in production (`SIGNUP_MODE`). Fields are size-checked, the coach has global and per-user caps, and each account is limited to 600 changes per 15 minutes. Email verification is not built. | `a7ede9d`, `f4d3c26`, `e769df4`, `e250cf3` |
+| SEC-04 | Fixed | Access tokens store their own scopes; a narrowed refresh cannot write. | `7221788` |
+| SEC-05 | Fixed | Only requests with a valid code or refresh token count against a public client. A per-address limit runs first. | `acab4cb` |
+| SEC-06 | Fixed | A database trigger rejects links to another user's plan, with the same error as a missing one. | `8472d0a` |
+| SEC-07 | Fixed | Changing the password requires the current one; the Profile form asks for it. | `cd4fccd` |
+| SEC-08 | Fixed | Passwords are limited to 72 bytes. | `44cfebe` |
+| SEC-09 | Partly | Caddy sends `frame-ancestors 'none'`, `X-Frame-Options`, HSTS, nosniff, a referrer policy and a content security policy. Consent defaults to read-only. The policy was validated by Caddy and against the build output but not loaded in a browser. | `59cf376` |
+| SEC-10 | Fixed | Client and PKCE are verified before a replayed code revokes anything. | `4a9b9ef` |
+| SEC-11 | Partly | Only failures count; ten from one address lock out that address, and the account-wide lock needs 40. Several addresses working together can still lock an account for 15 minutes. | `010e982`, `e871071`, `52d08fc` |
+| SEC-12 | Fixed | Emails are capped at 254 characters and checked without a regex. | `abe6dcd` |
+| SEC-13 | Fixed | `DATABASE_SSL=true` now verifies the certificate; `no-verify` must be chosen explicitly. | `b38a291` |
+| SEC-14 | Partly | Advisories fell from 20 to 8. React Router is on 7. The rest need Vite 8, whose install fails on a peer-dependency conflict; they affect the dev server and build only, and the dev server now binds to localhost. | `ed4e748`, `795aff7` |
+| SEC-15 | Partly | Unknown emails cost the same login time as known ones. The sign-up form still says when an email is taken, which matters only while sign-ups are open. | `010e982`, `a7ede9d` |
+| SEC-16 | Fixed | MCP rejects JSON-RPC batches. | `2599c96` |
+| SEC-17 | Fixed | Limiter keys are hashed when long, each limiter has a key budget, and auth bodies are capped at 8 KB. | `82dea03`, `0b918df` |
+| SEC-18 | Fixed | Every stored field has a type and size check in the API and a length ceiling in the database. | `f4d3c26` |
+| SEC-19 | Partly | Reset tokens are checked before hashing, password changes are limited to five an hour, and two hashes run at once at most. Hashing still runs on the request thread. | `87e7310` |
+| SEC-20 | Fixed | Database errors map to fixed messages; details are logged server-side. | `7650c79` |
+| SEC-21 | Fixed | Recovery answers 204 immediately and sends the email in the background with a timeout. | `58a8492` |
+| SEC-22 | Fixed | Device-action schemes are refused at registration, and Cancel never navigates to a non-web address. | `0de7af6` |
+| SEC-23 | Fixed | Pool, statement and idle-transaction timeouts; 503 on overload; a per-address request ceiling; a cached health check; a limit on bad MCP tokens. | `9ab08bc` |
+
+Hardening items also done: request logs without query strings and without row data, `Cache-Control: no-store` on API responses (`9693061`); sessions end 90 days after sign-in (`aa8f4b8`); cached data is cleared when the signed-in user changes (`eac979f`); oversized bodies return 413 (`6dc4503`).
+
+**Before deploying:**
+
+- **Sign-ups will be closed.** With `SIGNUP_MODE` unset, production refuses new accounts. Set `SIGNUP_MODE=open` on the `api` service only when you are ready to onboard people.
+- **Check `DATABASE_SSL`.** If the `api` service has `DATABASE_SSL=true`, it will now verify the database certificate and fail to connect if the certificate is self-signed. The README's Railway setup does not set it.
+- **Open the site in a browser.** The content security policy and the React Router 7 upgrade passed build and tests but were not exercised in a browser. Check sign-in, each tracker, the coach, Analytics and the consent screen.
+- **Three migrations run on deploy:** `00016` (token scopes), `00017` (length ceilings, not applied to existing rows) and `00018` (ownership trigger).
+- **Behaviour changes users will see:** changing or resetting a password disconnects connected AI apps; changing a password needs the current one; the consent screen starts on "Read only".
+
+**Still open:**
+
+- Email verification at sign-up, which is what fully closes SEC-03 and SEC-15.
+- Rate-limit state in shared storage. It still lives in the API process and resets on restart.
+- Password hashing off the request thread (SEC-19) and a trusted-device or challenge step for login (SEC-11).
+- The Vite 8 upgrade (SEC-14).
+- From the hardening list: self-hosted fonts, pinned image digests, an unprivileged Caddy container, CI with tests and audits, multi-factor sign-in, account export and deletion, confirmation before destructive AI actions, and a full access audit trail.
+
 ## Scope, method, and limits
 
 - Reviewed the React/Vite PWA, Hono API, all runtime route families, authentication, MCP transport/tools, OAuth registration/consent/token lifecycle, AI tool execution, PostgreSQL migrations, deployment configuration, and dependency lockfiles. Legacy Supabase configuration was assessed separately from the documented current deployment.
@@ -15,7 +63,7 @@ The first pass records 15 findings with distinct prerequisites and confidence le
 - No production requests, real-user data inspection, actual email sending, paid model calls, high-volume load tests, browser exploit trials, cloud-console inspection, container scanning, or exhaustive Git-history secret scanning were performed. No application code or deployment settings were changed.
 - Baseline deployment comes from README.md:33 and Caddyfile:9: public web service proxies the otherwise private API. Private API networking does **not** make its proxied `/api/*` routes private. MCP-specific findings apply when `MCP_ENABLED=true`. No additional gateway controls were supplied or verified.
 - The owner being the only current user reduces the present cross-user population, but signup remains public in code. An internet attacker can create their own account unless an external access restriction exists.
-- Local evidence and commands: docs/security/validation-results.md and docs/security/reproduce.mts. Registry evidence: docs/security/dependency-findings.md, docs/security/npm-audit-web.json, and docs/security/npm-audit-server.json. (The threat-model file this line originally cited, OzempicAI-threat-model.md, is not in the repository.)
+- Local evidence and commands: docs/security/validation-results.md. The reproduction harness (docs/security/reproduce.mts) was removed once the fixes landed and is in git history; server/src/security.test.ts replaces it. Registry evidence: docs/security/dependency-findings.md, docs/security/npm-audit-web.json, and docs/security/npm-audit-server.json. (The threat-model file this line originally cited, OzempicAI-threat-model.md, is not in the repository.)
 
 Severity reflects practical confidentiality, integrity, availability, and cost impact. **Reproduced** means an isolated local test exercised the behavior. **Source-confirmed** means the code/configuration establishes the gap. **Conditional** means deployment/browser/attacker prerequisites still need validation. No finding is rated critical without evidence of the corresponding impact.
 
@@ -233,7 +281,7 @@ Severity reflects practical confidentiality, integrity, availability, and cost i
 
 ## Second review pass — additional findings (SEC-16 to SEC-23)
 
-Added 2026-11-15 at commit `1d18a64`. Same method as the first pass: a fresh loopback-only PostgreSQL 18 database with all 16 migrations, synthetic users, no production requests, no email delivery and no model calls. Each test was bounded (small counts and sizes, then extrapolated) and none was run to the point of failure. The harness is docs/security/reproduce-additional.mts; its output is in docs/security/validation-results.md. No application code was changed.
+Added 2026-11-15 at commit `1d18a64`. Same method as the first pass: a fresh loopback-only PostgreSQL 18 database with all 16 migrations, synthetic users, no production requests, no email delivery and no model calls. Each test was bounded (small counts and sizes, then extrapolated) and none was run to the point of failure. The harness (docs/security/reproduce-additional.mts, now removed and in git history) produced the output in docs/security/validation-results.md. No application code was changed.
 
 | ID | Finding | Severity | Who can exploit it |
 | --- | --- | --- | --- |

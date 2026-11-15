@@ -60,3 +60,15 @@ REPRODUCED: SEC-23: 150 token requests from one address were all processed (one 
 ```
 
 Timings and memory figures are local observations from small, bounded runs. The health-check latency under batched MCP load varied between runs (20 ms and 91 ms). No test was run to memory exhaustion or sustained load. Run instructions and the safety guard are in `reproduce-additional.mts`.
+
+## After remediation
+
+2026-11-15; commit `e250cf3`. Fresh loopback-only PostgreSQL 18 cluster with all 19 migrations; synthetic data; email provider stubbed; no model requests.
+
+- Server suite with `TEST_DATABASE_URL`: 81 passed, zero skipped. This includes 21 regression tests in `server/src/security.test.ts`, each named after the finding it covers, and unit tests for email validation, client address handling, rate-limit keys, sign-up mode and database TLS settings.
+- Frontend suite: 24 passed. Typecheck and production build pass.
+- Root `npm audit`: 8 advisories (1 high, 5 moderate, 2 low), down from 20; all in the Vite dev and build chain. Server `npm audit`: zero.
+- Production check for SEC-02: 21 invalid sign-up requests with one forged `X-Real-IP` value ended in 429, and requests with different forged values then also returned 429. The edge replaces the header, so the limit follows the real address.
+- Caddyfile validated with `caddy validate` in the `caddy:2-alpine` image. The built bundle contains no inline scripts and no `eval`, which is what the content security policy requires. Not loaded in a browser.
+
+The two reproduction harnesses asserted the vulnerable behaviour and were removed; they remain in git history. Run the replacement with `cd server && TEST_DATABASE_URL=postgres://… npm test`.
