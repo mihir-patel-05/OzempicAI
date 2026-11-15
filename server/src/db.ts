@@ -11,9 +11,20 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not set')
 }
 
+function millis(value: string | undefined, fallback: number): number {
+  const n = Number(value)
+  return Number.isFinite(n) && n >= 0 ? n : fallback
+}
+
 export const pool = new pg.Pool({
   connectionString,
   max: Number(process.env.DATABASE_POOL_SIZE ?? 10),
+  // Fail fast instead of queueing forever when every connection is busy, and
+  // never let one slow query or a stuck transaction hold a connection for
+  // good. migrate.ts lifts the statement limit for its own session.
+  connectionTimeoutMillis: millis(process.env.DATABASE_CONNECT_TIMEOUT_MS, 5_000),
+  statement_timeout: millis(process.env.DATABASE_STATEMENT_TIMEOUT_MS, 15_000),
+  idle_in_transaction_session_timeout: 30_000,
   ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
 })
 

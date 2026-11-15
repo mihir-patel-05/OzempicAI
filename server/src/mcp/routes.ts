@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import type { Context } from 'hono'
 import { cors } from 'hono/cors'
 import type { AppEnv } from '../auth.js'
-import { rateLimit } from '../auth.js'
+import { clientIp, countHit, hitCount, rateLimit } from '../auth.js'
 import { HttpError } from '../http.js'
 import { SCOPES, mcpEnabled, protectedResourceMetadataUrl } from '../oauth/config.js'
 import { verifyAccessToken } from '../oauth/tokens.js'
@@ -11,6 +11,7 @@ import { buildMcpServer } from './server.js'
 
 const CALLS_PER_WINDOW = 120
 const WINDOW_MS = 15 * 60_000
+const BAD_TOKENS_PER_WINDOW = 60
 
 /**
  * The remote MCP endpoint (Streamable HTTP, stateless, JSON responses).
@@ -55,8 +56,17 @@ mcpRoutes.all('/', async (c) => {
   const header = c.req.header('authorization') ?? ''
   const bearer = header.startsWith('Bearer ') ? header.slice(7).trim() : ''
   if (!bearer) return unauthorized(c)
+  // Each bad token costs a database lookup, so an address that keeps sending
+  // them is refused before the lookup. Valid tokens are never counted here.
+  const badTokenKey = `mcp-bad-token:${clientIp(c)}`
+  if (hitCount(badTokenKey) >= BAD_TOKENS_PER_WINDOW) {
+    throw new HttpError(429, 'Too many requests with an invalid token. Please wait a few minutes.')
+  }
   const access = await verifyAccessToken(bearer)
-  if (!access) return unauthorized(c, 'invalid_token')
+  if (!access) {
+    countHit(badTokenKey, WINDOW_MS)
+    return unauthorized(c, 'invalid_token')
+  }
 
   rateLimit(
     `mcp:grant:${access.grantId}`,
