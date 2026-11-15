@@ -56,3 +56,49 @@ test('discovery documents point clients at our endpoints and require S256', asyn
   assert.deepEqual(server.code_challenge_methods_supported, ['S256'])
   assert.ok(!server.grant_types_supported.includes('implicit'))
 })
+
+test('redirectUriProblem allows https, loopback http and app schemes only', async () => {
+  const { redirectUriProblem } = await import('./registration.js')
+  assert.equal(redirectUriProblem('https://claude.ai/api/mcp/auth_callback'), null)
+  assert.equal(redirectUriProblem('http://localhost:6274/oauth/callback'), null)
+  assert.equal(redirectUriProblem('http://127.0.0.1:33418/callback'), null)
+  assert.equal(redirectUriProblem('cursor://anysphere.cursor-retrieval/oauth/callback'), null)
+  assert.match(redirectUriProblem('http://example.com/cb')!, /https/)
+  assert.match(redirectUriProblem('https://claude.ai/cb#frag')!, /fragment/)
+  assert.match(redirectUriProblem('javascript:alert(1)')!, /javascript/)
+  assert.match(redirectUriProblem('data:text/html,hi')!, /data/)
+  assert.match(redirectUriProblem('/relative')!, /absolute/)
+})
+
+test('parseRegistration validates RFC 7591 requests', async () => {
+  const { parseRegistration } = await import('./registration.js')
+  const ok = parseRegistration({
+    client_name: '  Claude\u0000‮ ',
+    redirect_uris: ['https://claude.ai/api/mcp/auth_callback'],
+    token_endpoint_auth_method: 'none',
+    grant_types: ['authorization_code', 'refresh_token'],
+    response_types: ['code'],
+  })
+  assert.deepEqual(ok, {
+    client_name: 'Claude',
+    redirect_uris: ['https://claude.ai/api/mcp/auth_callback'],
+    token_endpoint_auth_method: 'none',
+  })
+  // RFC 7591's default auth method, and a fallback name.
+  const defaults = parseRegistration({ redirect_uris: ['https://x.example/cb'] })
+  assert.equal(defaults.token_endpoint_auth_method, 'client_secret_basic')
+  assert.equal(defaults.client_name, 'An unnamed app')
+
+  const bad = (body: Record<string, unknown>) => {
+    try {
+      parseRegistration(body)
+      return null
+    } catch (err) {
+      return (err as { error: string }).error
+    }
+  }
+  assert.equal(bad({}), 'invalid_redirect_uri')
+  assert.equal(bad({ redirect_uris: ['http://evil.example/cb'] }), 'invalid_redirect_uri')
+  assert.equal(bad({ redirect_uris: ['https://x.example/cb'], grant_types: ['implicit'] }), 'invalid_client_metadata')
+  assert.equal(bad({ redirect_uris: ['https://x.example/cb'], token_endpoint_auth_method: 'private_key_jwt' }), 'invalid_client_metadata')
+})

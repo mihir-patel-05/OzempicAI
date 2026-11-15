@@ -6,7 +6,9 @@ import { authRoutes, requireUser } from './auth.js'
 import type { AppEnv } from './auth.js'
 import { pool } from './db.js'
 import { toHttpError } from './http.js'
+import { OAuthError } from './oauth/errors.js'
 import { wellKnownRoutes } from './oauth/metadata.js'
+import { oauthRoutes } from './oauth/routes.js'
 import { aiRoutes } from './routes/ai.js'
 import { analyticsRoutes } from './routes/analytics.js'
 import { profileRoutes } from './routes/profile.js'
@@ -39,6 +41,7 @@ app.route('/api/auth', authRoutes)
 
 // OAuth discovery for MCP clients (off unless MCP_ENABLED=true).
 app.route('/.well-known', wellKnownRoutes)
+app.route('/api/oauth', oauthRoutes)
 
 const data = new Hono<AppEnv>()
 data.use('*', requireUser)
@@ -52,6 +55,11 @@ app.route('/api', data)
 app.notFound((c) => c.json({ error: 'Not found' }, 404))
 
 app.onError((err, c) => {
+  if (err instanceof OAuthError) {
+    c.header('Cache-Control', 'no-store')
+    if (err.status === 401) c.header('WWW-Authenticate', 'Basic realm="OzempicAI"')
+    return c.json(err.toJSON(), err.status)
+  }
   const httpError = toHttpError(err)
   if (httpError) return c.json({ error: httpError.message }, httpError.status)
   console.error(err)
