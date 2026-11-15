@@ -37,6 +37,8 @@ export function mealPlanProblems(meals: PlannedMealInput[], today: string): stri
 }
 
 export const getMealPlans = defineTool({
+  title: 'Get meal plan',
+  scope: 'read',
   definition: {
     name: 'get_meal_plans',
     description:
@@ -84,6 +86,9 @@ export const getMealPlans = defineTool({
 })
 
 export const createMealPlan = defineTool({
+  title: 'Add planned meals',
+  scope: 'write',
+  idempotent: true,
   definition: {
     name: 'create_meal_plan',
     description: `Write planned meals to the user's meal plan. Send the whole plan in one call (at most ${MAX_PLAN_MEALS} meals). Each entry is one meal on one date. planned_date is YYYY-MM-DD between today and ${PLAN_HORIZON_DAYS} days from today. calories is your best per-serving estimate, a whole number from 1 to ${MAX_MEAL_CALORIES}. Names up to ${MAX_MEAL_NAME} characters. If any meal is invalid, nothing is saved and the error lists every problem so you can fix them and call again. Meals identical to ones already planned (same date, meal type and name) are skipped.`,

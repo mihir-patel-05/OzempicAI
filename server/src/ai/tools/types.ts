@@ -25,8 +25,18 @@ export interface ToolOutcome {
   resource?: ToolResource
 }
 
+/** What an MCP connection must be granted to see and call a tool. */
+export type ToolScope = 'read' | 'write'
+
 export interface CoachTool<S extends z.ZodType = z.ZodType> {
   definition: Anthropic.Beta.BetaTool
+  /** Short human-readable name, shown by MCP clients such as Claude. */
+  title: string
+  scope: ToolScope
+  /** Write tools only: may overwrite or remove data the user already has. */
+  destructive?: boolean
+  /** Write tools only: repeating a call with the same input changes nothing more. */
+  idempotent?: boolean
   /** Validates the model's input on the server, even when `strict` is set. */
   schema: S
   run(input: z.infer<S>, ctx: ToolContext): Promise<ToolOutcome>

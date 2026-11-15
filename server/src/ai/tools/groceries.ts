@@ -48,6 +48,8 @@ export function filterNewGroceries(items: GroceryInput[], existingUnpurchased: s
 }
 
 export const getGroceryList = defineTool({
+  title: 'Get grocery list',
+  scope: 'read',
   definition: {
     name: 'get_grocery_list',
     description:
@@ -82,6 +84,9 @@ export const getGroceryList = defineTool({
 })
 
 export const addGroceryItems = defineTool({
+  title: 'Add grocery items',
+  scope: 'write',
+  idempotent: true,
   definition: {
     name: 'add_grocery_items',
     description: `Add items to the user's grocery list (at most ${MAX_GROCERY_ITEMS} per call, names up to ${MAX_NAME} characters). Combine duplicates first and use short, shoppable names with a quantity when useful, e.g. "Chicken breast (2 lb)". Items already on the list and not yet purchased are skipped automatically. Only add what the user asked for or agreed to.`,

@@ -80,6 +80,8 @@ async function calorieGoal(db: Db, userId: string): Promise<number | null> {
 }
 
 export const getCalorieSummary = defineTool({
+  title: 'Summarize calories',
+  scope: 'read',
   definition: {
     name: 'get_calorie_summary',
     description:
@@ -110,6 +112,8 @@ const entriesSchema = rangeSchema(PAST_PRESETS).extend({
 })
 
 export const getCalorieEntries = defineTool({
+  title: 'List food log entries',
+  scope: 'read',
   definition: {
     name: 'get_calorie_entries',
     description:

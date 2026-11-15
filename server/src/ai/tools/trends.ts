@@ -22,6 +22,8 @@ interface DailyRow {
 }
 
 export const getWeightTrend = defineTool({
+  title: 'Get weight trend',
+  scope: 'read',
   definition: {
     name: 'get_weight_trend',
     description:
@@ -69,6 +71,8 @@ export const getWeightTrend = defineTool({
 })
 
 export const getExerciseSummary = defineTool({
+  title: 'Summarize exercise',
+  scope: 'read',
   definition: {
     name: 'get_exercise_summary',
     description:

@@ -26,6 +26,9 @@ const REGISTRY: CoachTool[] = [
 
 const BY_NAME = new Map(REGISTRY.map((tool) => [tool.definition.name, tool]))
 
+/** Every tool, in registry order. */
+export const TOOLS: readonly CoachTool[] = REGISTRY
+
 /**
  * Tool definitions in a fixed order. Tools render first in the prompt, so the
  * list must be identical on every request for prompt caching to work.

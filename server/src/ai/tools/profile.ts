@@ -5,6 +5,8 @@ const KG_PER_LB = 0.45359237
 const CM_PER_IN = 2.54
 
 export const getProfile = defineTool({
+  title: 'Get profile and goals',
+  scope: 'read',
   definition: {
     name: 'get_profile',
     description:

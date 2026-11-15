@@ -4,7 +4,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import type { Db } from '../../db.js'
 import { summarizeCalories } from './calories.js'
 import { filterNewGroceries } from './groceries.js'
-import { TOOL_DEFINITIONS, executeTool, runTool } from './index.js'
+import { TOOLS, TOOL_DEFINITIONS, executeTool, runTool } from './index.js'
 import { formatSpan, mealPlanProblems } from './mealPlans.js'
 import type { ToolContext } from './types.js'
 import { exerciseToRow, rowToExercise, workoutPlanProblems } from './workoutPlans.js'
@@ -426,4 +426,17 @@ test('update_workout_plan refuses unknown plans and moves into the past', async 
     ctx(missing.db),
   )
   assert.equal(badId.result.is_error, true)
+})
+
+test('every tool declares a scope that matches what it does', () => {
+  for (const tool of TOOLS) {
+    const name = tool.definition.name
+    assert.ok(tool.title.trim(), `${name} needs a title`)
+    if (name.startsWith('get_')) {
+      assert.equal(tool.scope, 'read', `${name} reads, so its scope is read`)
+      assert.equal(tool.destructive, undefined, `${name} is read-only`)
+    } else {
+      assert.equal(tool.scope, 'write', `${name} changes data, so its scope is write`)
+    }
+  }
 })
