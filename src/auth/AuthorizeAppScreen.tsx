@@ -17,7 +17,8 @@ interface AuthorizeDetails {
 
 interface RequestProblem {
   problem: string
-  redirect_to: string
+  /** Null when the app's return address isn't a web page: we don't go there without approval. */
+  redirect_to: string | null
   redirect_to_label: string
 }
 
@@ -37,6 +38,7 @@ export function AuthorizeAppScreen() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState<'allow' | 'deny' | null>(null)
   const [leaving, setLeaving] = useState(false)
+  const [cancelled, setCancelled] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -67,11 +69,12 @@ export function AuthorizeAppScreen() {
     setSubmitting(decision)
     try {
       const scopes: Scope[] = access === 'edit' ? details.scopes : ['read']
-      const result = await api<{ redirect_to: string }>('/oauth/authorize', {
+      const result = await api<{ redirect_to: string | null }>('/oauth/authorize', {
         method: 'POST',
         body: { params, decision, scopes },
       })
-      leave(result.redirect_to)
+      if (result.redirect_to) leave(result.redirect_to)
+      else setCancelled(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setSubmitting(null)
@@ -97,19 +100,33 @@ export function AuthorizeAppScreen() {
             <p role="status" style={subtitleStyle}>
               Returning you to the app…
             </p>
+          ) : cancelled ? (
+            <>
+              <h1 style={titleStyle}>Connection cancelled</h1>
+              <p style={noteStyle}>Nothing was shared. You can close this page.</p>
+              <a href="/" style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 'var(--text-sm)' }}>
+                Go to OzempicAI
+              </a>
+            </>
           ) : problem ? (
             <>
               <h1 style={titleStyle}>This connection request has a problem</h1>
               <div style={{ margin: 'var(--space-lg) 0' }}>
                 <Banner tone="error">{problem.problem}</Banner>
               </div>
-              <p style={noteStyle}>
-                Nothing was shared. You can go back to {problem.redirect_to_label} to let the app know, or just close
-                this page.
-              </p>
-              <PrimaryButton type="button" variant="outline" onClick={() => leave(problem.redirect_to)}>
-                Return to {problem.redirect_to_label}
-              </PrimaryButton>
+              {problem.redirect_to ? (
+                <>
+                  <p style={noteStyle}>
+                    Nothing was shared. You can go back to {problem.redirect_to_label} to let the app know, or just
+                    close this page.
+                  </p>
+                  <PrimaryButton type="button" variant="outline" onClick={() => leave(problem.redirect_to!)}>
+                    Return to {problem.redirect_to_label}
+                  </PrimaryButton>
+                </>
+              ) : (
+                <p style={noteStyle}>Nothing was shared. You can close this page.</p>
+              )}
             </>
           ) : !details ? (
             error ? (

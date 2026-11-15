@@ -9,7 +9,7 @@ import type { AuthorizeParams } from './authorize.js'
 import { authenticateClient, registerClient } from './clients.js'
 import { mcpEnabled } from './config.js'
 import { OAuthError } from './errors.js'
-import { parseRegistration } from './registration.js'
+import { isWebRedirect, parseRegistration } from './registration.js'
 import { exchangeCode, refreshTokens, revokeToken } from './tokens.js'
 
 /**
@@ -64,6 +64,17 @@ function readAuthorizeParams(source: unknown): AuthorizeParams {
 }
 
 /**
+ * Where to send the browser when the user did NOT approve (declined, or the
+ * request was malformed). Anyone can register an app with any redirect, so
+ * without approval we only ever go back to a web address. A custom scheme
+ * could open the dialer or another app; for those the screen just says the
+ * request was cancelled and stays put (null).
+ */
+function returnAddress(redirectTo: string): string | null {
+  return isWebRedirect(redirectTo) ? redirectTo : null
+}
+
+/**
  * The consent screen (/oauth/authorize in the web app) asks what is being
  * requested. The user is signed in to OzempicAI; the app is not yet.
  */
@@ -75,7 +86,7 @@ oauthRoutes.get('/authorize', requireUser, async (c) => {
     // (RFC 9700 §4.11.2). The screen shows the problem and the user chooses.
     return c.json({
       problem: check.problem,
-      redirect_to: check.redirectTo,
+      redirect_to: returnAddress(check.redirectTo),
       redirect_to_label: check.redirectLabel,
     })
   }
@@ -91,16 +102,18 @@ oauthRoutes.get('/authorize', requireUser, async (c) => {
 oauthRoutes.post('/authorize', requireUser, async (c) => {
   const body = await readJson(c)
   const check = await checkAuthorizeRequest(readAuthorizeParams(body.params))
-  if (!check.ok) return c.json({ redirect_to: check.redirectTo })
+  if (!check.ok) return c.json({ redirect_to: returnAddress(check.redirectTo) })
   const { request } = check
 
   if (body.decision !== 'allow') {
     return c.json({
-      redirect_to: buildRedirect(request.redirectUri, {
-        error: 'access_denied',
-        error_description: 'The user declined the connection',
-        state: request.state,
-      }),
+      redirect_to: returnAddress(
+        buildRedirect(request.redirectUri, {
+          error: 'access_denied',
+          error_description: 'The user declined the connection',
+          state: request.state,
+        }),
+      ),
     })
   }
   const scopes = grantedScopes(request.scopes, body.scopes)

@@ -7,8 +7,32 @@ const MAX_REDIRECT_URIS = 10
 const MAX_URI_LENGTH = 2000
 const MAX_NAME_LENGTH = 100
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
-/** Schemes that could run code or read local data if we redirected to them. */
-const BLOCKED_SCHEMES = new Set(['javascript', 'data', 'file', 'vbscript', 'about', 'blob', 'ftp', 'ws', 'wss'])
+/**
+ * Schemes that could run code, read local data, or make the device do
+ * something (dial, text, run a shortcut, open system settings) if we
+ * redirected to them. A blocklist can't be complete, which is why the consent
+ * screen also never navigates to a non-web address unless the user pressed
+ * Allow (see isWebRedirect).
+ */
+const BLOCKED_SCHEMES = new Set([
+  'javascript', 'data', 'file', 'vbscript', 'about', 'blob', 'ftp', 'ws', 'wss',
+  'tel', 'sms', 'smsto', 'mms', 'mailto', 'callto', 'facetime', 'facetime-audio', 'skype', 'sip', 'sips',
+  'intent', 'market', 'itms', 'itms-apps', 'itms-services', 'shortcuts', 'workflow', 'prefs', 'app-settings',
+  'chrome', 'chrome-extension', 'edge', 'view-source', 'resource', 'jar', 'smb', 'ssh', 'telnet', 'ldap', 'ldaps',
+  'search-ms', 'windows', 'x-apple-reminder', 'x-apple-reminderkit', 'maps', 'geo',
+])
+/** Windows registers a large family of ms-* schemes (ms-settings, ms-msdt, …). */
+const BLOCKED_SCHEME_PREFIXES = ['ms-', 'x-apple']
+
+/** https, or http on this computer: the only addresses a declined request is sent back to. */
+export function isWebRedirect(uri: string): boolean {
+  try {
+    const url = new URL(uri)
+    return url.protocol === 'https:' || (url.protocol === 'http:' && LOOPBACK_HOSTS.has(url.hostname))
+  } catch {
+    return false
+  }
+}
 
 /**
  * Why a redirect URI can't be registered, or null if it can. Allowed: https,
@@ -27,7 +51,9 @@ export function redirectUriProblem(uri: string): string | null {
   const scheme = url.protocol.slice(0, -1)
   if (scheme === 'https') return url.hostname ? null : 'needs a host'
   if (scheme === 'http') return LOOPBACK_HOSTS.has(url.hostname) ? null : 'must use https unless it is on localhost'
-  if (BLOCKED_SCHEMES.has(scheme)) return `cannot use the ${scheme}: scheme`
+  if (BLOCKED_SCHEMES.has(scheme) || BLOCKED_SCHEME_PREFIXES.some((prefix) => scheme.startsWith(prefix))) {
+    return `cannot use the ${scheme}: scheme`
+  }
   return /^[a-z][a-z0-9+.-]*$/.test(scheme) ? null : 'has an invalid scheme'
 }
 
