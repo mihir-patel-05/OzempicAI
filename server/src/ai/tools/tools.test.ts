@@ -440,3 +440,33 @@ test('every tool declares a scope that matches what it does', () => {
     }
   }
 })
+
+test('get_grocery_list and get_meal_plans return row ids so agents can target edits', async () => {
+  const { db } = fakeDb((sql) => {
+    if (sql.includes('from public.grocery_items')) {
+      return [
+        { id: 'g1', name: 'Milk', category: 'dairy', is_purchased: false },
+        { id: 'g2', name: 'Eggs', category: 'protein', is_purchased: true },
+      ]
+    }
+    if (sql.includes('from public.meal_plans')) {
+      return [{ id: 'm1', planned_date: '2026-11-16', meal_type: 'dinner', name: 'Tacos', calories: 600 }]
+    }
+    return []
+  })
+  const groceries = await runTool('get_grocery_list', { include_purchased: true }, ctx(db))
+  assert.ok(groceries.ok)
+  assert.deepEqual((groceries.outcome.result as { items: unknown[] }).items, [
+    { id: 'g1', name: 'Milk', category: 'dairy' },
+    { id: 'g2', name: 'Eggs', category: 'protein', purchased: true },
+  ])
+
+  const meals = await runTool(
+    'get_meal_plans',
+    { range: 'custom', start_date: '2026-11-16', end_date: '2026-11-22' },
+    ctx(db),
+  )
+  assert.ok(meals.ok)
+  const days = (meals.outcome.result as { days_with_plans: { meals: { id: string }[] }[] }).days_with_plans
+  assert.equal(days[0]!.meals[0]!.id, 'm1')
+})

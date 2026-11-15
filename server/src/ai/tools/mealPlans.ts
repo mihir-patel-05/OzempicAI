@@ -42,7 +42,7 @@ export const getMealPlans = defineTool({
   definition: {
     name: 'get_meal_plans',
     description:
-      "List the user's planned meals for a date range (inclusive), grouped by day with each day's planned calorie total. Call before creating a plan so you don't duplicate meals already planned.",
+      "List the user's planned meals for a date range (inclusive), grouped by day with each day's planned calorie total. Each meal has its id. Call before creating a plan so you don't duplicate meals already planned.",
     strict: true,
     input_schema: {
       type: 'object',
@@ -54,8 +54,14 @@ export const getMealPlans = defineTool({
   schema: rangeSchema(PLAN_PRESETS),
   async run(input, { db, userId, tz }) {
     const range = rangeFromInput(input, tz)
-    const { rows } = await db.query<{ planned_date: string; meal_type: string; name: string; calories: number }>(
-      `select planned_date, meal_type, name, calories
+    const { rows } = await db.query<{
+      id: string
+      planned_date: string
+      meal_type: string
+      name: string
+      calories: number
+    }>(
+      `select id, planned_date, meal_type, name, calories
          from public.meal_plans
         where user_id = $1 and planned_date between $2::date and $3::date
         order by planned_date,
@@ -72,7 +78,7 @@ export const getMealPlans = defineTool({
         days.set(row.planned_date, day)
       }
       day.total += row.calories
-      day.meals.push({ meal_type: row.meal_type, name: row.name, calories: row.calories })
+      day.meals.push({ id: row.id, meal_type: row.meal_type, name: row.name, calories: row.calories })
     }
     return {
       result: {

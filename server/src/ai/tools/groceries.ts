@@ -53,7 +53,7 @@ export const getGroceryList = defineTool({
   definition: {
     name: 'get_grocery_list',
     description:
-      "Get the user's grocery list. Call this before adding items so you don't add duplicates. Set include_purchased to false unless the user asks about items they already bought.",
+      "Get the user's grocery list, each item with its id. Call this before adding items so you don't add duplicates. Set include_purchased to false unless the user asks about items they already bought.",
     strict: true,
     input_schema: {
       type: 'object',
@@ -64,8 +64,8 @@ export const getGroceryList = defineTool({
   },
   schema: z.object({ include_purchased: z.boolean() }),
   async run({ include_purchased }, { db, userId }) {
-    const { rows } = await db.query<{ name: string; category: string; is_purchased: boolean }>(
-      `select name, category, is_purchased
+    const { rows } = await db.query<{ id: string; name: string; category: string; is_purchased: boolean }>(
+      `select id, name, category, is_purchased
          from public.grocery_items
         where user_id = $1 and ($2 or not is_purchased)
         order by is_purchased asc, category asc, created_at desc
@@ -76,7 +76,9 @@ export const getGroceryList = defineTool({
       result: {
         count: rows.length,
         items: rows.map((r) =>
-          r.is_purchased ? { name: r.name, category: r.category, purchased: true } : { name: r.name, category: r.category },
+          r.is_purchased
+            ? { id: r.id, name: r.name, category: r.category, purchased: true }
+            : { id: r.id, name: r.name, category: r.category },
         ),
       },
     }
