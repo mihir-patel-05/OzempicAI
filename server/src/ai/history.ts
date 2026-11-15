@@ -1,4 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
+import { createdSummary, updatedSummary } from './tools/workoutPlans.js'
 
 type Block = Anthropic.Beta.BetaContentBlock | Anthropic.Beta.BetaContentBlockParam
 type ToolResult = Anthropic.Beta.BetaToolResultBlockParam
@@ -103,6 +104,12 @@ export function historySummary(name: string, content: unknown): string | null {
   if (name === 'create_meal_plan' && typeof data.saved === 'number') {
     const n = data.saved
     return n > 0 ? `Planned ${n} meal${n === 1 ? '' : 's'} (${data.start} to ${data.end})` : 'Those meals were already planned'
+  }
+  if (name === 'create_workout_plans' && Array.isArray(data.plans)) {
+    return createdSummary(data.plans as { planned_date: string; name: string }[])
+  }
+  if (name === 'update_workout_plan' && data.updated && typeof data.updated === 'object') {
+    return updatedSummary(data.updated as { planned_date: string; name: string })
   }
   return null
 }

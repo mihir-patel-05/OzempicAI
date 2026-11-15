@@ -13,14 +13,14 @@ export interface ToolContext {
 }
 
 /** Which react-query collection a write touched, so the client can refresh it. */
-export type ToolResource = 'grocery-items' | 'meal-plans'
+export type ToolResource = 'grocery-items' | 'meal-plans' | 'workout-plans'
 
 export interface ToolOutcome {
   /** Compact JSON sent back to the model. Every token is re-sent on later turns. */
   result: unknown
   /** One line for the action card, e.g. "Added 9 items to Groceries". Writes only. */
   summary?: string
-  /** Rows the tool inserted, for Undo. */
+  /** Rows the tool inserted, for Undo (which deletes them). Edits leave this empty. */
   createdIds?: string[]
   resource?: ToolResource
 }

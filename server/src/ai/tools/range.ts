@@ -6,6 +6,8 @@ import type { DateRange, RangePreset } from '../dates.js'
 export const PAST_PRESETS = ['today', 'this_week', 'last_week', 'last_7_days', 'last_30_days', 'custom'] as const
 /** Presets for planned meals, which are usually in the future. */
 export const PLAN_PRESETS = ['today', 'this_week', 'next_week', 'next_7_days', 'custom'] as const
+/** Presets for workout plans: `upcoming` is today through the planning horizon. */
+export const WORKOUT_PRESETS = ['today', 'upcoming', 'this_week', 'next_week', 'last_7_days', 'custom'] as const
 
 /** JSON-schema properties for a range preset plus optional custom dates. */
 export function rangeProperties(presets: readonly RangePreset[]) {

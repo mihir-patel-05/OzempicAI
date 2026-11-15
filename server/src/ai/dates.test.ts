@@ -57,6 +57,10 @@ test('rolling presets are inclusive of today', () => {
     start: '2026-11-15',
     end: '2026-11-21',
   })
+  assert.deepEqual(resolveRange('upcoming', 'UTC', {}, now), {
+    start: '2026-11-14',
+    end: '2026-12-05',
+  })
 })
 
 test('day arithmetic ignores DST transitions', () => {

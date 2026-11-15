@@ -8,7 +8,7 @@ export interface CoachConversation {
 }
 
 /** Which collection a write touched (the react-query key prefix to refresh). */
-export type CoachResource = 'grocery-items' | 'meal-plans'
+export type CoachResource = 'grocery-items' | 'meal-plans' | 'workout-plans'
 
 export interface CoachToolCall {
   /** tool_use id; present for calls seen live in this session. */
@@ -16,7 +16,7 @@ export interface CoachToolCall {
   name: string
   status: 'ok' | 'error'
   summary: string | null
-  /** Rows the call inserted. Only known live, so only live cards offer Undo. */
+  /** Rows the call inserted. Only known live, so only live cards offer Undo. Edits insert none. */
   created_ids?: string[]
   resource?: CoachResource | null
 }
