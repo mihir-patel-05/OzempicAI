@@ -21,10 +21,13 @@ type UnitSystem = (typeof UNIT_SYSTEMS)[number]
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 //
-// Strict schemas allow at most 16 nullable (union-typed) parameters across
-// every tool, and the read tools already use most of them. So the optional
-// exercise targets here are optional properties rather than nullable ones;
-// those count against the separate limit of 24 optional parameters.
+// create_workout_plans and update_workout_plan are deliberately NOT strict.
+// Their workout → exercises nesting, with six optional exercise targets and
+// the schema repeated in both tools, compiles to a grammar over the API's
+// internal size cap ("The compiled grammar is too large"), even though it
+// stays under the counted limits (20 tools, 24 optional, 16 union params).
+// Every call is still validated by the Zod schemas below, and invalid input
+// goes back to the model as an is_error result it can fix.
 
 const exerciseJson = {
   type: 'object',
@@ -297,7 +300,6 @@ export const createWorkoutPlans = defineTool({
   definition: {
     name: 'create_workout_plans',
     description: `Add workouts to the user's workout plan (Plans → Workouts). Send every workout for the request in one call (at most ${MAX_WORKOUTS}). Each workout is one session on one date, with its exercises in order (at most ${MAX_EXERCISES}). planned_date is YYYY-MM-DD between today and ${PLAN_HORIZON_DAYS} days from today. Strength exercises use sets, reps and weight; cardio uses duration_minutes and distance; leave out what doesn't apply. If any workout is invalid, nothing is saved and the error lists every problem so you can fix them and call again. A workout with the same date and name as one already planned is skipped.`,
-    strict: true,
     input_schema: {
       type: 'object',
       properties: {
@@ -366,7 +368,6 @@ export const updateWorkoutPlan = defineTool({
   definition: {
     name: 'update_workout_plan',
     description: `Edit one planned workout. Call get_workout_plans first, then send the plan_id and the whole workout as it should be after the edit: name, type, date, notes and the full exercise list in order. The exercise list replaces the old one, so include exercises that stay the same. A new planned_date must be between today and ${PLAN_HORIZON_DAYS} days from today; an unchanged date may be in the past. Whether the workout was completed is kept. The result includes the previous version, which you can send back to revert the edit.`,
-    strict: true,
     input_schema: {
       type: 'object',
       properties: {
