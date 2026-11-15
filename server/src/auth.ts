@@ -132,11 +132,30 @@ const buckets = new Map<string, { count: number; resetAt: number }>()
 
 /** Keys longer than this are stored as a hash, so request input can't bloat the map. */
 const MAX_KEY_LENGTH = 160
-/** Hard ceiling on tracked keys (a few tens of MB at most). */
-const MAX_BUCKETS = 200_000
+/**
+ * Ceiling on live keys per limiter (the part of the key before the first
+ * colon: "login", "signup", "mcp", …). Each limiter has its own budget, so a
+ * flood of one kind of key can neither grow memory without bound nor push out
+ * or lock another limiter. A limiter that is full refuses new keys until its
+ * old ones expire; keys already being counted keep working.
+ */
+const MAX_KEYS_PER_LIMITER = 50_000
+const keysPerLimiter = new Map<string, number>()
+
+function limiterOf(key: string): string {
+  const colon = key.indexOf(':')
+  return colon < 0 ? key : key.slice(0, colon)
+}
 
 function sweepBuckets(now: number) {
-  for (const [key, bucket] of buckets) if (bucket.resetAt <= now) buckets.delete(key)
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt > now) continue
+    buckets.delete(key)
+    const limiter = limiterOf(key)
+    const left = (keysPerLimiter.get(limiter) ?? 1) - 1
+    if (left > 0) keysPerLimiter.set(limiter, left)
+    else keysPerLimiter.delete(limiter)
+  }
 }
 
 export function rateLimit(
@@ -145,22 +164,16 @@ export function rateLimit(
   windowMs: number,
   message = 'Too many attempts. Please wait a few minutes and try again.',
 ) {
-  if (key.length > MAX_KEY_LENGTH) key = `sha256:${hashToken(key)}`
+  const limiter = limiterOf(key)
+  if (key.length > MAX_KEY_LENGTH) key = `${limiter}:sha256:${hashToken(key)}`
   const now = Date.now()
   const bucket = buckets.get(key)
   if (!bucket || bucket.resetAt <= now) {
-    if (!bucket && buckets.size >= MAX_BUCKETS) {
-      sweepBuckets(now)
-      // Still full: drop the oldest keys (a Map iterates in insertion order).
-      // Refusing new keys instead would let a flood of one kind of key lock
-      // every other limiter, and with it every sign-in.
-      if (buckets.size >= MAX_BUCKETS) {
-        let drop = MAX_BUCKETS / 100
-        for (const oldest of buckets.keys()) {
-          buckets.delete(oldest)
-          if (--drop <= 0) break
-        }
-      }
+    if (!bucket) {
+      if ((keysPerLimiter.get(limiter) ?? 0) >= MAX_KEYS_PER_LIMITER) sweepBuckets(now)
+      const live = keysPerLimiter.get(limiter) ?? 0
+      if (live >= MAX_KEYS_PER_LIMITER) throw new HttpError(429, 'The service is busy. Please try again in a few minutes.')
+      keysPerLimiter.set(limiter, live + 1)
     }
     buckets.set(key, { count: 1, resetAt: now + windowMs })
     return
