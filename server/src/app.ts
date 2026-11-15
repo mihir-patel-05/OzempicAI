@@ -1,7 +1,6 @@
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { cors } from 'hono/cors'
-import { logger } from 'hono/logger'
 import { authRoutes, clientIp, rateLimit, requireUser } from './auth.js'
 import type { AppEnv } from './auth.js'
 import { pool } from './db.js'
@@ -20,7 +19,21 @@ import { workoutRoutes } from './routes/workouts.js'
 /** The whole API. index.ts serves it; tests call app.request() directly. */
 export const app = new Hono<AppEnv>()
 
-app.use('*', logger())
+// One line per request: method, path, status, time. The query string is left
+// out on purpose: it carries date ranges and OAuth parameters that don't
+// belong in logs.
+app.use('*', async (c, next) => {
+  const started = Date.now()
+  await next()
+  console.log(`${c.req.method} ${c.req.path} ${c.res.status} ${Date.now() - started}ms`)
+})
+
+// API responses hold health data and credentials: never cache them, in the
+// browser or anywhere in between. Routes that set their own policy keep it.
+app.use('/api/*', async (c, next) => {
+  await next()
+  if (!c.res.headers.has('Cache-Control')) c.res.headers.set('Cache-Control', 'no-store')
+})
 
 // The web service proxies /api on the same origin, so CORS is only needed when
 // the frontend is served from somewhere else (e.g. a separate dev host).
@@ -100,7 +113,8 @@ app.onError((err, c) => {
     c.header('Retry-After', '5')
     return c.json({ error: 'The service is busy. Please try again in a moment.' }, 503)
   }
-  console.error(err)
+  // Not the whole error object: a database error's detail can include row values.
+  console.error('Unhandled error:', describeError(err))
   return c.json({ error: 'Something went wrong on our side. Please try again.' }, 500)
 })
 
@@ -109,4 +123,11 @@ function isOverloaded(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false
   if ('code' in err && (err.code === '57014' || err.code === '25P03')) return true
   return err instanceof Error && err.message.includes('timeout exceeded when trying to connect')
+}
+
+function describeError(err: unknown): string {
+  if (!(err instanceof Error)) return 'non-error thrown'
+  const code = 'code' in err && typeof err.code === 'string' ? ` code=${err.code}` : ''
+  const frame = err.stack?.split('\n')[1]?.trim() ?? ''
+  return `${err.name}: ${err.message.slice(0, 300)}${code} ${frame}`
 }
