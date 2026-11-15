@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../auth.js'
+import { isValidTimezone } from '../ai/dates.js'
 import { withUser } from '../db.js'
 import { HttpError, pick, readJson } from '../http.js'
 
@@ -11,6 +12,7 @@ const UPDATABLE = [
   'daily_calorie_goal',
   'daily_water_goal_ml',
   'unit_system',
+  'timezone',
 ] as const
 
 export const profileRoutes = new Hono<AppEnv>()
@@ -35,6 +37,9 @@ profileRoutes.get('/profile', async (c) => {
 profileRoutes.patch('/profile', async (c) => {
   const user = c.get('user')
   const values = pick(await readJson(c), UPDATABLE)
+  if ('timezone' in values && (typeof values.timezone !== 'string' || !isValidTimezone(values.timezone))) {
+    throw new HttpError(400, 'Invalid timezone')
+  }
   const keys = Object.keys(values)
   if (keys.length === 0) throw new HttpError(400, 'Nothing to update')
 

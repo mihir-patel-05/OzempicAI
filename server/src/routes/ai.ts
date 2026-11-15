@@ -52,7 +52,8 @@ aiRoutes.post('/ai/chat', async (c) => {
   if (message.length > MAX_MESSAGE_CHARS) {
     throw new HttpError(400, `Messages can be at most ${MAX_MESSAGE_CHARS} characters`)
   }
-  const tz = typeof body.timezone === 'string' && body.timezone ? body.timezone : 'UTC'
+  const tzFromClient = typeof body.timezone === 'string' && body.timezone !== ''
+  const tz = tzFromClient ? (body.timezone as string) : 'UTC'
   if (!isValidTimezone(tz)) throw new HttpError(400, 'Invalid timezone')
   const requestedId =
     body.conversation_id === undefined || body.conversation_id === null
@@ -76,6 +77,13 @@ aiRoutes.post('/ai/chat', async (c) => {
          from public.users where id = $1`,
       [user.id],
     )
+    if (tzFromClient) {
+      // Keep the saved timezone current for MCP clients, which don't send one.
+      await db.query('update public.users set timezone = $2 where id = $1 and timezone is distinct from $2', [
+        user.id,
+        tz,
+      ])
+    }
     if (requestedId) {
       const conversation = await getConversation(db, user.id, requestedId)
       if (!conversation) throw new HttpError(404, 'Conversation not found')
