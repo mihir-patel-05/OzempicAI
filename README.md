@@ -64,6 +64,23 @@ hour, 8 model calls per message. Design and rationale: `docs/ai-coach-integratio
 | `GET /api/ai/conversations/:id` | chat bubbles for the UI, with write cards |
 | `DELETE /api/ai/conversations/:id` | |
 
+**Connect your own AI (MCP).** `POST /api/mcp` is a remote MCP server (Streamable HTTP,
+stateless, JSON responses) that exposes the coach's tools to the user's own AI app, such as
+Claude on claude.ai and in the iPhone app. It sits behind an OAuth 2.1 authorization server in
+the API: discovery at `/.well-known/oauth-protected-resource/api/mcp` and
+`/.well-known/oauth-authorization-server`, Dynamic Client Registration at
+`/api/oauth/register`, the consent screen at `/oauth/authorize` (a web route), and
+`/api/oauth/token` and `/api/oauth/revoke`. Access tokens last an hour; refresh tokens last
+60 days and rotate. Users choose read-only or read-and-edit, and every call runs through
+`withUser()` like the coach. Writes are logged to `agent_activity` (migration `00015`).
+Profile → Connected AI apps lists connections and disconnects them. Off unless
+`MCP_ENABLED=true`. Design: `docs/mcp-server-plan.md`.
+
+To connect Claude: on claude.ai, Settings → Connectors → Add custom connector with
+`https://<app>/api/mcp`, leaving the advanced client id and secret empty. Allow it on the
+OzempicAI consent screen, and it then works from the Claude iPhone app. For Claude Code:
+`claude mcp add --transport http ozempicai https://<app>/api/mcp`, then `/mcp` to sign in.
+
 ## Local development
 
 ```bash
@@ -89,7 +106,9 @@ npm run preview    # serve dist locally (also proxies /api)
 npm run typecheck  # tsc --noEmit
 npm test           # analytics unit tests
 (cd server && npm run build)
-(cd server && npm test)                # AI coach unit tests
+(cd server && npm test)                # AI coach, OAuth and MCP unit tests
+# OAuth + MCP end to end against a disposable, migrated Postgres:
+(cd server && TEST_DATABASE_URL=postgres://… npm test)
 (cd server && npm run smoke:ai -- --yes)  # real Claude API, ~$1-2; never against production
 ```
 
@@ -109,6 +128,10 @@ Both app services build from this GitHub repo with their Dockerfiles and redeplo
     and the rest of the app works normally (this is also the rollback switch).
   - `AI_MODEL` (default `claude-opus-5-5`, e.g. `claude-sonnet-5-5` to cut cost) and
     `AI_MAX_TURNS_PER_HOUR` (default `40`) — optional.
+  - `MCP_ENABLED=true` — lets users connect their own AI apps (OAuth + `/api/mcp`). Needs
+    `APP_URL` set to the public https origin, which becomes the OAuth issuer; changing it later
+    invalidates existing connections. Unset it to switch the feature off (connections are kept,
+    and Disconnect in Profile still works).
 
 Schema changes: add the next numbered `.sql` file to `server/migrations/`. Never edit one that
 has already run.
@@ -120,6 +143,9 @@ Before release, verify:
 - Password reset sends an email and the link signs you in.
 - The AI coach streams token by token through `web` (not in one burst), and another account's
   conversation id returns 404.
+- With `MCP_ENABLED=true`: `https://<app>/.well-known/oauth-authorization-server` returns JSON
+  (not the SPA's HTML), a Claude custom connector can connect through the consent screen, and
+  Disconnect in Profile cuts it off.
 
 ## Importing data from the old Supabase project
 

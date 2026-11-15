@@ -9,6 +9,11 @@ OAuth 2.1 authorization server that Claude's custom connectors can sign in to. T
 validation and row-level security stay as they are. The new work is an adapter, the OAuth layer, a
 consent screen, and a few changes to the tools.
 
+**Status (2026-11-15):** phase 1 is built on `MCP_Feature`: tool changes, migrations
+`00013`–`00015`, OAuth discovery, registration, consent, tokens and revocation, `/api/mcp`, and
+Profile → Connected AI apps. Not yet tried against claude.ai or the iPhone app. Phase 2 is not
+started.
+
 ### Decisions (2026-11-15)
 
 | Question | Answer | Effect on the plan |
