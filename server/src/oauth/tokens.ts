@@ -103,18 +103,21 @@ export function exchangeCode(client: OAuthClient, form: Form): Promise<TokenResp
       [hashToken(form.code ?? '')],
     )
     const code = rows[0]
-    if (!code) return invalidGrant('Unknown authorization code')
+    // Prove the caller is the client the code was issued to, and holds its
+    // PKCE verifier, before anything else. Until then an unknown code and
+    // someone else's code look the same, and nothing is revoked: otherwise
+    // anyone who saw a used code could disconnect the app it belongs to.
+    if (!code || code.client_id !== client.client_id) return invalidGrant('This authorization code is not valid')
+    if (!verifyPkce(form.code_verifier ?? '', code.code_challenge)) return invalidGrant('PKCE verification failed')
     if (code.used_at) {
       // A replayed code may have been stolen: cut off what it was exchanged for.
       if (code.grant_id) await revokeGrant(db, code.grant_id)
       return invalidGrant('This authorization code was already used')
     }
-    if (code.client_id !== client.client_id) return invalidGrant('This code was issued to another client')
     if (!code.live) return invalidGrant('This authorization code has expired')
     if (form.redirect_uri !== undefined && form.redirect_uri !== code.redirect_uri) {
       return invalidGrant('redirect_uri does not match the authorization request')
     }
-    if (!verifyPkce(form.code_verifier ?? '', code.code_challenge)) return invalidGrant('PKCE verification failed')
     if (form.resource !== undefined && (!isOurResource(form.resource) || code.resource !== resourceUrl())) {
       return { ok: false, error: new OAuthError('invalid_target', `resource must be ${resourceUrl()}`) }
     }
