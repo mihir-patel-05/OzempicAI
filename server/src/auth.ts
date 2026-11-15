@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
+import { isIP } from 'node:net'
 import bcrypt from 'bcryptjs'
 import { Hono } from 'hono'
 import type { Context, MiddlewareHandler } from 'hono'
@@ -130,12 +131,33 @@ export function rateLimitKeyCount(): number {
   return buckets.size
 }
 
+/**
+ * The address to rate-limit by, from the X-Real-IP header's value.
+ *
+ * Railway's edge overwrites X-Real-IP with the real client address (checked
+ * against production: a forged value is ignored), and the API is reachable
+ * only through that edge and the web service. X-Forwarded-For is not used:
+ * its first entry is whatever the client sent. Anything that isn't an IP is
+ * treated as unknown, and IPv6 is grouped by /64 because one subscriber
+ * controls a whole /64.
+ */
+export function clientIpFromHeader(value: string | undefined): string {
+  const ip = value?.trim() ?? ''
+  if (ip.length > 45) return 'unknown'
+  const version = isIP(ip)
+  if (version === 4) return ip
+  if (version !== 6) return 'unknown'
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip)
+  if (mapped) return mapped[1]!
+  const [head = '', tail = ''] = ip.toLowerCase().split('::')
+  const left = head ? head.split(':') : []
+  const right = tail ? tail.split(':') : []
+  const groups = ip.includes('::') ? [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill('0'), ...right] : left
+  return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '')).join(':')}::/64`
+}
+
 export function clientIp(c: Context): string {
-  return (
-    c.req.header('x-real-ip') ??
-    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
-    'unknown'
-  )
+  return clientIpFromHeader(c.req.header('x-real-ip'))
 }
 
 function limitByIp(c: Context, action: string) {

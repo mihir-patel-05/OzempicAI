@@ -27,3 +27,17 @@ test('rate-limit keys built from long input are stored at a fixed size (SEC-17)'
   assert.throws(() => rateLimit(long, 2, 60_000), /Too many attempts/)
   assert.equal(rateLimitKeyCount(), before + 1)
 })
+
+test('client address comes only from a well-formed X-Real-IP (SEC-02)', async () => {
+  const { clientIpFromHeader } = await import('./auth.js')
+  assert.equal(clientIpFromHeader('203.0.113.7'), '203.0.113.7')
+  assert.equal(clientIpFromHeader(' 203.0.113.7 '), '203.0.113.7')
+  assert.equal(clientIpFromHeader('::ffff:203.0.113.7'), '203.0.113.7')
+  // One /64 is one bucket, however the address is written.
+  assert.equal(clientIpFromHeader('2001:db8:1:2:aaaa:bbbb:cccc:dddd'), '2001:db8:1:2::/64')
+  assert.equal(clientIpFromHeader('2001:0db8:0001:0002::1'), '2001:db8:1:2::/64')
+  assert.equal(clientIpFromHeader('2001:db8::1'), '2001:db8:0:0::/64')
+  for (const bad of [undefined, '', 'rotated-1', '203.0.113.7, 10.0.0.1', 'x'.repeat(5000)]) {
+    assert.equal(clientIpFromHeader(bad), 'unknown')
+  }
+})
