@@ -17,6 +17,8 @@ export interface AuthUser {
 export type AppEnv = { Variables: { user: AuthUser; token: string } }
 
 const SESSION_DAYS = 30
+/** However often it is used, a session ends this long after sign-in. */
+const SESSION_MAX_DAYS = 90
 const RESET_TOKEN_MINUTES = 60
 const MIN_PASSWORD_LENGTH = 8
 const BCRYPT_ROUNDS = 10
@@ -266,8 +268,9 @@ export const requireUser: MiddlewareHandler<AppEnv> = async (c, next) => {
             s.last_used_at < now() - interval '1 day' as refresh
        from auth.sessions s
        join auth.users u on u.id = s.user_id
-      where s.token_hash = $1 and s.expires_at > now()`,
-    [tokenHash],
+      where s.token_hash = $1 and s.expires_at > now()
+        and s.created_at > now() - make_interval(days => $2)`,
+    [tokenHash, SESSION_MAX_DAYS],
   )
   const row = rows[0]
   if (!row) throw new HttpError(401, 'Your session has expired. Please sign in again.')
@@ -513,7 +516,10 @@ authRoutes.post('/reset', async (c) => {
 
 /** Housekeeping for expired rows; called on an interval from index.ts. */
 export async function purgeExpiredAuthRows() {
-  await pool.query('delete from auth.sessions where expires_at < now()')
+  await pool.query(
+    'delete from auth.sessions where expires_at < now() or created_at < now() - make_interval(days => $1)',
+    [SESSION_MAX_DAYS],
+  )
   await pool.query(
     `delete from auth.password_reset_tokens
       where expires_at < now() - interval '1 day' or used_at < now() - interval '1 day'`,
