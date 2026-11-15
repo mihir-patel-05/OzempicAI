@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Card } from '../../components/Card'
 import { PageHeader, SectionHeader } from '../../components/PageHeader'
 import { Banner } from '../../components/Banner'
+import { ConnectedApps } from './ConnectedApps'
 import { useAuth } from '../../auth/AuthProvider'
 import { CapsLabel, Field } from '../../components/Field'
 import { PrimaryButton } from '../../components/PrimaryButton'
@@ -179,6 +180,8 @@ export function ProfileScreen() {
               <PrimaryButton type="submit" variant="outline" loading={updatingPassword} disabled={password.length < 8}>Update password</PrimaryButton>
             </form>
           </Card>
+
+          <ConnectedApps />
 
           <Card padding="lg">
             <SectionHeader title="Account" />
