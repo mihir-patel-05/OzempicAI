@@ -269,3 +269,113 @@ test('revoking a token ends the connection', { skip }, async () => {
   assert.equal(res.status, 200)
   assert.equal(await tokens.verifyAccessToken(issued.access_token as string), null)
 })
+
+// ─── /api/mcp with real tokens ──────────────────────────────────────────────
+
+let rpcId = 0
+async function rpc(accessToken: string | null, method: string, params: Record<string, unknown> = {}) {
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    accept: 'application/json, text/event-stream',
+    'mcp-protocol-version': '2025-11-25',
+  }
+  if (accessToken) headers.authorization = `Bearer ${accessToken}`
+  return app.request('/api/mcp', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ jsonrpc: '2.0', id: ++rpcId, method, params }),
+  })
+}
+
+async function callTool(accessToken: string, name: string, args: Record<string, unknown>) {
+  const res = await rpc(accessToken, 'tools/call', { name, arguments: args })
+  assert.equal(res.status, 200)
+  const body = await json(res)
+  const result = body.result as { content: { text: string }[]; isError?: boolean }
+  return { isError: result.isError === true, text: result.content[0]!.text }
+}
+
+test('/api/mcp without a valid token points the client at OAuth discovery', { skip }, async () => {
+  const none = await rpc(null, 'tools/list')
+  assert.equal(none.status, 401)
+  const challenge = none.headers.get('www-authenticate') ?? ''
+  assert.match(challenge, /^Bearer /)
+  assert.match(challenge, /resource_metadata="https:\/\/app\.test\/\.well-known\/oauth-protected-resource\/api\/mcp"/)
+  assert.doesNotMatch(challenge, /invalid_token/)
+
+  const bad = await rpc('oza_at_not-a-real-token', 'tools/list')
+  assert.equal(bad.status, 401)
+  assert.match(bad.headers.get('www-authenticate') ?? '', /error="invalid_token"/)
+
+  // A web session token is not an MCP token.
+  const session = await signUp()
+  assert.equal((await rpc(session, 'tools/list')).status, 401)
+
+  const get = await app.request('/api/mcp', { method: 'GET' })
+  assert.equal(get.status, 405)
+})
+
+test('a connected app can initialize, list and call tools, and its writes are logged', { skip }, async () => {
+  const session = await signUp()
+  const { tokens: issued } = await connect(session)
+  const accessToken = issued.access_token as string
+
+  const init = await rpc(accessToken, 'initialize', {
+    protocolVersion: '2025-11-25',
+    capabilities: {},
+    clientInfo: { name: 'flow-test', version: '1.0.0' },
+  })
+  assert.equal(init.status, 200)
+  const initResult = (await json(init)).result as { serverInfo: { name: string }; instructions: string }
+  assert.equal(initResult.serverInfo.name, 'ozempicai')
+  assert.match(initResult.instructions, /get_profile first/)
+
+  const list = (await json(await rpc(accessToken, 'tools/list'))).result as { tools: { name: string }[] }
+  assert.ok(list.tools.some((tool) => tool.name === 'add_grocery_items'))
+
+  const profile = await callTool(accessToken, 'get_profile', {})
+  assert.equal(profile.isError, false)
+  assert.equal(JSON.parse(profile.text).timezone, 'UTC')
+
+  const added = await callTool(accessToken, 'add_grocery_items', {
+    items: [
+      { name: 'Greek yogurt', category: 'dairy' },
+      { name: 'Spinach', category: 'produce' },
+    ],
+  })
+  assert.equal(added.isError, false)
+  assert.deepEqual(JSON.parse(added.text).added, ['Greek yogurt', 'Spinach'])
+
+  const listed = JSON.parse((await callTool(accessToken, 'get_grocery_list', { include_purchased: false })).text)
+  assert.equal(listed.count, 2)
+  assert.match(listed.items[0].id, /^[0-9a-f-]{36}$/)
+
+  const bad = await callTool(accessToken, 'add_grocery_items', { items: [{ name: 'Ice', category: 'frozen' }] })
+  assert.equal(bad.isError, true)
+
+  const { pool } = await import('../db.js')
+  const access = await tokens.verifyAccessToken(accessToken)
+  const { rows } = await pool.query(
+    'select client_name, tool_name, summary, resource, cardinality(created_ids) as n from public.agent_activity where user_id = $1',
+    [access!.userId],
+  )
+  assert.deepEqual(rows, [
+    { client_name: 'Claude', tool_name: 'add_grocery_items', summary: 'Added 2 items to Groceries', resource: 'grocery-items', n: 2 },
+  ])
+})
+
+test('read-only connections cannot write, and users never see each other’s rows', { skip }, async () => {
+  const writer = (await connect(await signUp())).tokens.access_token as string
+  await callTool(writer, 'add_grocery_items', { items: [{ name: 'Private item', category: 'other' }] })
+
+  const reader = (await connect(await signUp(), ['read'])).tokens.access_token as string
+  const list = (await json(await rpc(reader, 'tools/list'))).result as { tools: { name: string }[] }
+  assert.ok(!list.tools.some((tool) => tool.name === 'add_grocery_items'))
+
+  const denied = await callTool(reader, 'add_grocery_items', { items: [{ name: 'Milk', category: 'dairy' }] })
+  assert.equal(denied.isError, true)
+  assert.match(denied.text, /read-only/)
+
+  const theirs = JSON.parse((await callTool(reader, 'get_grocery_list', { include_purchased: true })).text)
+  assert.equal(theirs.count, 0)
+})

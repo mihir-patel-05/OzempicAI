@@ -9,6 +9,7 @@ import { toHttpError } from './http.js'
 import { OAuthError } from './oauth/errors.js'
 import { wellKnownRoutes } from './oauth/metadata.js'
 import { oauthRoutes } from './oauth/routes.js'
+import { mcpRoutes } from './mcp/routes.js'
 import { aiRoutes } from './routes/ai.js'
 import { analyticsRoutes } from './routes/analytics.js'
 import { profileRoutes } from './routes/profile.js'
@@ -42,6 +43,9 @@ app.route('/api/auth', authRoutes)
 // OAuth discovery for MCP clients (off unless MCP_ENABLED=true).
 app.route('/.well-known', wellKnownRoutes)
 app.route('/api/oauth', oauthRoutes)
+// Bearer-token MCP endpoint. Must come before `data`, whose requireUser would
+// reject OAuth access tokens.
+app.route('/api/mcp', mcpRoutes)
 
 const data = new Hono<AppEnv>()
 data.use('*', requireUser)
