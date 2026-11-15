@@ -90,15 +90,30 @@ function readPassword(value: unknown): string {
 // password guessing and reset-email spam without another moving part.
 const buckets = new Map<string, { count: number; resetAt: number }>()
 
+/** Keys longer than this are stored as a hash, so request input can't bloat the map. */
+const MAX_KEY_LENGTH = 160
+/** Hard ceiling on tracked keys (a few tens of MB at most). */
+const MAX_BUCKETS = 200_000
+
+function sweepBuckets(now: number) {
+  for (const [key, bucket] of buckets) if (bucket.resetAt <= now) buckets.delete(key)
+}
+
 export function rateLimit(
   key: string,
   limit: number,
   windowMs: number,
   message = 'Too many attempts. Please wait a few minutes and try again.',
 ) {
+  if (key.length > MAX_KEY_LENGTH) key = `sha256:${hashToken(key)}`
   const now = Date.now()
   const bucket = buckets.get(key)
   if (!bucket || bucket.resetAt <= now) {
+    if (!bucket && buckets.size >= MAX_BUCKETS) {
+      sweepBuckets(now)
+      // Still full: refuse rather than grow without bound or stop limiting.
+      if (buckets.size >= MAX_BUCKETS) throw new HttpError(429, 'The service is busy. Please try again in a few minutes.')
+    }
     buckets.set(key, { count: 1, resetAt: now + windowMs })
     return
   }
@@ -108,10 +123,12 @@ export function rateLimit(
   }
 }
 
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, bucket] of buckets) if (bucket.resetAt <= now) buckets.delete(key)
-}, 60_000).unref()
+setInterval(() => sweepBuckets(Date.now()), 60_000).unref()
+
+/** Number of live rate-limit keys (for tests and metrics). */
+export function rateLimitKeyCount(): number {
+  return buckets.size
+}
 
 export function clientIp(c: Context): string {
   return (

@@ -32,6 +32,8 @@ if (corsOrigins.length > 0) {
   app.use('/api/*', cors({ origin: corsOrigins, allowHeaders: ['Authorization', 'Content-Type'] }))
 }
 
+// Sign-in bodies are an email, a password and a name: a few hundred bytes.
+app.use('/api/auth/*', bodyLimit({ maxSize: 8 * 1024 }))
 app.use('/api/*', bodyLimit({ maxSize: 256 * 1024 }))
 
 app.get('/api/health', async (c) => {

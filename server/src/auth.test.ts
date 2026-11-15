@@ -17,3 +17,13 @@ test('isEmail is bounded: long and adversarial input is rejected quickly (SEC-12
   assert.equal(isEmail('a@' + 'a.'.repeat(120_000) + '\n!'), false)
   assert.ok(performance.now() - started < 50)
 })
+
+test('rate-limit keys built from long input are stored at a fixed size (SEC-17)', async () => {
+  const { rateLimit, rateLimitKeyCount } = await import('./auth.js')
+  const before = rateLimitKeyCount()
+  const long = `login:email:${'a'.repeat(200_000)}@example.com`
+  rateLimit(long, 2, 60_000)
+  rateLimit(long, 2, 60_000)
+  assert.throws(() => rateLimit(long, 2, 60_000), /Too many attempts/)
+  assert.equal(rateLimitKeyCount(), before + 1)
+})
