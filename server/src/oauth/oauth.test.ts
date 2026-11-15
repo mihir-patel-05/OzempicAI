@@ -41,3 +41,18 @@ test('newSecret is prefixed and random; safeEqual compares exactly', () => {
   assert.ok(!safeEqual(a, b))
   assert.ok(!safeEqual(a, a.slice(1)))
 })
+
+test('discovery documents point clients at our endpoints and require S256', async () => {
+  const { authorizationServerMetadata, protectedResourceMetadata } = await import('./metadata.js')
+  const resource = protectedResourceMetadata()
+  assert.equal(resource.resource, 'https://app.example.com/api/mcp')
+  assert.deepEqual(resource.authorization_servers, ['https://app.example.com'])
+
+  const server = authorizationServerMetadata()
+  assert.equal(server.issuer, 'https://app.example.com')
+  assert.equal(server.authorization_endpoint, 'https://app.example.com/oauth/authorize')
+  assert.equal(server.token_endpoint, 'https://app.example.com/api/oauth/token')
+  assert.equal(server.registration_endpoint, 'https://app.example.com/api/oauth/register')
+  assert.deepEqual(server.code_challenge_methods_supported, ['S256'])
+  assert.ok(!server.grant_types_supported.includes('implicit'))
+})

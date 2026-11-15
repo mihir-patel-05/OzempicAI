@@ -6,6 +6,7 @@ import { authRoutes, requireUser } from './auth.js'
 import type { AppEnv } from './auth.js'
 import { pool } from './db.js'
 import { toHttpError } from './http.js'
+import { wellKnownRoutes } from './oauth/metadata.js'
 import { aiRoutes } from './routes/ai.js'
 import { analyticsRoutes } from './routes/analytics.js'
 import { profileRoutes } from './routes/profile.js'
@@ -35,6 +36,9 @@ app.get('/api/health', async (c) => {
 })
 
 app.route('/api/auth', authRoutes)
+
+// OAuth discovery for MCP clients (off unless MCP_ENABLED=true).
+app.route('/.well-known', wellKnownRoutes)
 
 const data = new Hono<AppEnv>()
 data.use('*', requireUser)

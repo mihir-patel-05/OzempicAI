@@ -19,6 +19,12 @@
 		}
 	}
 
+	# OAuth discovery for AI apps connecting to /api/mcp. Without this route
+	# these would fall through to the SPA and return index.html.
+	handle /.well-known/oauth-* {
+		reverse_proxy {$API_UPSTREAM:localhost:8787}
+	}
+
 	handle /api/* {
 		# e.g. http://api.railway.internal:8080 (API_UPSTREAM on the web service)
 		reverse_proxy {$API_UPSTREAM:localhost:8787}
