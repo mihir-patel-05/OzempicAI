@@ -104,7 +104,7 @@ oauthRoutes.post('/authorize', requireUser, async (c) => {
     })
   }
   const scopes = grantedScopes(request.scopes, body.scopes)
-  return c.json({ redirect_to: await issueCode(request, c.get('user').id, scopes) })
+  return c.json({ redirect_to: await issueCode(request, c.get('user').id, scopes, c.get('token')) })
 })
 
 /** Token and revocation requests are form-encoded (RFC 6749); accept JSON too. */

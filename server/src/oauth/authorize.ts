@@ -1,5 +1,5 @@
 import { hashToken } from '../auth.js'
-import { pool } from '../db.js'
+import { withTransaction } from '../db.js'
 import { HttpError } from '../http.js'
 import { findClient } from './clients.js'
 import type { OAuthClient } from './clients.js'
@@ -103,10 +103,29 @@ export function grantedScopes(requested: Scope[], chosen: unknown): Scope[] {
   return granted
 }
 
-/** Issue a single-use authorization code and return the redirect carrying it. */
-export async function issueCode(request: AuthorizeRequest, userId: string, scopes: Scope[]): Promise<string> {
+/**
+ * Issue a single-use authorization code and return the redirect carrying it.
+ *
+ * A password reset or change signs every session out and deletes the user's
+ * codes. Locking the user row first makes this wait for such a change that is
+ * in progress, and the session check then fails if it was the one signed out,
+ * so a consent request already in flight can't leave a code behind.
+ */
+export async function issueCode(
+  request: AuthorizeRequest,
+  userId: string,
+  scopes: Scope[],
+  sessionToken: string,
+): Promise<string> {
   const code = newSecret('oza_ac')
-  await pool.query(
+  await withTransaction(async (db) => {
+    await db.query('select 1 from auth.users where id = $1 for share', [userId])
+    const session = await db.query(
+      'select 1 from auth.sessions where token_hash = $1 and user_id = $2 and expires_at > now()',
+      [hashToken(sessionToken), userId],
+    )
+    if (!session.rowCount) throw new HttpError(401, 'Your session has expired. Please sign in again.')
+    await db.query(
     `insert into auth.oauth_codes
        (code_hash, client_id, user_id, redirect_uri, scopes, code_challenge, resource, expires_at)
      values ($1, $2, $3, $4, $5, $6, $7, now() + make_interval(secs => $8))`,
@@ -120,6 +139,7 @@ export async function issueCode(request: AuthorizeRequest, userId: string, scope
       request.resource,
       CODE_SECONDS,
     ],
-  )
+    )
+  })
   return buildRedirect(request.redirectUri, { code, state: request.state })
 }
