@@ -44,6 +44,8 @@ export interface UserProfile {
   daily_calorie_goal: number
   daily_water_goal_ml: number
   unit_system: UnitSystem
+  /** IANA timezone, kept in sync by the app; read by MCP tools. */
+  timezone: string | null
   created_at: string
 }
 
