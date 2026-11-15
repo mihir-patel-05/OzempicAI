@@ -14,6 +14,10 @@ export type IconName =
   | 'person'
   | 'check'
   | 'chevron'
+  | 'sparkle'
+  | 'send'
+  | 'undo'
+  | 'chat'
 
 const PATHS: Record<IconName, JSX.Element> = {
   trash: <path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6.5 7l.9 12.1A2 2 0 0 0 9.4 21h5.2a2 2 0 0 0 2-1.9L17.5 7M10 11v6M14 11v6" />,
@@ -56,6 +60,15 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   chevron: <path d="M9 6l6 6-6 6" />,
+  sparkle: (
+    <>
+      <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z" />
+      <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z" />
+    </>
+  ),
+  send: <path d="M12 19V5M6 11l6-6 6 6" />,
+  undo: <path d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />,
+  chat: <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.1A8 8 0 1 1 20 12Z" />,
 }
 
 export function Icon({ name, size = 22, strokeWidth = 1.8 }: { name: IconName; size?: number; strokeWidth?: number }) {

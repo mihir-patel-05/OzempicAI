@@ -1,4 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import { TabBar } from './TabBar'
 import { LogSheet } from './LogSheet'
 import { Icon } from './Icon'
@@ -7,6 +8,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const [logOpen, setLogOpen] = useState(false)
   const openLog = useCallback(() => setLogOpen(true), [])
   const closeLog = useCallback(() => setLogOpen(false), [])
+  // Full-screen chat on phones: no tab bar, so the composer can sit at the
+  // bottom edge (and right above the keyboard). The desktop sidebar stays.
+  const immersive = useLocation().pathname.startsWith('/coach')
 
   return (
     <div className="app-shell">
@@ -27,8 +31,8 @@ export function Shell({ children }: { children: ReactNode }) {
           Small choices, tracked daily.
         </p>
       </aside>
-      <main className="app-content">{children}</main>
-      <TabBar variant="mobile" onLog={openLog} logOpen={logOpen} />
+      <main className={`app-content${immersive ? ' is-immersive' : ''}`}>{children}</main>
+      {!immersive && <TabBar variant="mobile" onLog={openLog} logOpen={logOpen} />}
       {logOpen && <LogSheet onClose={closeLog} />}
     </div>
   )

@@ -13,13 +13,17 @@
     "start": "node dist/index.js",
     "migrate": "node dist/migrate.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "import:supabase": "node dist/import-supabase.js"
+    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "import:supabase": "node dist/import-supabase.js",
+    "smoke:ai": "tsx --env-file-if-exists=.env src/ai/smoke.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@hono/node-server": "^2.1.8",
     "bcryptjs": "^3.0.3",
     "hono": "^4.13.18",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

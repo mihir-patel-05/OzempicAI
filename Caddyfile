@@ -7,7 +7,17 @@
 }
 
 :{$PORT:8080} {
-	encode zstd gzip
+	# The coach's chat endpoint streams server-sent events; compressing it
+	# would buffer tokens into bursts, so it is left out of encode and proxied
+	# without buffering.
+	@compressible not path /api/ai/chat
+	encode @compressible zstd gzip
+
+	handle /api/ai/chat {
+		reverse_proxy {$API_UPSTREAM:localhost:8787} {
+			flush_interval -1
+		}
+	}
 
 	handle /api/* {
 		# e.g. http://api.railway.internal:8080 (API_UPSTREAM on the web service)
