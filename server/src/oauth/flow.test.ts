@@ -155,6 +155,8 @@ test('consent screen request: details for a valid request, errors for bad ones',
 
   // Missing PKCE goes back to the app as an OAuth error.
   const noPkce = await json(await query(authorizeParams(client.client_id as string, challenge, { code_challenge_method: 'plain' })))
+  assert.match(noPkce.problem as string, /PKCE/)
+  assert.equal(noPkce.redirect_to_label, 'claude.ai')
   const back = new URL(noPkce.redirect_to as string)
   assert.equal(back.origin + back.pathname, REDIRECT)
   assert.equal(back.searchParams.get('error'), 'invalid_request')

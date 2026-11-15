@@ -15,7 +15,11 @@ interface AuthorizeDetails {
   scopes: Scope[]
 }
 
-type Loaded = { kind: 'details'; details: AuthorizeDetails } | { kind: 'redirect'; to: string }
+interface RequestProblem {
+  problem: string
+  redirect_to: string
+  redirect_to_label: string
+}
 
 /**
  * OAuth consent screen. An AI app (e.g. Claude) sends the user here to
@@ -28,6 +32,7 @@ export function AuthorizeAppScreen() {
   const params = useMemo(() => Object.fromEntries(new URLSearchParams(location.search)), [location.search])
 
   const [details, setDetails] = useState<AuthorizeDetails | null>(null)
+  const [problem, setProblem] = useState<RequestProblem | null>(null)
   const [access, setAccess] = useState<Access>('edit')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState<'allow' | 'deny' | null>(null)
@@ -35,12 +40,13 @@ export function AuthorizeAppScreen() {
 
   useEffect(() => {
     let cancelled = false
-    api<AuthorizeDetails | { redirect_to: string }>('/oauth/authorize', { query: params })
-      .then((data): Loaded => ('redirect_to' in data ? { kind: 'redirect', to: data.redirect_to } : { kind: 'details', details: data }))
-      .then((loaded) => {
+    api<AuthorizeDetails | RequestProblem>('/oauth/authorize', { query: params })
+      .then((data) => {
         if (cancelled) return
-        if (loaded.kind === 'redirect') leave(loaded.to)
-        else setDetails(loaded.details)
+        // A malformed request is shown, never followed automatically: anyone
+        // can register an app, so auto-redirecting would be an open redirect.
+        if ('problem' in data) setProblem(data)
+        else setDetails(data)
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : 'This connection request could not be checked.')
@@ -91,6 +97,20 @@ export function AuthorizeAppScreen() {
             <p role="status" style={subtitleStyle}>
               Returning you to the app…
             </p>
+          ) : problem ? (
+            <>
+              <h1 style={titleStyle}>This connection request has a problem</h1>
+              <div style={{ margin: 'var(--space-lg) 0' }}>
+                <Banner tone="error">{problem.problem}</Banner>
+              </div>
+              <p style={noteStyle}>
+                Nothing was shared. You can go back to {problem.redirect_to_label} to let the app know, or just close
+                this page.
+              </p>
+              <PrimaryButton type="button" variant="outline" onClick={() => leave(problem.redirect_to)}>
+                Return to {problem.redirect_to_label}
+              </PrimaryButton>
+            </>
           ) : !details ? (
             error ? (
               <>

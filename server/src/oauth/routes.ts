@@ -69,7 +69,16 @@ function readAuthorizeParams(source: unknown): AuthorizeParams {
  */
 oauthRoutes.get('/authorize', requireUser, async (c) => {
   const check = await checkAuthorizeRequest(readAuthorizeParams(c.req.query()))
-  if (!check.ok) return c.json({ redirect_to: check.redirectTo })
+  if (!check.ok) {
+    // Never bounce the browser automatically: anyone can register a client,
+    // so an automatic error redirect would make this an open redirector
+    // (RFC 9700 §4.11.2). The screen shows the problem and the user chooses.
+    return c.json({
+      problem: check.problem,
+      redirect_to: check.redirectTo,
+      redirect_to_label: check.redirectLabel,
+    })
+  }
   const { request } = check
   return c.json({
     client_name: request.client.client_name,

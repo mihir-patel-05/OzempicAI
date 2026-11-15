@@ -26,7 +26,7 @@ export interface AuthorizeRequest {
  */
 export type AuthorizeCheck =
   | { ok: true; request: AuthorizeRequest }
-  | { ok: false; redirectTo: string }
+  | { ok: false; redirectTo: string; problem: string; redirectLabel: string }
 
 const MAX_STATE = 2000
 
@@ -46,6 +46,8 @@ export async function checkAuthorizeRequest(params: AuthorizeParams): Promise<Au
   const fail = (error: string, description: string): AuthorizeCheck => ({
     ok: false,
     redirectTo: buildRedirect(redirectUri, { error, error_description: description, state }),
+    problem: description,
+    redirectLabel: describeRedirect(redirectUri),
   })
 
   if (state !== undefined && state.length > MAX_STATE) return fail('invalid_request', 'state is too long')
