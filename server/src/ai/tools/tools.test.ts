@@ -136,8 +136,11 @@ test('runTool reports problems as messages and successes as outcomes', async () 
   assert.equal(calls.length, 0)
 
   const ok = await runTool('get_profile', {}, ctx(db))
-  assert.equal(ok.ok, true)
-  assert.equal(ok.ok && (ok.outcome.result as { daily_calorie_goal: number }).daily_calorie_goal, 1800)
+  assert.ok(ok.ok)
+  const profile = ok.outcome.result as { daily_calorie_goal: number; today: string; timezone: string }
+  assert.equal(profile.daily_calorie_goal, 1800)
+  assert.equal(profile.today, '2026-11-14')
+  assert.equal(profile.timezone, 'UTC')
 })
 
 test('create_meal_plan saves nothing when any date is out of range', async () => {
