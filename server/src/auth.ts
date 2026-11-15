@@ -87,6 +87,44 @@ function readPassword(value: unknown): string {
   return password
 }
 
+// ─── Password hashing ───────────────────────────────────────────────────────
+// bcryptjs runs on the request thread, so hashing is the most expensive thing
+// an anonymous caller can ask for. At most a few run at once and only a short
+// line may wait; beyond that the request is refused instead of piling up.
+const MAX_CONCURRENT_HASHES = 2
+const MAX_WAITING_HASHES = 30
+let hashing = 0
+const hashWaiters: (() => void)[] = []
+
+async function withHashSlot<T>(work: () => Promise<T>): Promise<T> {
+  if (hashing >= MAX_CONCURRENT_HASHES) {
+    if (hashWaiters.length >= MAX_WAITING_HASHES) {
+      throw new HttpError(503, 'The service is busy. Please try again in a moment.')
+    }
+    await new Promise<void>((resolve) => hashWaiters.push(resolve))
+  } else {
+    hashing += 1
+  }
+  try {
+    return await work()
+  } finally {
+    const next = hashWaiters.shift()
+    // Hand the slot straight to the next waiter, or free it.
+    if (next) next()
+    else hashing -= 1
+  }
+}
+
+function hashPassword(password: string): Promise<string> {
+  return withHashSlot(() => bcrypt.hash(password, BCRYPT_ROUNDS))
+}
+
+function checkPassword(password: string, hash: string): Promise<boolean> {
+  // An unusable hash (e.g. '!' on an imported account with no password) makes
+  // bcryptjs reject rather than return false.
+  return withHashSlot(() => bcrypt.compare(password, hash).catch(() => false))
+}
+
 // ─── Rate limiting ──────────────────────────────────────────────────────────
 // In-memory fixed windows. One API replica, so this is enough to slow down
 // password guessing and reset-email spam without another moving part.
@@ -210,7 +248,10 @@ authRoutes.post('/signup', async (c) => {
   const password = readPassword(body.password)
   const name = typeof body.name === 'string' ? body.name.trim().slice(0, 200) : ''
 
-  const hash = await bcrypt.hash(password, BCRYPT_ROUNDS)
+  // Checked again inside the transaction; this one avoids hashing for nothing.
+  const taken = await pool.query('select 1 from auth.users where lower(email) = $1', [email])
+  if (taken.rowCount) throw new HttpError(409, 'An account with this email already exists.')
+  const hash = await hashPassword(password)
   const session = await withTransaction(async (db) => {
     const existing = await db.query('select 1 from auth.users where lower(email) = $1', [email])
     if (existing.rowCount) throw new HttpError(409, 'An account with this email already exists.')
@@ -239,11 +280,7 @@ authRoutes.post('/login', async (c) => {
     [email],
   )
   const user = rows[0]
-  // An unusable hash (e.g. '!' on an imported account with no password) makes
-  // bcryptjs reject rather than return false.
-  const ok = user
-    ? await bcrypt.compare(password, user.encrypted_password).catch(() => false)
-    : false
+  const ok = user ? await checkPassword(password, user.encrypted_password) : false
   if (!user || !ok) throw new HttpError(400, 'Invalid login credentials')
 
   return c.json(await createSession(pool, { id: user.id, email: user.email, name: user.name }))
@@ -261,7 +298,8 @@ authRoutes.post('/password', requireUser, async (c) => {
   const body = await readJson(c)
   const password = readPassword(body.password)
   const user = c.get('user')
-  const hash = await bcrypt.hash(password, BCRYPT_ROUNDS)
+  rateLimit(`password:user:${user.id}`, 5, 60 * 60_000, 'You have changed your password several times. Please wait an hour and try again.')
+  const hash = await hashPassword(password)
   await withTransaction(async (db) => {
     await db.query(
       'update auth.users set encrypted_password = $2, updated_at = now() where id = $1',
@@ -305,7 +343,16 @@ authRoutes.post('/reset', async (c) => {
   const body = await readJson(c)
   const token = typeof body.token === 'string' ? body.token : ''
   const password = readPassword(body.password)
-  const hash = await bcrypt.hash(password, BCRYPT_ROUNDS)
+  const invalid = () => new HttpError(400, 'This reset link is invalid or has expired. Request a new one.')
+
+  // Look the token up before hashing, so a made-up token costs one indexed
+  // read and nothing more. It is claimed atomically in the transaction below.
+  const live = await pool.query(
+    'select 1 from auth.password_reset_tokens where token_hash = $1 and used_at is null and expires_at > now()',
+    [hashToken(token)],
+  )
+  if (!live.rowCount) throw invalid()
+  const hash = await hashPassword(password)
 
   const session = await withTransaction(async (db) => {
     const { rows } = await db.query<AuthUser>(
@@ -320,7 +367,7 @@ authRoutes.post('/reset', async (c) => {
       [hashToken(token)],
     )
     const user = rows[0]
-    if (!user) throw new HttpError(400, 'This reset link is invalid or has expired. Request a new one.')
+    if (!user) throw invalid()
     await db.query(
       'update auth.users set encrypted_password = $2, updated_at = now() where id = $1',
       [user.id, hash],
