@@ -11,6 +11,30 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not set')
 }
 
+/**
+ * TLS to the database, from DATABASE_SSL:
+ *   unset / false   no TLS (Railway's private network, local development)
+ *   true / verify   TLS with the server certificate and hostname verified.
+ *                   Put the provider's CA in DATABASE_CA_CERT (PEM text) if
+ *                   it isn't a public one.
+ *   no-verify       TLS without verification. Encrypts, but anyone who can
+ *                   intercept the connection can impersonate the database;
+ *                   only for a one-off against a host you can't verify.
+ */
+export function sslConfig(env: NodeJS.ProcessEnv = process.env): pg.PoolConfig['ssl'] {
+  const mode = (env.DATABASE_SSL ?? '').trim().toLowerCase()
+  if (mode === '' || mode === 'false') return undefined
+  if (mode === 'no-verify') {
+    console.warn('DATABASE_SSL=no-verify: the database certificate is NOT being verified.')
+    return { rejectUnauthorized: false }
+  }
+  if (mode === 'true' || mode === 'verify') {
+    const ca = env.DATABASE_CA_CERT?.replace(/\\n/g, '\n')
+    return { rejectUnauthorized: true, ...(ca ? { ca } : {}) }
+  }
+  throw new Error(`DATABASE_SSL must be true, verify, no-verify or false (got "${env.DATABASE_SSL}")`)
+}
+
 function millis(value: string | undefined, fallback: number): number {
   const n = Number(value)
   return Number.isFinite(n) && n >= 0 ? n : fallback
@@ -25,7 +49,7 @@ export const pool = new pg.Pool({
   connectionTimeoutMillis: millis(process.env.DATABASE_CONNECT_TIMEOUT_MS, 5_000),
   statement_timeout: millis(process.env.DATABASE_STATEMENT_TIMEOUT_MS, 15_000),
   idle_in_transaction_session_timeout: 30_000,
-  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+  ssl: sslConfig(),
 })
 
 pool.on('error', (err) => {
