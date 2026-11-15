@@ -40,6 +40,7 @@ export function ProfileScreen() {
   const [waterGoal, setWaterGoal] = useState('2500')
   const [unitSystem, setUnitSystem] = useState<UnitSystem>('metric')
   const [password, setPassword] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
   const email = session?.user.email ?? '—'
   const savedName = profile.data?.name?.trim()
   const subtitle = savedName && email !== '—' ? `${savedName} · ${email}` : savedName || email
@@ -110,13 +111,14 @@ export function ProfileScreen() {
 
   async function onUpdatePassword(e: React.FormEvent) {
     e.preventDefault()
-    if (password.length < 8) return
+    if (password.length < 8 || !currentPassword) return
     setError(null)
     setSuccess(null)
     setUpdatingPassword(true)
     try {
-      await updatePassword(password)
+      await updatePassword(currentPassword, password)
       setPassword('')
+      setCurrentPassword('')
       setSuccess('Password updated successfully.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update your password.')
@@ -176,8 +178,9 @@ export function ProfileScreen() {
           <Card padding="lg">
             <SectionHeader title="Security" />
             <form onSubmit={onUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <Field label="Current password" value={currentPassword} onChange={setCurrentPassword} type="password" autoComplete="current-password" placeholder="Your password now" />
               <Field label="New password" value={password} onChange={setPassword} type="password" autoComplete="new-password" placeholder="At least 8 characters" hint="Change it anytime. Your other devices will be signed out." />
-              <PrimaryButton type="submit" variant="outline" loading={updatingPassword} disabled={password.length < 8}>Update password</PrimaryButton>
+              <PrimaryButton type="submit" variant="outline" loading={updatingPassword} disabled={password.length < 8 || !currentPassword}>Update password</PrimaryButton>
             </form>
           </Card>
 

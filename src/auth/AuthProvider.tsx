@@ -12,7 +12,7 @@ interface AuthContextValue {
   signUp: (name: string, email: string, password: string) => Promise<boolean>
   resetPassword: (email: string) => Promise<void>
   completePasswordReset: (token: string, password: string) => Promise<void>
-  updatePassword: (password: string) => Promise<void>
+  updatePassword: (currentPassword: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -80,8 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         storeSession(next)
       },
-      updatePassword: async (password) => {
-        await api('/auth/password', { method: 'POST', body: { password } })
+      updatePassword: async (currentPassword, password) => {
+        await api('/auth/password', { method: 'POST', body: { current_password: currentPassword, password } })
       },
       signOut: async () => {
         try {

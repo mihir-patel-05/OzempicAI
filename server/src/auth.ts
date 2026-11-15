@@ -301,12 +301,25 @@ authRoutes.post('/logout', requireUser, async (c) => {
   return c.body(null, 204)
 })
 
-/** Change the password while signed in. Other devices are signed out. */
+/**
+ * Change the password while signed in. Needs the current password: a session
+ * token alone (a borrowed phone, a stolen token) must not be enough to take
+ * the account over. Other devices are signed out.
+ */
 authRoutes.post('/password', requireUser, async (c) => {
   const body = await readJson(c)
   const password = readPassword(body.password)
+  const current = typeof body.current_password === 'string' ? body.current_password : ''
   const user = c.get('user')
-  rateLimit(`password:user:${user.id}`, 5, 60 * 60_000, 'You have changed your password several times. Please wait an hour and try again.')
+  // Also caps guesses at the current password.
+  rateLimit(`password:user:${user.id}`, 5, 60 * 60_000, 'Too many password change attempts. Please wait an hour and try again.')
+  const stored = await pool.query<{ encrypted_password: string }>(
+    'select encrypted_password from auth.users where id = $1',
+    [user.id],
+  )
+  if (!current || !stored.rows[0] || !(await checkPassword(current, stored.rows[0].encrypted_password))) {
+    throw new HttpError(400, 'Your current password is incorrect. If you have forgotten it, sign out and use "Forgot password".')
+  }
   const hash = await hashPassword(password)
   await withTransaction(async (db) => {
     await db.query(
