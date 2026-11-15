@@ -65,6 +65,22 @@ mcpRoutes.all('/', async (c) => {
     'Too many requests from this connected app. Please wait a few minutes.',
   )
 
+  // One JSON-RPC message per request. The transport would run a batch of up
+  // to 100 concurrently, and the limit above counts requests, so a batch
+  // would multiply both the allowance and the load on the database pool.
+  let message: unknown
+  try {
+    message = await c.req.json()
+  } catch {
+    return c.json({ jsonrpc: '2.0', error: { code: -32700, message: 'Parse error' }, id: null }, 400)
+  }
+  if (Array.isArray(message)) {
+    return c.json(
+      { jsonrpc: '2.0', error: { code: -32600, message: 'Batch requests are not supported. Send one message per request.' }, id: null },
+      400,
+    )
+  }
+
   const server = buildMcpServer(access)
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
@@ -72,7 +88,7 @@ mcpRoutes.all('/', async (c) => {
   })
   await server.connect(transport)
   try {
-    return await transport.handleRequest(c.req.raw)
+    return await transport.handleRequest(c.req.raw, { parsedBody: message })
   } finally {
     await server.close()
   }
