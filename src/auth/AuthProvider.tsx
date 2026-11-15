@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { api, loadSession, onSessionChange, storeSession } from '../lib/api'
 import type { Session, SessionUser } from '../lib/api'
@@ -50,6 +51,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return unsubscribe
   }, [])
+
+  // Health data fetched for one account must not outlive it in memory: when
+  // the signed-in user changes (sign-out, expiry, another account), drop every
+  // cached query and cancel anything still loading.
+  const queryClient = useQueryClient()
+  const userId = session?.user.id ?? null
+  const previousUserId = useRef(userId)
+  useEffect(() => {
+    if (previousUserId.current === userId) return
+    previousUserId.current = userId
+    void queryClient.cancelQueries()
+    queryClient.clear()
+  }, [queryClient, userId])
 
   const value = useMemo<AuthContextValue>(
     () => ({
