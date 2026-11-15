@@ -79,9 +79,10 @@ function readPassword(value: unknown): string {
   if (password.length < MIN_PASSWORD_LENGTH) {
     throw new HttpError(400, `Password should be at least ${MIN_PASSWORD_LENGTH} characters.`)
   }
-  if (password.length > 72) {
-    // bcrypt only uses the first 72 bytes.
-    throw new HttpError(400, 'Password should be at most 72 characters.')
+  if (Buffer.byteLength(password, 'utf8') > 72) {
+    // bcrypt only uses the first 72 bytes, and accented letters and emoji
+    // take more than one, so the limit is on bytes rather than characters.
+    throw new HttpError(400, 'That password is too long. Use at most 72 characters (fewer with accents or emoji).')
   }
   return password
 }
