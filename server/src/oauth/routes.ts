@@ -1,13 +1,16 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import type { Context } from 'hono'
 import type { AppEnv } from '../auth.js'
 import { clientIp, rateLimit, requireUser } from '../auth.js'
 import { HttpError, readJson } from '../http.js'
 import { buildRedirect, checkAuthorizeRequest, describeRedirect, grantedScopes, issueCode } from './authorize.js'
 import type { AuthorizeParams } from './authorize.js'
-import { registerClient } from './clients.js'
+import { authenticateClient, registerClient } from './clients.js'
 import { mcpEnabled } from './config.js'
+import { OAuthError } from './errors.js'
 import { parseRegistration } from './registration.js'
+import { exchangeCode, refreshTokens, revokeToken } from './tokens.js'
 
 /**
  * The OAuth authorization server behind /api/mcp, mounted at /api/oauth
@@ -89,4 +92,39 @@ oauthRoutes.post('/authorize', requireUser, async (c) => {
   }
   const scopes = grantedScopes(request.scopes, body.scopes)
   return c.json({ redirect_to: await issueCode(request, c.get('user').id, scopes) })
+})
+
+/** Token and revocation requests are form-encoded (RFC 6749); accept JSON too. */
+async function readForm(c: Context): Promise<Record<string, string>> {
+  const type = c.req.header('content-type') ?? ''
+  const raw: Record<string, unknown> = type.includes('application/json')
+    ? await readJson(c)
+    : await c.req.parseBody().catch(() => {
+        throw new OAuthError('invalid_request', 'Send the request as application/x-www-form-urlencoded')
+      })
+  const form: Record<string, string> = {}
+  for (const [key, value] of Object.entries(raw)) if (typeof value === 'string') form[key] = value
+  return form
+}
+
+oauthRoutes.post('/token', async (c) => {
+  const form = await readForm(c)
+  const client = await authenticateClient(c.req.header('authorization'), form)
+  rateLimit(`oauth-token:client:${client.client_id}`, 60, 15 * 60_000)
+
+  let tokens
+  if (form.grant_type === 'authorization_code') tokens = await exchangeCode(client, form)
+  else if (form.grant_type === 'refresh_token') tokens = await refreshTokens(client, form)
+  else throw new OAuthError('unsupported_grant_type', 'Use authorization_code or refresh_token')
+
+  c.header('Cache-Control', 'no-store')
+  c.header('Pragma', 'no-cache')
+  return c.json(tokens)
+})
+
+oauthRoutes.post('/revoke', async (c) => {
+  const form = await readForm(c)
+  const client = await authenticateClient(c.req.header('authorization'), form)
+  if (form.token) await revokeToken(client, form.token)
+  return c.body(null, 200)
 })

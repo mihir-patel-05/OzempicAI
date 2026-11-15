@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import { app } from './app.js'
 import { purgeExpiredAuthRows } from './auth.js'
 import { pool } from './db.js'
+import { purgeExpiredOAuthRows } from './oauth/tokens.js'
 
 const port = Number(process.env.PORT ?? 8787)
 // '::' accepts IPv4 and IPv6, which Railway's private network needs. Set
@@ -13,6 +14,7 @@ const server = serve({ fetch: app.fetch, port, hostname }, (info) => {
 
 const housekeeping = setInterval(() => {
   purgeExpiredAuthRows().catch((err) => console.error('Auth housekeeping failed', err))
+  purgeExpiredOAuthRows().catch((err) => console.error('OAuth housekeeping failed', err))
 }, 60 * 60_000)
 housekeeping.unref()
 
