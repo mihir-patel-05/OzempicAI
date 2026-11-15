@@ -158,12 +158,8 @@ function sweepBuckets(now: number) {
   }
 }
 
-export function rateLimit(
-  key: string,
-  limit: number,
-  windowMs: number,
-  message = 'Too many attempts. Please wait a few minutes and try again.',
-) {
+/** Count one event against `key` and return how many its window now holds. */
+export function countHit(key: string, windowMs: number): number {
   const limiter = limiterOf(key)
   if (key.length > MAX_KEY_LENGTH) key = `${limiter}:sha256:${hashToken(key)}`
   const now = Date.now()
@@ -176,12 +172,24 @@ export function rateLimit(
       keysPerLimiter.set(limiter, live + 1)
     }
     buckets.set(key, { count: 1, resetAt: now + windowMs })
-    return
+    return 1
   }
   bucket.count += 1
-  if (bucket.count > limit) {
-    throw new HttpError(429, message)
-  }
+  return bucket.count
+}
+
+/** How many events `key`'s current window holds, without counting one. */
+export function hitCount(key: string): number {
+  if (key.length > MAX_KEY_LENGTH) key = `${limiterOf(key)}:sha256:${hashToken(key)}`
+  const bucket = buckets.get(key)
+  return bucket && bucket.resetAt > Date.now() ? bucket.count : 0
+}
+
+const TOO_MANY = 'Too many attempts. Please wait a few minutes and try again.'
+
+/** Count this request and refuse it once `key` has had more than `limit` in the window. */
+export function rateLimit(key: string, limit: number, windowMs: number, message = TOO_MANY) {
+  if (countHit(key, windowMs) > limit) throw new HttpError(429, message)
 }
 
 setInterval(() => sweepBuckets(Date.now()), 60_000).unref()
@@ -222,6 +230,17 @@ export function clientIp(c: Context): string {
 
 function limitByIp(c: Context, action: string) {
   rateLimit(`${action}:ip:${clientIp(c)}`, 20, 15 * 60_000)
+}
+
+const LOGIN_WINDOW_MS = 15 * 60_000
+const LOGIN_PAIR_FAILURES = 10
+const LOGIN_ACCOUNT_FAILURES = 100
+
+let dummy: Promise<string> | null = null
+/** A real bcrypt hash that no password matches, compared against for unknown emails. */
+function dummyHash(): Promise<string> {
+  dummy ??= bcrypt.hash(randomBytes(24).toString('base64url'), BCRYPT_ROUNDS)
+  return dummy
 }
 
 // ─── Middleware ─────────────────────────────────────────────────────────────
@@ -311,8 +330,17 @@ authRoutes.post('/login', async (c) => {
   limitByIp(c, 'login')
   const body = await readJson(c)
   const email = readEmail(body.email)
-  rateLimit(`login:email:${email}`, 10, 15 * 60_000)
   const password = typeof body.password === 'string' ? body.password : ''
+
+  // Only failed attempts count. Ten from one address lock that address out of
+  // the account; the account as a whole locks only after far more, so a
+  // stranger who knows the email can't shut its owner out with ten bad
+  // guesses, while guessing stays capped at LOGIN_ACCOUNT_FAILURES a window.
+  const pairKey = `login:pair:${email}|${clientIp(c)}`
+  const accountKey = `login:email:${email}`
+  if (hitCount(pairKey) >= LOGIN_PAIR_FAILURES || hitCount(accountKey) >= LOGIN_ACCOUNT_FAILURES) {
+    throw new HttpError(429, TOO_MANY)
+  }
 
   const { rows } = await pool.query<AuthUser & { encrypted_password: string }>(
     `select id, email, encrypted_password, coalesce(raw_user_meta_data ->> 'name', '') as name
@@ -320,8 +348,14 @@ authRoutes.post('/login', async (c) => {
     [email],
   )
   const user = rows[0]
-  const ok = user ? await checkPassword(password, user.encrypted_password) : false
-  if (!user || !ok) throw new HttpError(400, 'Invalid login credentials')
+  // Unknown emails get the same hashing work as known ones, so response time
+  // doesn't reveal which addresses have accounts.
+  const ok = await checkPassword(password, user?.encrypted_password ?? (await dummyHash()))
+  if (!user || !ok) {
+    countHit(pairKey, LOGIN_WINDOW_MS)
+    countHit(accountKey, LOGIN_WINDOW_MS)
+    throw new HttpError(400, 'Invalid login credentials')
+  }
 
   return c.json(await createSession(pool, { id: user.id, email: user.email, name: user.name }))
 })
