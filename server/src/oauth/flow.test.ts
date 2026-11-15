@@ -379,3 +379,31 @@ test('read-only connections cannot write, and users never see each other’s row
   const theirs = JSON.parse((await callTool(reader, 'get_grocery_list', { include_purchased: true })).text)
   assert.equal(theirs.count, 0)
 })
+
+test('Profile lists connected apps and Disconnect revokes them', { skip }, async () => {
+  const session = await signUp()
+  const { tokens: issued } = await connect(session, ['read'])
+  const auth = { authorization: `Bearer ${session}` }
+
+  const listed = (await (await app.request('/api/connections', { headers: auth })).json()) as {
+    id: string
+    client_name: string
+    scopes: string[]
+    last_used_at: string | null
+  }[]
+  assert.equal(listed.length, 1)
+  assert.equal(listed[0]!.client_name, 'Claude')
+  assert.deepEqual(listed[0]!.scopes, ['read'])
+  assert.ok(listed[0]!.last_used_at)
+
+  // Another user can't see or remove it.
+  const stranger = { authorization: `Bearer ${await signUp()}` }
+  assert.deepEqual(await (await app.request('/api/connections', { headers: stranger })).json(), [])
+  const notYours = await app.request(`/api/connections/${listed[0]!.id}`, { method: 'DELETE', headers: stranger })
+  assert.equal(notYours.status, 404)
+
+  const removed = await app.request(`/api/connections/${listed[0]!.id}`, { method: 'DELETE', headers: auth })
+  assert.equal(removed.status, 204)
+  assert.equal(await tokens.verifyAccessToken(issued.access_token as string), null)
+  assert.deepEqual(await (await app.request('/api/connections', { headers: auth })).json(), [])
+})

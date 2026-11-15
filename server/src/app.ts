@@ -12,6 +12,7 @@ import { oauthRoutes } from './oauth/routes.js'
 import { mcpRoutes } from './mcp/routes.js'
 import { aiRoutes } from './routes/ai.js'
 import { analyticsRoutes } from './routes/analytics.js'
+import { connectionRoutes } from './routes/connections.js'
 import { profileRoutes } from './routes/profile.js'
 import { resourceRoutes } from './routes/resources.js'
 import { workoutRoutes } from './routes/workouts.js'
@@ -54,6 +55,7 @@ data.route('/', profileRoutes)
 data.route('/', workoutRoutes)
 data.route('/', analyticsRoutes)
 data.route('/', aiRoutes)
+data.route('/', connectionRoutes)
 app.route('/api', data)
 
 app.notFound((c) => c.json({ error: 'Not found' }, 404))
