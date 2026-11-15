@@ -91,6 +91,15 @@ app.route('/api/mcp', mcpRoutes)
 
 const data = new Hono<AppEnv>()
 data.use('*', requireUser)
+// A ceiling on changes per account, whichever address they come from. Far
+// above what a person logging meals and workouts does; it stops a script from
+// filling the database through one account.
+data.use('*', async (c, next) => {
+  if (c.req.method !== 'GET') {
+    rateLimit(`writes:${c.get('user').id}`, 600, 15 * 60_000, 'Too many changes in a short time. Please wait a few minutes.')
+  }
+  await next()
+})
 data.route('/', resourceRoutes)
 data.route('/', profileRoutes)
 data.route('/', workoutRoutes)
