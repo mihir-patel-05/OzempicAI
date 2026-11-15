@@ -107,6 +107,17 @@ test('historySummary', () => {
     historySummary('create_meal_plan', JSON.stringify({ saved: 21, start: '2026-11-16', end: '2026-11-22' })),
     'Planned 21 meals (2026-11-16 to 2026-11-22)',
   )
+  assert.equal(
+    historySummary(
+      'create_workout_plans',
+      JSON.stringify({ saved: 2, plans: [{ planned_date: '2026-11-18', name: 'Legs' }, { planned_date: '2026-11-16', name: 'Push' }] }),
+    ),
+    'Planned 2 workouts for Nov 16–18',
+  )
+  assert.equal(
+    historySummary('update_workout_plan', JSON.stringify({ updated: { planned_date: '2026-11-19', name: 'Leg day' } })),
+    'Updated Leg day for Thu, Nov 19',
+  )
   assert.equal(historySummary('get_profile', '{}'), null)
   assert.equal(historySummary('add_grocery_items', 'not json'), null)
 })

@@ -9,6 +9,9 @@ const ACTIVITY: Record<string, string> = {
   add_grocery_items: 'Adding to your grocery list…',
   get_meal_plans: 'Checking your meal plan…',
   create_meal_plan: 'Writing your meal plan…',
+  get_workout_plans: 'Checking your workout plan…',
+  create_workout_plans: 'Adding to your workout plan…',
+  update_workout_plan: 'Editing your workout…',
 }
 
 export function toolActivity(name: string | null): string {
@@ -16,7 +19,9 @@ export function toolActivity(name: string | null): string {
 }
 
 /** Tools that change the user's data; only these get an action card. */
-export const WRITE_TOOLS: Record<string, { label: string; tab: 'groceries' | 'meals' }> = {
+export const WRITE_TOOLS: Record<string, { label: string; tab: 'groceries' | 'meals' | 'workouts' }> = {
   add_grocery_items: { label: 'grocery list', tab: 'groceries' },
   create_meal_plan: { label: 'meal plan', tab: 'meals' },
+  create_workout_plans: { label: 'workout plan', tab: 'workouts' },
+  update_workout_plan: { label: 'workout plan', tab: 'workouts' },
 }

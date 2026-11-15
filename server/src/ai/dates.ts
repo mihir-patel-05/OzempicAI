@@ -12,6 +12,7 @@ export const RANGE_PRESETS = [
   'last_7_days',
   'last_30_days',
   'next_7_days',
+  'upcoming',
   'custom',
 ] as const
 
@@ -21,6 +22,9 @@ export interface DateRange {
   start: string
   end: string
 }
+
+/** Plans may be written from today up to this many days ahead. */
+export const PLAN_HORIZON_DAYS = 21
 
 /** Longest custom range, matching the analytics SQL functions (366 days). */
 export const MAX_RANGE_DAYS = 366
@@ -94,7 +98,8 @@ export function eachDay(range: DateRange): string[] {
 
 /**
  * Resolve a preset to inclusive local dates. Weeks run Monday–Sunday;
- * `this_week` runs from Monday to today.
+ * `this_week` runs from Monday to today; `upcoming` runs from today to the
+ * end of the planning horizon.
  */
 export function resolveRange(
   range: RangePreset,
@@ -119,6 +124,8 @@ export function resolveRange(
       return { start: addDays(today, -29), end: today }
     case 'next_7_days':
       return { start: addDays(today, 1), end: addDays(today, 7) }
+    case 'upcoming':
+      return { start: today, end: addDays(today, PLAN_HORIZON_DAYS) }
     case 'custom': {
       const { start_date: start, end_date: end } = custom
       if (!isValidDate(start) || !isValidDate(end)) {

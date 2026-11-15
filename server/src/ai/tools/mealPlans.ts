@@ -1,16 +1,15 @@
 import { z } from 'zod'
-import { addDays, daysBetween, isValidDate, isoWeekday } from '../dates.js'
+import { PLAN_HORIZON_DAYS, addDays, daysBetween, isValidDate, isoWeekday } from '../dates.js'
 import { groceryKey } from './groceries.js'
 import { PLAN_PRESETS, rangeFromInput, rangeProperties, rangeSchema } from './range.js'
 import { ToolInputError, defineTool } from './types.js'
 
 export const PLAN_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
 export const MAX_PLAN_MEALS = 35 // 7 days × up to 5 meals
-/** Plans may be written from today up to this many days ahead. */
-export const PLAN_HORIZON_DAYS = 21
+export { PLAN_HORIZON_DAYS }
 const MAX_MEAL_NAME = 120
 const MAX_MEAL_CALORIES = 3000
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export interface PlannedMealInput {
   planned_date: string

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
 import { useAuth } from '../auth/AuthProvider'
 import { ApiError, api, apiStream } from '../lib/api'
 import { markUndone, rememberLiveTurn } from '../features/coach/liveTools'
@@ -7,6 +8,7 @@ import type {
   CoachConversation,
   CoachConversationDetail,
   CoachMessage,
+  CoachResource,
   CoachStreamEvent,
   CoachToolCall,
 } from '../features/coach/types'
@@ -78,6 +80,12 @@ function userTimezone(): string {
   }
 }
 
+/** Refetch what a coach write touched. Workout plans also feed Analytics. */
+function refreshResource(queryClient: QueryClient, resource: CoachResource) {
+  const keys = resource === 'workout-plans' ? [[resource], ['analytics']] : [[resource]]
+  return Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })))
+}
+
 const fetchConversation = (id: string) => api<CoachConversationDetail>(`/ai/conversations/${id}`)
 
 /**
@@ -125,9 +133,7 @@ export function useSendMessage(onConversation: (id: string) => void) {
               const call: CoachToolCall = e.data
               assistant = { ...assistant, tools: [...assistant.tools, call] }
               activeTool = null
-              if (call.status === 'ok' && call.resource) {
-                void queryClient.invalidateQueries({ queryKey: [call.resource] })
-              }
+              if (call.status === 'ok' && call.resource) void refreshResource(queryClient, call.resource)
               break
             }
             case 'error':
@@ -205,7 +211,7 @@ export function useUndoToolCall() {
     },
     onSuccess: (_data, call) => {
       if (call.id) markUndone(call.id)
-      if (call.resource) return queryClient.invalidateQueries({ queryKey: [call.resource] })
+      if (call.resource) return refreshResource(queryClient, call.resource)
     },
   })
 }

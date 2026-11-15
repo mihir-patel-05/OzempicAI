@@ -5,6 +5,7 @@ import { addGroceryItems, getGroceryList } from './groceries.js'
 import { createMealPlan, getMealPlans } from './mealPlans.js'
 import { getProfile } from './profile.js'
 import { getExerciseSummary, getWeightTrend } from './trends.js'
+import { createWorkoutPlans, getWorkoutPlans, updateWorkoutPlan } from './workoutPlans.js'
 import { ToolInputError } from './types.js'
 import type { CoachTool, ToolContext, ToolResource } from './types.js'
 
@@ -18,6 +19,9 @@ const REGISTRY: CoachTool[] = [
   createMealPlan,
   getWeightTrend,
   getExerciseSummary,
+  getWorkoutPlans,
+  createWorkoutPlans,
+  updateWorkoutPlan,
 ]
 
 const BY_NAME = new Map(REGISTRY.map((tool) => [tool.definition.name, tool]))
