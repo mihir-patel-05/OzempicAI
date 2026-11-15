@@ -102,3 +102,17 @@ test('parseRegistration validates RFC 7591 requests', async () => {
   assert.equal(bad({ redirect_uris: ['https://x.example/cb'], grant_types: ['implicit'] }), 'invalid_client_metadata')
   assert.equal(bad({ redirect_uris: ['https://x.example/cb'], token_endpoint_auth_method: 'private_key_jwt' }), 'invalid_client_metadata')
 })
+
+test('grantedScopes keeps only requested scopes and always needs read', async () => {
+  process.env.DATABASE_URL ??= 'postgres://unused@localhost:1/unused' // authorize.ts imports the pool; nothing connects
+  const { describeRedirect, grantedScopes } = await import('./authorize.js')
+  assert.deepEqual(grantedScopes(['read', 'write'], ['read']), ['read'])
+  assert.deepEqual(grantedScopes(['read', 'write'], ['write', 'read']), ['read', 'write'])
+  assert.deepEqual(grantedScopes(['read'], ['read', 'write']), ['read'])
+  assert.throws(() => grantedScopes(['read', 'write'], ['write']), /read access/)
+  assert.throws(() => grantedScopes(['read'], 'read'), /Choose/)
+
+  assert.equal(describeRedirect('https://claude.ai/api/mcp/auth_callback'), 'claude.ai')
+  assert.equal(describeRedirect('http://localhost:6274/cb'), 'an app on this computer (localhost:6274)')
+  assert.equal(describeRedirect('cursor://anysphere/cb'), 'the cursor app')
+})
