@@ -130,7 +130,8 @@ Both app services build from this GitHub repo with their Dockerfiles and redeplo
   - `ANTHROPIC_API_KEY` — enables the AI coach. Without it every `/api/ai/*` route returns 503
     and the rest of the app works normally (this is also the rollback switch).
   - `AI_MODEL` (default `claude-opus-5-5`, e.g. `claude-sonnet-5-5` to cut cost) and
-    `AI_MAX_TURNS_PER_HOUR` (default `40`) — optional.
+    `AI_MAX_TURNS_PER_HOUR` (default `40`, per user) — optional. `AI_MAX_TURNS_PER_HOUR_TOTAL`
+    (default `300`) and `AI_MAX_CONCURRENT_TURNS` (default `8`) cap coach use across all users.
   - `MCP_ENABLED=true` — lets users connect their own AI apps (OAuth + `/api/mcp`). Needs
     `APP_URL` set to the public https origin, which becomes the OAuth issuer; changing it later
     invalidates existing connections. Unset it to switch the feature off (connections are kept,
