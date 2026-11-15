@@ -21,11 +21,11 @@ const MIN_PASSWORD_LENGTH = 8
 const BCRYPT_ROUNDS = 10
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function hashToken(token: string): string {
+export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
 }
 
-function newToken(): string {
+export function newToken(): string {
   return randomBytes(32).toString('base64url')
 }
 
@@ -89,7 +89,7 @@ setInterval(() => {
   for (const [key, bucket] of buckets) if (bucket.resetAt <= now) buckets.delete(key)
 }, 60_000).unref()
 
-function clientIp(c: Context): string {
+export function clientIp(c: Context): string {
   return (
     c.req.header('x-real-ip') ??
     c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
