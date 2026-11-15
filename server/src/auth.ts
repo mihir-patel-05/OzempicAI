@@ -242,7 +242,9 @@ function limitByIp(c: Context, action: string) {
 
 const LOGIN_WINDOW_MS = 15 * 60_000
 const LOGIN_PAIR_FAILURES = 10
-const LOGIN_ACCOUNT_FAILURES = 100
+// Account-wide: high enough that one or two addresses can't lock the owner
+// out, low enough to keep online guessing slow (40 per 15 minutes).
+const LOGIN_ACCOUNT_FAILURES = 40
 
 let dummy: Promise<string> | null = null
 /** A real bcrypt hash that no password matches, compared against for unknown emails. */
