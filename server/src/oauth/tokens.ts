@@ -54,14 +54,19 @@ function sortScopes(scopes: readonly string[]): Scope[] {
   return SCOPES.filter((scope) => scopes.includes(scope))
 }
 
+/**
+ * `scopes` are what this access token may do. They are stored on the token,
+ * so a refresh that asks for less gets a token that really is narrower. The
+ * refresh token keeps the connection's full scopes (null).
+ */
 async function issueTokenPair(db: Db, grantId: string, scopes: Scope[]): Promise<TokenResponse> {
   const access = newSecret('oza_at')
   const refresh = newSecret('oza_rt')
   await db.query(
-    `insert into auth.oauth_tokens (token_hash, grant_id, kind, expires_at) values
-       ($1, $3, 'access',  now() + make_interval(secs => $4)),
-       ($2, $3, 'refresh', now() + make_interval(days => $5))`,
-    [hashToken(access), hashToken(refresh), grantId, ACCESS_TOKEN_SECONDS, REFRESH_TOKEN_DAYS],
+    `insert into auth.oauth_tokens (token_hash, grant_id, kind, expires_at, scopes) values
+       ($1, $3, 'access',  now() + make_interval(secs => $4), $6::text[]),
+       ($2, $3, 'refresh', now() + make_interval(days => $5), null)`,
+    [hashToken(access), hashToken(refresh), grantId, ACCESS_TOKEN_SECONDS, REFRESH_TOKEN_DAYS, scopes],
   )
   await db.query(
     `update auth.oauth_grants
@@ -178,17 +183,20 @@ export function refreshTokens(client: OAuthClient, form: Form): Promise<TokenRes
     }
 
     const granted = sortScopes(token.scopes)
+    let issued = granted
     if (form.scope !== undefined) {
       const asked = parseScopes(form.scope)
       if (!asked || !asked.every((scope) => granted.includes(scope))) {
         return { ok: false, error: new OAuthError('invalid_scope', 'A refresh cannot add scopes') }
       }
+      // Asking for less narrows this access token only (RFC 6749 §6).
+      issued = asked
     }
 
     await db.query('update auth.oauth_tokens set rotated_at = now() where token_hash = $1', [
       hashToken(form.refresh_token ?? ''),
     ])
-    return { ok: true, tokens: await issueTokenPair(db, token.grant_id, granted) }
+    return { ok: true, tokens: await issueTokenPair(db, token.grant_id, issued) }
   })
 }
 
@@ -207,8 +215,14 @@ export async function revokeToken(client: OAuthClient, token: string): Promise<v
 /** Resolve a bearer token on /api/mcp, or null if it isn't a live access token. */
 export async function verifyAccessToken(token: string): Promise<AccessContext | null> {
   if (!token.startsWith('oza_at_')) return null
-  const { rows } = await pool.query<{ grant_id: string; user_id: string; scopes: string[]; client_name: string }>(
-    `select g.id as grant_id, g.user_id, g.scopes, c.client_name
+  const { rows } = await pool.query<{
+    grant_id: string
+    user_id: string
+    scopes: string[]
+    token_scopes: string[] | null
+    client_name: string
+  }>(
+    `select g.id as grant_id, g.user_id, g.scopes, t.scopes as token_scopes, c.client_name
        from auth.oauth_tokens t
        join auth.oauth_grants g on g.id = t.grant_id
        join auth.oauth_clients c on c.client_id = g.client_id
@@ -225,7 +239,10 @@ export async function verifyAccessToken(token: string): Promise<AccessContext | 
       where id = $1 and (last_used_at is null or last_used_at < now() - interval '1 minute')`,
     [row.grant_id],
   )
-  return { grantId: row.grant_id, userId: row.user_id, scopes: sortScopes(row.scopes), clientName: row.client_name }
+  // Never more than the connection allows, and less if the token was narrowed.
+  const tokenScopes = row.token_scopes
+  const scopes = sortScopes(row.scopes).filter((scope) => !tokenScopes || tokenScopes.includes(scope))
+  return { grantId: row.grant_id, userId: row.user_id, scopes, clientName: row.client_name }
 }
 
 /** Hourly cleanup of codes, tokens and connections that can no longer be used. */
