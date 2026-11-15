@@ -151,8 +151,16 @@ export function rateLimit(
   if (!bucket || bucket.resetAt <= now) {
     if (!bucket && buckets.size >= MAX_BUCKETS) {
       sweepBuckets(now)
-      // Still full: refuse rather than grow without bound or stop limiting.
-      if (buckets.size >= MAX_BUCKETS) throw new HttpError(429, 'The service is busy. Please try again in a few minutes.')
+      // Still full: drop the oldest keys (a Map iterates in insertion order).
+      // Refusing new keys instead would let a flood of one kind of key lock
+      // every other limiter, and with it every sign-in.
+      if (buckets.size >= MAX_BUCKETS) {
+        let drop = MAX_BUCKETS / 100
+        for (const oldest of buckets.keys()) {
+          buckets.delete(oldest)
+          if (--drop <= 0) break
+        }
+      }
     }
     buckets.set(key, { count: 1, resetAt: now + windowMs })
     return
