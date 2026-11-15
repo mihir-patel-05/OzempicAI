@@ -300,8 +300,22 @@ async function revokeConnectedApps(db: Db, userId: string) {
 
 export const authRoutes = new Hono<AppEnv>()
 
+/**
+ * Whether new accounts can be created. SIGNUP_MODE=open or closed; when unset
+ * it is closed in production and open elsewhere. Sign-up doesn't verify the
+ * email address yet, so an open deployment lets anyone create accounts (and
+ * claim an address they don't own); keep it closed until that exists.
+ */
+export function signupsOpen(): boolean {
+  const mode = process.env.SIGNUP_MODE?.trim().toLowerCase()
+  if (mode === 'open') return true
+  if (mode === 'closed') return false
+  return process.env.NODE_ENV !== 'production'
+}
+
 authRoutes.post('/signup', async (c) => {
   limitByIp(c, 'signup')
+  if (!signupsOpen()) throw new HttpError(403, 'New sign-ups are closed right now.')
   const body = await readJson(c)
   const email = readEmail(body.email)
   const password = readPassword(body.password)

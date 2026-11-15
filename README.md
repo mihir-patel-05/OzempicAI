@@ -124,6 +124,9 @@ Both app services build from this GitHub repo with their Dockerfiles and redeplo
   - `APP_URL=https://${{web.RAILWAY_PUBLIC_DOMAIN}}` (or the custom domain) — base of reset links
   - `RESEND_API_KEY`, `EMAIL_FROM` — password reset email. Without them, reset requests are
     accepted but no email is sent (a warning is logged).
+  - `SIGNUP_MODE` — `open` or `closed`. Unset means **closed in production**: the sign-up form
+    returns "New sign-ups are closed right now." Set `open` only while you are onboarding
+    people; sign-up does not verify email addresses yet.
   - `ANTHROPIC_API_KEY` — enables the AI coach. Without it every `/api/ai/*` route returns 503
     and the rest of the app works normally (this is also the rollback switch).
   - `AI_MODEL` (default `claude-opus-5-5`, e.g. `claude-sonnet-5-5` to cut cost) and

@@ -41,3 +41,25 @@ test('client address comes only from a well-formed X-Real-IP (SEC-02)', async ()
     assert.equal(clientIpFromHeader(bad), 'unknown')
   }
 })
+
+test('sign-ups are closed by default in production (SEC-03, SEC-15)', async () => {
+  const { signupsOpen } = await import('./auth.js')
+  const saved = { mode: process.env.SIGNUP_MODE, env: process.env.NODE_ENV }
+  try {
+    delete process.env.SIGNUP_MODE
+    process.env.NODE_ENV = 'production'
+    assert.equal(signupsOpen(), false)
+    process.env.SIGNUP_MODE = 'open'
+    assert.equal(signupsOpen(), true)
+    process.env.NODE_ENV = 'development'
+    process.env.SIGNUP_MODE = 'closed'
+    assert.equal(signupsOpen(), false)
+    delete process.env.SIGNUP_MODE
+    assert.equal(signupsOpen(), true)
+  } finally {
+    if (saved.mode === undefined) delete process.env.SIGNUP_MODE
+    else process.env.SIGNUP_MODE = saved.mode
+    if (saved.env === undefined) delete process.env.NODE_ENV
+    else process.env.NODE_ENV = saved.env
+  }
+})
