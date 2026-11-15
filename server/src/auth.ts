@@ -19,7 +19,27 @@ const SESSION_DAYS = 30
 const RESET_TOKEN_MINUTES = 60
 const MIN_PASSWORD_LENGTH = 8
 const BCRYPT_ROUNDS = 10
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+/** RFC 5321's limit on a deliverable address. */
+const MAX_EMAIL_LENGTH = 254
+
+/**
+ * something@domain.tld, with no spaces. Checked by hand in a single pass:
+ * the regex this replaces backtracked quadratically on long input and could
+ * stall the event loop for seconds.
+ */
+export function isEmail(email: string): boolean {
+  if (email.length === 0 || email.length > MAX_EMAIL_LENGTH) return false
+  for (let i = 0; i < email.length; i++) {
+    const code = email.charCodeAt(i)
+    // Whitespace and control characters never belong in an address.
+    if (code <= 32 || code === 127 || code === 0xa0 || code === 0x2028 || code === 0x2029 || code === 0xfeff) return false
+  }
+  const at = email.indexOf('@')
+  if (at < 1 || at !== email.lastIndexOf('@')) return false
+  const domain = email.slice(at + 1)
+  const dot = domain.lastIndexOf('.')
+  return dot > 0 && dot < domain.length - 1
+}
 
 export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
@@ -44,8 +64,12 @@ async function createSession(db: Db | typeof pool, user: AuthUser) {
 }
 
 function readEmail(value: unknown): string {
-  const email = typeof value === 'string' ? value.trim().toLowerCase() : ''
-  if (!EMAIL.test(email)) throw new HttpError(400, 'Enter a valid email address.')
+  // Length is checked before anything else touches the string.
+  if (typeof value !== 'string' || value.length > MAX_EMAIL_LENGTH + 64) {
+    throw new HttpError(400, 'Enter a valid email address.')
+  }
+  const email = value.trim().toLowerCase()
+  if (!isEmail(email)) throw new HttpError(400, 'Enter a valid email address.')
   return email
 }
 
