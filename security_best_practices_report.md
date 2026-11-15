@@ -15,7 +15,7 @@ The first pass records 15 findings with distinct prerequisites and confidence le
 - No production requests, real-user data inspection, actual email sending, paid model calls, high-volume load tests, browser exploit trials, cloud-console inspection, container scanning, or exhaustive Git-history secret scanning were performed. No application code or deployment settings were changed.
 - Baseline deployment comes from README.md:33 and Caddyfile:9: public web service proxies the otherwise private API. Private API networking does **not** make its proxied `/api/*` routes private. MCP-specific findings apply when `MCP_ENABLED=true`. No additional gateway controls were supplied or verified.
 - The owner being the only current user reduces the present cross-user population, but signup remains public in code. An internet attacker can create their own account unless an external access restriction exists.
-- Local evidence and commands: docs/security/validation-results.md and docs/security/reproduce.mts. Registry evidence: docs/security/dependency-findings.md, docs/security/npm-audit-web.json, and docs/security/npm-audit-server.json. System model: OzempicAI-threat-model.md.
+- Local evidence and commands: docs/security/validation-results.md and docs/security/reproduce.mts. Registry evidence: docs/security/dependency-findings.md, docs/security/npm-audit-web.json, and docs/security/npm-audit-server.json. (The threat-model file this line originally cited, OzempicAI-threat-model.md, is not in the repository.)
 
 Severity reflects practical confidentiality, integrity, availability, and cost impact. **Reproduced** means an isolated local test exercised the behavior. **Source-confirmed** means the code/configuration establishes the gap. **Conditional** means deployment/browser/attacker prerequisites still need validation. No finding is rated critical without evidence of the corresponding impact.
 
@@ -177,7 +177,7 @@ Severity reflects practical confidentiality, integrity, availability, and cost i
 
 **Severity:** Medium for this app's established exposure; individual registry severities vary. **Confidence:** Registry-confirmed vulnerable-version matches; application exploitability not established. **Class:** CWE-1395.
 
-**Evidence:** The saved root `npm audit --json` reported 20 affected package entries. Examples: `vite@5.4.21` at package-lock.json:6653, `esbuild@0.21.5` at package-lock.json:3705, and `react-router-dom@6.30.3` at package-lock.json:5163. Vite binds all interfaces in development at vite.config.ts:57. The server audit reported zero known advisories.
+**Evidence:** The saved root `npm audit --json` reported 20 affected package entries. Examples: `vite@5.4.21` at package-lock.json:6653, `esbuild@0.21.5` at package-lock.json:3705, and `react-router-dom@6.30.3` at package-lock.json:5163. Vite binds all interfaces in development at vite.config.ts:49. The server audit reported zero known advisories.
 
 **Attack and impact:** Developer-server exposure can make relevant Vite file-disclosure and esbuild cross-origin-read advisories significant. Build-input advisories require their specific malicious input paths. Router advisories require the affected navigation/data-router behavior; the current BrowserRouter usage did not establish a matching exploit. Production serves built assets with Caddy, so a Vite dev-server vulnerability is not automatically a production server vulnerability.
 
@@ -366,9 +366,39 @@ Added 2026-11-15 at commit `1d18a64`. Same method as the first pass: a fresh loo
 - **Browser injection:** The frontend has no `dangerouslySetInnerHTML`, `innerHTML` or `eval`. The login redirect comes from router state rather than a URL parameter, so it is not an open redirect. The only script-controlled navigation is the consent redirect covered by SEC-22.
 - **Request parsing:** Bodies are copied through fixed key lists, so `__proto__` keys cannot reach an object prototype or a SQL identifier.
 
+## Re-verification of SEC-01 to SEC-15
+
+Done 2026-11-15 at commit `411c935`. The original harness (docs/security/reproduce.mts) was read line by line to confirm each test exercises what it claims, then re-run against a new throwaway database: all 11 reproductions passed again. The four findings without a reproduction were checked against the source, and both `npm audit` runs were repeated. **All 15 findings are real. Two severities are adjusted and SEC-02 stays unproven in production.**
+
+| ID | Result | Note |
+| --- | --- | --- |
+| SEC-01 | Confirmed, re-run | Severity stands once other users exist: the pre-registration variant needs no prior compromise. |
+| SEC-02 | Confirmed at the API; production unproven | See below. |
+| SEC-03 | Confirmed, re-run | SEC-18 now measures the denial of service this finding left open. |
+| SEC-04 | Confirmed, re-run | Closer to Low: the response states the real scope and consent limits still hold. |
+| SEC-05 | Confirmed, re-run | |
+| SEC-06 | Confirmed, re-run | Needs another user's plan ID, as the finding says. |
+| SEC-07 | Confirmed, re-run | |
+| SEC-08 | Confirmed, re-run | |
+| SEC-09 | Gap confirmed in source; severity lowered | See below. |
+| SEC-10 | Confirmed, re-run | |
+| SEC-11 | Confirmed, re-run | |
+| SEC-12 | Confirmed, re-run; worse than stated | See below. |
+| SEC-13 | Confirmed in source | Only matters if `DATABASE_SSL=true` is set; the deployed value was not inspected. |
+| SEC-14 | Confirmed by a fresh audit | Same 20 packages (7 high, 9 moderate, 4 low); server audit still zero. |
+| SEC-15 | Confirmed in source | The 409 at server/src/auth.ts:152 is explicit. |
+
+**SEC-02, production still unproven.** Caddy forwards a client's `X-Real-IP` unchanged, and the API trusts it, so the bypass works whenever that header reaches Caddy as the client sent it. Whether it does depends on the hosting edge, which may overwrite the header with the true address. That was not tested, because it needs requests to the live service. If the edge does overwrite it, SEC-02 is not exploitable as written, and the chained severities of SEC-12, SEC-17 and SEC-19 fall to what one address can do. Test this on the deployed site before relying on either answer.
+
+**SEC-09, lower to Medium or below.** The missing header is real. The attack also needs the framed page to be signed in, and the session lives in `localStorage` (src/lib/api.ts:50). Current Chrome, Firefox and Safari give a cross-site frame its own empty storage, so the framed consent page would show the login screen instead of an Allow button. No browser was tested here. The header is still a one-line fix worth making.
+
+**SEC-12, raise the stated impact.** The slowdown is quadratic: 60 KB took 1.3 s and 120 KB took 5.4 s in a direct test of the expression. A single request at the 256 KiB body limit should therefore block the API for roughly 20 seconds, so one address inside its 20-request allowance can stall the service for minutes without SEC-02.
+
+**Corrections made to the text above.** Three references were wrong and have been fixed: the profile-name line is server/src/ai/prompt.ts:72 (not 85), the dev-server binding is vite.config.ts:49 (not 57), and the cited threat-model file does not exist in the repository.
+
 ## Additional hardening and hypotheses — not counted as demonstrated exploits
 
-- **Prompt injection and destructive AI actions:** MCP returns user-controlled names/notes; a previously approved malicious writer could plant instructions for another connected AI. server/src/mcp/server.ts:23 warns clients to treat tool output as data, but client behavior is outside this server's control. The coach executes model-selected writes at server/src/ai/loop.ts:98 without an independent per-action confirmation gate, and profile names enter a system context at server/src/ai/prompt.ts:85. No model was called and no successful injection was demonstrated. Keep untrusted text structurally separated, require explicit confirmation for destructive edits, and exercise synthetic indirect-injection tests. RLS and tool schemas remain required even when a model follows the system prompt.
+- **Prompt injection and destructive AI actions:** MCP returns user-controlled names/notes; a previously approved malicious writer could plant instructions for another connected AI. server/src/mcp/server.ts:23 warns clients to treat tool output as data, but client behavior is outside this server's control. The coach executes model-selected writes at server/src/ai/loop.ts:98 without an independent per-action confirmation gate, and profile names enter a system context at server/src/ai/prompt.ts:72. No model was called and no successful injection was demonstrated. Keep untrusted text structurally separated, require explicit confirmation for destructive edits, and exercise synthetic indirect-injection tests. RLS and tool schemas remain required even when a model follows the system prompt.
 - **Browser session exposure:** src/lib/api.ts:50 keeps long-lived tokens in localStorage. No application XSS sink was demonstrated: coach text is rendered as escaped React elements in src/features/coach/MessageText.tsx:1. A future XSS or compromised same-origin script would expose tokens. Consider HttpOnly cookie-backed web sessions with an explicit CSRF design; keep OAuth bearer access separate. Add a tested CSP rather than assuming React alone prevents all injection.
 - **Local privacy/cache cleanup:** src/auth/AuthProvider.tsx:85 clears the stored session but not React Query state. Most query keys include user IDs; src/hooks/useCoach.ts:44 does not. No normal cross-account UI disclosure was demonstrated. Clear/cancel sensitive queries and live-turn state on identity changes, partition every health-data key by user, and add `Cache-Control: no-store` to sensitive API/auth responses. The service worker currently caches static assets/fonts, not API health responses; do not describe it as a health-data cache vulnerability.
 - **Consent transparency:** The consent list at src/auth/AuthorizeAppScreen.tsx:147 omits some attributes exposed by `get_profile` (height, age, goals/timezone) at server/src/ai/tools/profile.ts:19. Display the full categories and clarify that registered app names are self-asserted, not verified brands. Registration accepting the name “Claude” is not itself an authentication bypass.
