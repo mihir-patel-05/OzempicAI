@@ -7,7 +7,7 @@ import { getProfile } from './profile.js'
 import { getExerciseSummary, getWeightTrend } from './trends.js'
 import { createWorkoutPlans, getWorkoutPlans, updateWorkoutPlan } from './workoutPlans.js'
 import { ToolInputError } from './types.js'
-import type { CoachTool, ToolContext, ToolResource } from './types.js'
+import type { CoachTool, ToolContext, ToolOutcome, ToolResource } from './types.js'
 
 const REGISTRY: CoachTool[] = [
   getProfile,
@@ -57,43 +57,55 @@ export function toolFailure(block: Anthropic.Beta.BetaToolUseBlock, message: str
   }
 }
 
+/** The outcome of one tool call, independent of who asked (coach or MCP). */
+export type ToolRun = { ok: true; outcome: ToolOutcome } | { ok: false; message: string }
+
+export function findTool(name: string): CoachTool | undefined {
+  return BY_NAME.get(name)
+}
+
 /**
- * Validate and run one tool call. Bad input and unknown tools come back as
- * `is_error` results the model can correct. Database and other unexpected
- * errors are rethrown so the caller's transaction rolls back.
+ * Validate and run one tool by name. Bad input and unknown tools come back as
+ * `{ ok: false }` with a message the model can act on. Database and other
+ * unexpected errors are rethrown so the caller's transaction rolls back.
  */
-export async function executeTool(
-  block: Anthropic.Beta.BetaToolUseBlock,
-  ctx: ToolContext,
-): Promise<ToolExecution> {
-  const fail = (message: string) => toolFailure(block, message)
+export async function runTool(name: string, input: unknown, ctx: ToolContext): Promise<ToolRun> {
+  const tool = BY_NAME.get(name)
+  if (!tool) return { ok: false, message: `Unknown tool: ${name}` }
 
-  const tool = BY_NAME.get(block.name)
-  if (!tool) return fail(`Unknown tool: ${block.name}`)
-
-  const parsed = tool.schema.safeParse(block.input)
+  const parsed = tool.schema.safeParse(input)
   if (!parsed.success) {
     const issues = parsed.error.issues
       .slice(0, 10)
       .map((issue) => `${issue.path.join('.') || 'input'}: ${issue.message}`)
-    return fail(`Invalid input. ${issues.join('; ')}`)
+    return { ok: false, message: `Invalid input. ${issues.join('; ')}` }
   }
 
   try {
-    const outcome = await tool.run(parsed.data, ctx)
-    return {
-      result: { type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(outcome.result) },
-      event: {
-        id: block.id,
-        name: block.name,
-        status: 'ok',
-        summary: outcome.summary ?? null,
-        created_ids: outcome.createdIds ?? [],
-        resource: outcome.resource ?? null,
-      },
-    }
+    return { ok: true, outcome: await tool.run(parsed.data, ctx) }
   } catch (err) {
-    if (err instanceof ToolInputError || err instanceof DateInputError) return fail(err.message)
+    if (err instanceof ToolInputError || err instanceof DateInputError) return { ok: false, message: err.message }
     throw err
+  }
+}
+
+/** Run one of the coach's tool calls and shape the result for the API and the browser. */
+export async function executeTool(
+  block: Anthropic.Beta.BetaToolUseBlock,
+  ctx: ToolContext,
+): Promise<ToolExecution> {
+  const run = await runTool(block.name, block.input, ctx)
+  if (!run.ok) return toolFailure(block, run.message)
+  const { outcome } = run
+  return {
+    result: { type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(outcome.result) },
+    event: {
+      id: block.id,
+      name: block.name,
+      status: 'ok',
+      summary: outcome.summary ?? null,
+      created_ids: outcome.createdIds ?? [],
+      resource: outcome.resource ?? null,
+    },
   }
 }

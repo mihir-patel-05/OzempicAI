@@ -4,7 +4,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import type { Db } from '../../db.js'
 import { summarizeCalories } from './calories.js'
 import { filterNewGroceries } from './groceries.js'
-import { TOOL_DEFINITIONS, executeTool } from './index.js'
+import { TOOL_DEFINITIONS, executeTool, runTool } from './index.js'
 import { formatSpan, mealPlanProblems } from './mealPlans.js'
 import type { ToolContext } from './types.js'
 import { exerciseToRow, rowToExercise, workoutPlanProblems } from './workoutPlans.js'
@@ -124,6 +124,20 @@ test('executeTool rejects unknown tools and invalid input without touching the d
   )
   assert.equal(zeroCalories.result.is_error, true)
   assert.equal(calls.length, 0)
+})
+
+test('runTool reports problems as messages and successes as outcomes', async () => {
+  const { db, calls } = fakeDb((sql) => (sql.includes('from public.users') ? [{ daily_calorie_goal: 1800 }] : []))
+  const unknown = await runTool('delete_everything', {}, ctx(db))
+  assert.deepEqual(unknown, { ok: false, message: 'Unknown tool: delete_everything' })
+
+  const invalid = await runTool('get_grocery_list', {}, ctx(db))
+  assert.equal(invalid.ok, false)
+  assert.equal(calls.length, 0)
+
+  const ok = await runTool('get_profile', {}, ctx(db))
+  assert.equal(ok.ok, true)
+  assert.equal(ok.ok && (ok.outcome.result as { daily_calorie_goal: number }).daily_calorie_goal, 1800)
 })
 
 test('create_meal_plan saves nothing when any date is out of range', async () => {
