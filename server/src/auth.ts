@@ -185,6 +185,13 @@ export function hitCount(key: string): number {
   return bucket && bucket.resetAt > Date.now() ? bucket.count : 0
 }
 
+/** Take back one hit counted by countHit (e.g. a login that turned out to be valid). */
+export function forgiveHit(key: string) {
+  if (key.length > MAX_KEY_LENGTH) key = `${limiterOf(key)}:sha256:${hashToken(key)}`
+  const bucket = buckets.get(key)
+  if (bucket && bucket.count > 0) bucket.count -= 1
+}
+
 const TOO_MANY = 'Too many attempts. Please wait a few minutes and try again.'
 
 /** Count this request and refuse it once `key` has had more than `limit` in the window. */
@@ -229,7 +236,8 @@ export function clientIp(c: Context): string {
 }
 
 function limitByIp(c: Context, action: string) {
-  rateLimit(`${action}:ip:${clientIp(c)}`, 20, 15 * 60_000)
+  // Its own limiter ("ip-login", …), so address keys and email keys never share a budget.
+  rateLimit(`ip-${action}:${clientIp(c)}`, 20, 15 * 60_000)
 }
 
 const LOGIN_WINDOW_MS = 15 * 60_000
@@ -355,6 +363,11 @@ authRoutes.post('/login', async (c) => {
   if (hitCount(pairKey) >= LOGIN_PAIR_FAILURES || hitCount(accountKey) >= LOGIN_ACCOUNT_FAILURES) {
     throw new HttpError(429, TOO_MANY)
   }
+  // Count the attempt before checking the password and take it back on
+  // success. If the limiter can't record it (it is full), this throws and the
+  // password is never checked: guessing is refused rather than left uncounted.
+  countHit(pairKey, LOGIN_WINDOW_MS)
+  countHit(accountKey, LOGIN_WINDOW_MS)
 
   const { rows } = await pool.query<AuthUser & { encrypted_password: string }>(
     `select id, email, encrypted_password, coalesce(raw_user_meta_data ->> 'name', '') as name
@@ -365,11 +378,9 @@ authRoutes.post('/login', async (c) => {
   // Unknown emails get the same hashing work as known ones, so response time
   // doesn't reveal which addresses have accounts.
   const ok = await checkPassword(password, user?.encrypted_password ?? (await dummyHash()))
-  if (!user || !ok) {
-    countHit(pairKey, LOGIN_WINDOW_MS)
-    countHit(accountKey, LOGIN_WINDOW_MS)
-    throw new HttpError(400, 'Invalid login credentials')
-  }
+  if (!user || !ok) throw new HttpError(400, 'Invalid login credentials')
+  forgiveHit(pairKey)
+  forgiveHit(accountKey)
 
   return c.json(await createSession(pool, { id: user.id, email: user.email, name: user.name }))
 })
