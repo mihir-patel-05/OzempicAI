@@ -33,6 +33,9 @@ oauthRoutes.use('/revoke', publicCors)
 /** Dynamic Client Registration (RFC 7591). */
 oauthRoutes.post('/register', async (c) => {
   rateLimit(`oauth-register:ip:${clientIp(c)}`, 20, 60 * 60_000)
+  // The per-IP limit trusts proxy headers a client can forge, so also cap
+  // registrations overall. Unused ones are deleted after 30 days.
+  rateLimit('oauth-register:all', 200, 60 * 60_000, 'Too many apps are registering right now. Try again later.')
   const registration = parseRegistration(await readJson(c))
   c.header('Cache-Control', 'no-store')
   return c.json(await registerClient(registration), 201)
