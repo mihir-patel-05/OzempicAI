@@ -126,7 +126,8 @@ export const addGroceryItems = defineTool({
   }),
   async run({ items }, { db, userId }) {
     const existing = await db.query<{ name: string }>(
-      'select name from public.grocery_items where user_id = $1 and not is_purchased',
+      // Bounded: the list is only used to skip duplicates.
+      'select name from public.grocery_items where user_id = $1 and not is_purchased order by created_at desc limit 2000',
       [userId],
     )
     const { toAdd, skipped } = filterNewGroceries(

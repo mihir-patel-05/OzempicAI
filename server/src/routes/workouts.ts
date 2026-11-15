@@ -2,7 +2,21 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../auth.js'
 import { withUser } from '../db.js'
 import type { Db } from '../db.js'
-import { HttpError, limitParam, optionalDate, pick, readJson, requireUuid } from '../http.js'
+import {
+  HttpError,
+  MAX_NAME_CHARS,
+  MAX_NOTES_CHARS,
+  int,
+  limitParam,
+  num,
+  oneOf,
+  optionalDate,
+  readFields,
+  readJson,
+  requireUuid,
+  text,
+} from '../http.js'
+import type { FieldRules } from '../http.js'
 
 /** One exercise as the web forms send it (metric units). */
 interface ExerciseDraft {
@@ -15,13 +29,43 @@ interface ExerciseDraft {
   distance_km?: unknown
 }
 
+const WORKOUT_TYPES = ['push', 'pull', 'legs', 'full_body', 'cardio', 'other'] as const
+
+const EXERCISE_FIELDS: FieldRules = {
+  exercise_name: text(MAX_NAME_CHARS),
+  machine: text(MAX_NAME_CHARS, true),
+  sets: int(1, 1000, true),
+  reps: int(1, 10_000, true),
+  weight_kg: num(0, 10_000, true),
+  duration_minutes: int(1, 10_000, true),
+  distance_km: num(0, 100_000, true),
+}
+
+const PLAN_FIELDS: FieldRules = {
+  name: text(MAX_NAME_CHARS),
+  workout_type: oneOf(WORKOUT_TYPES),
+  planned_date: { kind: 'date' },
+  notes: text(MAX_NOTES_CHARS, true),
+}
+
+const SESSION_FIELDS: FieldRules = {
+  name: text(MAX_NAME_CHARS),
+  workout_type: oneOf(WORKOUT_TYPES),
+  performed_at: { kind: 'timestamp', nullable: true },
+  duration_minutes: int(1, 10_000, true),
+  notes: text(MAX_NOTES_CHARS, true),
+  plan_id: { kind: 'uuid', nullable: true },
+}
+
 function readExercises(value: unknown): ExerciseDraft[] {
   if (value === undefined || value === null) return []
   if (!Array.isArray(value)) throw new HttpError(400, 'exercises must be an array')
   if (value.length > 100) throw new HttpError(400, 'Too many exercises')
   return value.map((item) => {
-    if (!item || typeof item !== 'object') throw new HttpError(400, 'Invalid exercise')
-    return item as ExerciseDraft
+    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new HttpError(400, 'Invalid exercise')
+    const exercise = readFields(item as Record<string, unknown>, EXERCISE_FIELDS)
+    if (typeof exercise.exercise_name !== 'string') throw new HttpError(400, 'exercise_name is required')
+    return exercise as unknown as ExerciseDraft
   })
 }
 
@@ -74,7 +118,7 @@ workoutRoutes.get('/workout-plans', async (c) => {
 workoutRoutes.post('/workout-plans', async (c) => {
   const userId = c.get('user').id
   const body = await readJson(c)
-  const plan = pick(body, ['name', 'workout_type', 'planned_date', 'notes'])
+  const plan = readFields(body, PLAN_FIELDS)
   const exercises = readExercises(body.exercises)
 
   // One transaction: a plan is never saved without the exercises it was sent with.
@@ -165,14 +209,7 @@ workoutRoutes.get('/workout-sessions', async (c) => {
 workoutRoutes.post('/workout-sessions', async (c) => {
   const userId = c.get('user').id
   const body = await readJson(c)
-  const session = pick(body, [
-    'name',
-    'workout_type',
-    'performed_at',
-    'duration_minutes',
-    'notes',
-    'plan_id',
-  ])
+  const session = readFields(body, SESSION_FIELDS)
   const exercises = readExercises(body.exercises)
 
   const created = await withUser(userId, async (db) => {

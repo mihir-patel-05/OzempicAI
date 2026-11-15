@@ -59,6 +59,70 @@ export function pick(body: Record<string, unknown>, keys: readonly string[]): Re
   return out
 }
 
+// ─── Field validation ───────────────────────────────────────────────────────
+// Every value a client can store is checked here before it reaches SQL: its
+// type, and a ceiling on its size. Without the ceilings one account could
+// store megabyte-long names and then ask for thousands of them back at once.
+
+export type FieldRule =
+  | { kind: 'text'; max: number; nullable?: boolean }
+  | { kind: 'number'; min: number; max: number; integer?: boolean; nullable?: boolean }
+  | { kind: 'boolean' }
+  | { kind: 'timestamp'; nullable?: boolean }
+  | { kind: 'date' }
+  | { kind: 'uuid'; nullable?: boolean }
+  | { kind: 'enum'; values: readonly string[]; nullable?: boolean }
+
+export type FieldRules = Record<string, FieldRule>
+
+export const text = (max: number, nullable = false): FieldRule => ({ kind: 'text', max, nullable })
+export const int = (min: number, max: number, nullable = false): FieldRule => ({ kind: 'number', min, max, integer: true, nullable })
+export const num = (min: number, max: number, nullable = false): FieldRule => ({ kind: 'number', min, max, nullable })
+export const oneOf = (values: readonly string[], nullable = false): FieldRule => ({ kind: 'enum', values, nullable })
+
+/** Longest name-like field (food, exercise, plan, grocery item) and longest note. */
+export const MAX_NAME_CHARS = 200
+export const MAX_NOTES_CHARS = 2000
+
+function fieldProblem(value: unknown, rule: FieldRule): string | null {
+  if (value === null) return 'nullable' in rule && rule.nullable ? null : 'is required'
+  switch (rule.kind) {
+    case 'text':
+      if (typeof value !== 'string') return 'must be text'
+      return value.length > rule.max ? `must be at most ${rule.max} characters` : null
+    case 'number':
+      if (typeof value !== 'number' || !Number.isFinite(value)) return 'must be a number'
+      if (rule.integer && !Number.isInteger(value)) return 'must be a whole number'
+      return value < rule.min || value > rule.max ? `must be between ${rule.min} and ${rule.max}` : null
+    case 'boolean':
+      return typeof value === 'boolean' ? null : 'must be true or false'
+    case 'timestamp':
+      return typeof value === 'string' && value.length <= 40 && !Number.isNaN(Date.parse(value)) ? null : 'must be a date and time'
+    case 'date':
+      return typeof value === 'string' && DATE.test(value) && !Number.isNaN(Date.parse(value)) ? null : 'must be a date (YYYY-MM-DD)'
+    case 'uuid':
+      return typeof value === 'string' && UUID.test(value) ? null : 'must be an id'
+    case 'enum':
+      return typeof value === 'string' && rule.values.includes(value) ? null : `must be one of ${rule.values.join(', ')}`
+  }
+}
+
+/**
+ * Copy the fields named in `rules` out of `body`, checking each one. Fields
+ * the client didn't send are left out; anything not in `rules` is ignored.
+ */
+export function readFields(body: Record<string, unknown>, rules: FieldRules): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [name, rule] of Object.entries(rules)) {
+    const value = body[name]
+    if (value === undefined) continue
+    const problem = fieldProblem(value, rule)
+    if (problem) throw new HttpError(400, `${name} ${problem}`)
+    out[name] = value
+  }
+  return out
+}
+
 /** Postgres error codes that are the caller's fault, mapped to HTTP statuses. */
 const PG_CLIENT_ERRORS: Record<string, ContentfulStatusCode> = {
   '22001': 400, // string_data_right_truncation

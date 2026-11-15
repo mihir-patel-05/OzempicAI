@@ -2,18 +2,19 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../auth.js'
 import { isValidTimezone } from '../ai/dates.js'
 import { withUser } from '../db.js'
-import { HttpError, pick, readJson } from '../http.js'
+import { HttpError, MAX_NAME_CHARS, int, num, oneOf, readFields, readJson, text } from '../http.js'
+import type { FieldRules } from '../http.js'
 
-const UPDATABLE = [
-  'name',
-  'height_cm',
-  'weight_kg',
-  'age',
-  'daily_calorie_goal',
-  'daily_water_goal_ml',
-  'unit_system',
-  'timezone',
-] as const
+const UPDATABLE: FieldRules = {
+  name: text(MAX_NAME_CHARS),
+  height_cm: num(0, 400, true),
+  weight_kg: num(0, 2000, true),
+  age: int(0, 150, true),
+  daily_calorie_goal: int(1, 100_000),
+  daily_water_goal_ml: int(1, 100_000),
+  unit_system: oneOf(['metric', 'imperial']),
+  timezone: text(64),
+}
 
 export const profileRoutes = new Hono<AppEnv>()
 
@@ -36,7 +37,7 @@ profileRoutes.get('/profile', async (c) => {
 
 profileRoutes.patch('/profile', async (c) => {
   const user = c.get('user')
-  const values = pick(await readJson(c), UPDATABLE)
+  const values = readFields(await readJson(c), UPDATABLE)
   if ('timezone' in values && (typeof values.timezone !== 'string' || !isValidTimezone(values.timezone))) {
     throw new HttpError(400, 'Invalid timezone')
   }
