@@ -7,6 +7,21 @@
 }
 
 :{$PORT:8080} {
+	# Browser security headers, on every response (pages and API alike).
+	header {
+		# Never render this app inside another site's frame. A framed consent
+		# screen could be dressed up to trick someone into pressing Allow.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		X-Frame-Options "DENY"
+		# Browsers remember to use https only, for a year.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		# Addresses here can carry OAuth parameters; don't hand them to other sites.
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		-Server
+	}
+
 	# The coach's chat endpoint streams server-sent events; compressing it
 	# would buffer tokens into bursts, so it is left out of encode and proxied
 	# without buffering.

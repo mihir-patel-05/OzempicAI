@@ -34,7 +34,9 @@ export function AuthorizeAppScreen() {
 
   const [details, setDetails] = useState<AuthorizeDetails | null>(null)
   const [problem, setProblem] = useState<RequestProblem | null>(null)
-  const [access, setAccess] = useState<Access>('edit')
+  // Read-only unless the user chooses otherwise: the safer default if they
+  // press Allow without reading closely.
+  const [access, setAccess] = useState<Access>('read')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState<'allow' | 'deny' | null>(null)
   const [leaving, setLeaving] = useState(false)
@@ -164,7 +166,8 @@ export function AuthorizeAppScreen() {
               <h2 style={sectionHeadingStyle}>{details.client_name} will be able to</h2>
               <ul style={listStyle}>
                 <li>
-                  Read your calorie, weight and exercise history, your workout plan, meal plan and grocery list
+                  Read your profile (height, weight, age, goals and timezone), your calorie, weight and exercise
+                  history, your workout plan, meal plan and grocery list
                 </li>
                 {canWrite && access === 'edit' && <li>Add and edit planned workouts, planned meals and grocery items</li>}
               </ul>
@@ -187,8 +190,9 @@ export function AuthorizeAppScreen() {
               )}
 
               <p style={noteStyle}>
-                Only allow this if you just asked {details.client_name} to connect to OzempicAI. You can disconnect it
-                any time in Profile → Connected AI apps.
+                Only allow this if you just asked {details.client_name} to connect to OzempicAI. The name above is
+                what the app calls itself and is not verified. You can disconnect it any time in Profile → Connected AI
+                apps.
               </p>
 
               {error && (
