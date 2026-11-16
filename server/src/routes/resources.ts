@@ -3,13 +3,19 @@ import type { AppEnv } from '../auth.js'
 import { withUser } from '../db.js'
 import {
   HttpError,
+  MAX_NAME_CHARS,
+  int,
   limitParam,
+  num,
+  oneOf,
   optionalDate,
   optionalTimestamp,
-  pick,
+  readFields,
   readJson,
   requireUuid,
+  text,
 } from '../http.js'
+import type { FieldRules } from '../http.js'
 
 /**
  * A per-user table exposed as list / create / update / delete. Table, column
@@ -18,10 +24,10 @@ import {
  */
 interface ResourceConfig {
   table: string
-  /** Columns a client may set on insert. user_id is always the caller. */
-  insertable: readonly string[]
+  /** Columns a client may set on insert, and what each may hold. user_id is always the caller. */
+  insertable: FieldRules
   /** Columns a client may change with PATCH. Omit to disable PATCH. */
-  updatable?: readonly string[]
+  updatable?: FieldRules
   /** timestamptz column filtered by ?from=&to= (ISO timestamps). */
   timeColumn?: string
   /** date column filtered by ?from_date=&to_date= (YYYY-MM-DD). */
@@ -31,10 +37,15 @@ interface ResourceConfig {
   maxLimit: number
 }
 
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
+const GROCERY_CATEGORIES = ['produce', 'dairy', 'protein', 'grains', 'beverages', 'snacks', 'other'] as const
+const name = text(MAX_NAME_CHARS)
+const when = { kind: 'timestamp' } as const
+
 const RESOURCES: Record<string, ResourceConfig> = {
   'calorie-logs': {
     table: 'calorie_logs',
-    insertable: ['food_name', 'calories', 'meal_type', 'logged_at'],
+    insertable: { food_name: name, calories: int(1, 100_000), meal_type: oneOf(MEAL_TYPES), logged_at: when },
     timeColumn: 'logged_at',
     orderBy: 'logged_at desc',
     defaultLimit: 500,
@@ -42,7 +53,7 @@ const RESOURCES: Record<string, ResourceConfig> = {
   },
   'water-logs': {
     table: 'water_logs',
-    insertable: ['amount_ml', 'logged_at'],
+    insertable: { amount_ml: int(1, 100_000), logged_at: when },
     timeColumn: 'logged_at',
     orderBy: 'logged_at desc',
     defaultLimit: 500,
@@ -50,17 +61,17 @@ const RESOURCES: Record<string, ResourceConfig> = {
   },
   'exercise-logs': {
     table: 'exercise_logs',
-    insertable: [
-      'exercise_name',
-      'category',
-      'duration_minutes',
-      'calories_burned',
-      'sets',
-      'reps_per_set',
-      'weight_kg',
-      'body_part',
-      'logged_at',
-    ],
+    insertable: {
+      exercise_name: name,
+      category: oneOf(['cardio', 'strength', 'flexibility', 'sports', 'other']),
+      duration_minutes: int(1, 10_000),
+      calories_burned: int(0, 100_000),
+      sets: int(1, 1000, true),
+      reps_per_set: int(1, 10_000, true),
+      weight_kg: num(0, 10_000, true),
+      body_part: oneOf(['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full_body'], true),
+      logged_at: when,
+    },
     timeColumn: 'logged_at',
     orderBy: 'logged_at desc',
     defaultLimit: 500,
@@ -68,7 +79,7 @@ const RESOURCES: Record<string, ResourceConfig> = {
   },
   'heart-rate-logs': {
     table: 'heart_rate_logs',
-    insertable: ['bpm', 'source', 'recorded_at'],
+    insertable: { bpm: int(31, 239), source: oneOf(['healthkit', 'manual']), recorded_at: when },
     timeColumn: 'recorded_at',
     orderBy: 'recorded_at desc',
     defaultLimit: 30,
@@ -76,7 +87,7 @@ const RESOURCES: Record<string, ResourceConfig> = {
   },
   'weight-logs': {
     table: 'weight_logs',
-    insertable: ['weight_kg', 'logged_at'],
+    insertable: { weight_kg: num(0, 2000), logged_at: when },
     timeColumn: 'logged_at',
     orderBy: 'logged_at desc',
     defaultLimit: 30,
@@ -84,7 +95,7 @@ const RESOURCES: Record<string, ResourceConfig> = {
   },
   'meal-plans': {
     table: 'meal_plans',
-    insertable: ['name', 'planned_date', 'meal_type', 'calories'],
+    insertable: { name, planned_date: { kind: 'date' }, meal_type: oneOf(MEAL_TYPES), calories: int(1, 100_000) },
     dateColumn: 'planned_date',
     orderBy: 'planned_date asc, meal_type asc',
     defaultLimit: 50,
@@ -92,8 +103,13 @@ const RESOURCES: Record<string, ResourceConfig> = {
   },
   'grocery-items': {
     table: 'grocery_items',
-    insertable: ['name', 'category', 'is_purchased', 'meal_plan_id'],
-    updatable: ['name', 'category', 'is_purchased'],
+    insertable: {
+      name,
+      category: oneOf(GROCERY_CATEGORIES),
+      is_purchased: { kind: 'boolean' },
+      meal_plan_id: { kind: 'uuid', nullable: true },
+    },
+    updatable: { name, category: oneOf(GROCERY_CATEGORIES), is_purchased: { kind: 'boolean' } },
     orderBy: 'is_purchased asc, created_at desc',
     defaultLimit: 500,
     maxLimit: 2000,
@@ -143,7 +159,7 @@ for (const [path, config] of Object.entries(RESOURCES)) {
 
   resourceRoutes.post(`/${path}`, async (c) => {
     const userId = c.get('user').id
-    const values = pick(await readJson(c), config.insertable)
+    const values = readFields(await readJson(c), config.insertable)
     const columns = ['user_id', ...Object.keys(values)]
     const params = [userId, ...Object.values(values)]
     const placeholders = params.map((_, i) => `$${i + 1}`)
@@ -165,7 +181,7 @@ for (const [path, config] of Object.entries(RESOURCES)) {
     resourceRoutes.patch(`/${path}/:id`, async (c) => {
       const userId = c.get('user').id
       const id = requireUuid(c.req.param('id'))
-      const values = pick(await readJson(c), updatable)
+      const values = readFields(await readJson(c), updatable)
       const keys = Object.keys(values)
       if (keys.length === 0) throw new HttpError(400, 'Nothing to update')
 

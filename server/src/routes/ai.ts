@@ -5,7 +5,14 @@ import type { AppEnv } from '../auth.js'
 import { rateLimit } from '../auth.js'
 import { withUser } from '../db.js'
 import { HttpError, limitParam, readJson, requireUuid } from '../http.js'
-import { AI_MAX_TURNS_PER_HOUR, isConfigured } from '../ai/client.js'
+import {
+  AI_MAX_CONCURRENT_TURNS,
+  AI_MAX_CONCURRENT_TURNS_PER_USER,
+  AI_MAX_CONVERSATION_MESSAGES,
+  AI_MAX_TURNS_PER_HOUR,
+  AI_MAX_TURNS_PER_HOUR_TOTAL,
+  isConfigured,
+} from '../ai/client.js'
 import { isValidTimezone, todayIn } from '../ai/dates.js'
 import { renderForUi } from '../ai/history.js'
 import { runTurn } from '../ai/loop.js'
@@ -25,6 +32,9 @@ const TITLE_CHARS = 60
 
 /** Conversations with a turn in flight. One API replica, so memory is enough. */
 const activeTurns = new Set<string>()
+/** Turns in flight per user. */
+const activeByUser = new Map<string, number>()
+const BUSY = 'Your coach is busy right now. Please try again in a minute.'
 
 export const aiRoutes = new Hono<AppEnv>()
 
@@ -52,7 +62,8 @@ aiRoutes.post('/ai/chat', async (c) => {
   if (message.length > MAX_MESSAGE_CHARS) {
     throw new HttpError(400, `Messages can be at most ${MAX_MESSAGE_CHARS} characters`)
   }
-  const tz = typeof body.timezone === 'string' && body.timezone ? body.timezone : 'UTC'
+  const tzFromClient = typeof body.timezone === 'string' && body.timezone !== ''
+  const tz = tzFromClient ? (body.timezone as string) : 'UTC'
   if (!isValidTimezone(tz)) throw new HttpError(400, 'Invalid timezone')
   const requestedId =
     body.conversation_id === undefined || body.conversation_id === null
@@ -69,6 +80,12 @@ aiRoutes.post('/ai/chat', async (c) => {
   if (requestedId && activeTurns.has(requestedId)) {
     throw new HttpError(409, 'Your coach is still replying in this chat')
   }
+  if ((activeByUser.get(user.id) ?? 0) >= AI_MAX_CONCURRENT_TURNS_PER_USER) {
+    throw new HttpError(409, 'Your coach is still replying in another chat. Wait for it to finish.')
+  }
+  if (activeTurns.size >= AI_MAX_CONCURRENT_TURNS) throw new HttpError(503, BUSY)
+  // Counted last, so requests refused above don't use up the shared budget.
+  rateLimit('ai-total:all', AI_MAX_TURNS_PER_HOUR_TOTAL, 60 * 60_000, BUSY)
 
   const { conversationId, title, history, profile } = await withUser(user.id, async (db) => {
     const profileRows = await db.query<CoachProfile>(
@@ -76,13 +93,25 @@ aiRoutes.post('/ai/chat', async (c) => {
          from public.users where id = $1`,
       [user.id],
     )
+    if (tzFromClient) {
+      // Keep the saved timezone current for MCP clients, which don't send one.
+      await db.query('update public.users set timezone = $2 where id = $1 and timezone is distinct from $2', [
+        user.id,
+        tz,
+      ])
+    }
     if (requestedId) {
       const conversation = await getConversation(db, user.id, requestedId)
       if (!conversation) throw new HttpError(404, 'Conversation not found')
+      const history = await loadMessages(db, user.id, conversation.id)
+      // The whole history is sent to the model on every turn.
+      if (history.length >= AI_MAX_CONVERSATION_MESSAGES) {
+        throw new HttpError(400, 'This chat has reached its length limit. Start a new chat to keep going.')
+      }
       return {
         conversationId: conversation.id,
         title: conversation.title,
-        history: await loadMessages(db, user.id, conversation.id),
+        history,
         profile: profileRows.rows[0] ?? null,
       }
     }
@@ -97,6 +126,7 @@ aiRoutes.post('/ai/chat', async (c) => {
 
   if (activeTurns.has(conversationId)) throw new HttpError(409, 'Your coach is still replying in this chat')
   activeTurns.add(conversationId)
+  activeByUser.set(user.id, (activeByUser.get(user.id) ?? 0) + 1)
 
   return streamSSE(c, async (stream) => {
     const started = Date.now()
@@ -129,6 +159,9 @@ aiRoutes.post('/ai/chat', async (c) => {
     } finally {
       clearInterval(ping)
       activeTurns.delete(conversationId)
+      const left = (activeByUser.get(user.id) ?? 1) - 1
+      if (left > 0) activeByUser.set(user.id, left)
+      else activeByUser.delete(user.id)
       send('done', { conversation_id: conversationId })
       await queue
     }

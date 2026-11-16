@@ -37,10 +37,12 @@ export function mealPlanProblems(meals: PlannedMealInput[], today: string): stri
 }
 
 export const getMealPlans = defineTool({
+  title: 'Get meal plan',
+  scope: 'read',
   definition: {
     name: 'get_meal_plans',
     description:
-      "List the user's planned meals for a date range (inclusive), grouped by day with each day's planned calorie total. Call before creating a plan so you don't duplicate meals already planned.",
+      "List the user's planned meals for a date range (inclusive), grouped by day with each day's planned calorie total. Each meal has its id. Call before creating a plan so you don't duplicate meals already planned.",
     strict: true,
     input_schema: {
       type: 'object',
@@ -52,8 +54,14 @@ export const getMealPlans = defineTool({
   schema: rangeSchema(PLAN_PRESETS),
   async run(input, { db, userId, tz }) {
     const range = rangeFromInput(input, tz)
-    const { rows } = await db.query<{ planned_date: string; meal_type: string; name: string; calories: number }>(
-      `select planned_date, meal_type, name, calories
+    const { rows } = await db.query<{
+      id: string
+      planned_date: string
+      meal_type: string
+      name: string
+      calories: number
+    }>(
+      `select id, planned_date, meal_type, name, calories
          from public.meal_plans
         where user_id = $1 and planned_date between $2::date and $3::date
         order by planned_date,
@@ -70,7 +78,7 @@ export const getMealPlans = defineTool({
         days.set(row.planned_date, day)
       }
       day.total += row.calories
-      day.meals.push({ meal_type: row.meal_type, name: row.name, calories: row.calories })
+      day.meals.push({ id: row.id, meal_type: row.meal_type, name: row.name, calories: row.calories })
     }
     return {
       result: {
@@ -84,6 +92,9 @@ export const getMealPlans = defineTool({
 })
 
 export const createMealPlan = defineTool({
+  title: 'Add planned meals',
+  scope: 'write',
+  idempotent: true,
   definition: {
     name: 'create_meal_plan',
     description: `Write planned meals to the user's meal plan. Send the whole plan in one call (at most ${MAX_PLAN_MEALS} meals). Each entry is one meal on one date. planned_date is YYYY-MM-DD between today and ${PLAN_HORIZON_DAYS} days from today. calories is your best per-serving estimate, a whole number from 1 to ${MAX_MEAL_CALORIES}. Names up to ${MAX_MEAL_NAME} characters. If any meal is invalid, nothing is saved and the error lists every problem so you can fix them and call again. Meals identical to ones already planned (same date, meal type and name) are skipped.`,

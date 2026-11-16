@@ -254,6 +254,8 @@ export function updatedSummary(plan: { planned_date: string; name: string }): st
 // ─── Tools ──────────────────────────────────────────────────────────────────
 
 export const getWorkoutPlans = defineTool({
+  title: 'Get workout plans',
+  scope: 'read',
   definition: {
     name: 'get_workout_plans',
     description:
@@ -297,6 +299,9 @@ export const getWorkoutPlans = defineTool({
 })
 
 export const createWorkoutPlans = defineTool({
+  title: 'Add planned workouts',
+  scope: 'write',
+  idempotent: true,
   definition: {
     name: 'create_workout_plans',
     description: `Add workouts to the user's workout plan (Plans → Workouts). Send every workout for the request in one call (at most ${MAX_WORKOUTS}). Each workout is one session on one date, with its exercises in order (at most ${MAX_EXERCISES}). planned_date is YYYY-MM-DD between today and ${PLAN_HORIZON_DAYS} days from today. Strength exercises use sets, reps and weight; cardio uses duration_minutes and distance; leave out what doesn't apply. If any workout is invalid, nothing is saved and the error lists every problem so you can fix them and call again. A workout with the same date and name as one already planned is skipped.`,
@@ -365,6 +370,10 @@ export const createWorkoutPlans = defineTool({
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export const updateWorkoutPlan = defineTool({
+  title: 'Edit a planned workout',
+  scope: 'write',
+  destructive: true,
+  idempotent: true,
   definition: {
     name: 'update_workout_plan',
     description: `Edit one planned workout. Call get_workout_plans first, then send the plan_id and the whole workout as it should be after the edit: name, type, date, notes and the full exercise list in order. The exercise list replaces the old one, so include exercises that stay the same. A new planned_date must be between today and ${PLAN_HORIZON_DAYS} days from today; an unchanged date may be in the past. Whether the workout was completed is kept. The result includes the previous version, which you can send back to revert the edit.`,

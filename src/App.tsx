@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
+import { AuthorizeAppScreen } from './auth/AuthorizeAppScreen'
 import { LoginScreen } from './auth/LoginScreen'
 import { RequireAuth } from './auth/RequireAuth'
 import { ResetPasswordScreen } from './auth/ResetPasswordScreen'
@@ -34,6 +35,15 @@ export function App() {
       <Routes>
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/reset-password" element={<ResetPasswordScreen />} />
+        {/* OAuth consent for AI apps connecting over MCP; outside the tab shell. */}
+        <Route
+          path="/oauth/authorize"
+          element={
+            <RequireAuth>
+              <AuthorizeAppScreen />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/*"
           element={

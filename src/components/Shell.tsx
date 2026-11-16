@@ -3,8 +3,10 @@ import { useLocation } from 'react-router-dom'
 import { TabBar } from './TabBar'
 import { LogSheet } from './LogSheet'
 import { Icon } from './Icon'
+import { useSyncTimezone } from '../hooks/useUserProfile'
 
 export function Shell({ children }: { children: ReactNode }) {
+  useSyncTimezone()
   const [logOpen, setLogOpen] = useState(false)
   const openLog = useCallback(() => setLogOpen(true), [])
   const closeLog = useCallback(() => setLogOpen(false), [])

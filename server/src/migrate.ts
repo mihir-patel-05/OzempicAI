@@ -14,6 +14,8 @@ const LOCK_ID = 727_001
 async function main() {
   const client = await pool.connect()
   try {
+    // Migrations may legitimately run longer than a request is allowed to.
+    await client.query('set statement_timeout = 0')
     await client.query('select pg_advisory_lock($1)', [LOCK_ID])
     await client.query('create schema if not exists platform')
     await client.query(`

@@ -32,7 +32,7 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/index.html',
         // API calls are never navigations, but keep the SPA fallback off them.
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/\.well-known\//],
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>
@@ -46,16 +46,20 @@ export default defineConfig({
     }),
   ],
   server: {
-    host: true,
+    // This machine only. Use `npm run dev -- --host` to test from a phone on a
+    // network you trust; the dev server can read files from the project.
+    host: 'localhost',
     port: 5173,
     // `npm run dev` in server/ serves the API on 8787.
     proxy: {
       '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:8787',
+      '/.well-known/oauth-': process.env.API_PROXY_TARGET ?? 'http://localhost:8787',
     },
   },
   preview: {
     proxy: {
       '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:8787',
+      '/.well-known/oauth-': process.env.API_PROXY_TARGET ?? 'http://localhost:8787',
     },
   },
 })

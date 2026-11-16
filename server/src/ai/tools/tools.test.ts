@@ -4,7 +4,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import type { Db } from '../../db.js'
 import { summarizeCalories } from './calories.js'
 import { filterNewGroceries } from './groceries.js'
-import { TOOL_DEFINITIONS, executeTool } from './index.js'
+import { TOOLS, TOOL_DEFINITIONS, executeTool, runTool } from './index.js'
 import { formatSpan, mealPlanProblems } from './mealPlans.js'
 import type { ToolContext } from './types.js'
 import { exerciseToRow, rowToExercise, workoutPlanProblems } from './workoutPlans.js'
@@ -124,6 +124,23 @@ test('executeTool rejects unknown tools and invalid input without touching the d
   )
   assert.equal(zeroCalories.result.is_error, true)
   assert.equal(calls.length, 0)
+})
+
+test('runTool reports problems as messages and successes as outcomes', async () => {
+  const { db, calls } = fakeDb((sql) => (sql.includes('from public.users') ? [{ daily_calorie_goal: 1800 }] : []))
+  const unknown = await runTool('delete_everything', {}, ctx(db))
+  assert.deepEqual(unknown, { ok: false, message: 'Unknown tool: delete_everything' })
+
+  const invalid = await runTool('get_grocery_list', {}, ctx(db))
+  assert.equal(invalid.ok, false)
+  assert.equal(calls.length, 0)
+
+  const ok = await runTool('get_profile', {}, ctx(db))
+  assert.ok(ok.ok)
+  const profile = ok.outcome.result as { daily_calorie_goal: number; today: string; timezone: string }
+  assert.equal(profile.daily_calorie_goal, 1800)
+  assert.equal(profile.today, '2026-11-14')
+  assert.equal(profile.timezone, 'UTC')
 })
 
 test('create_meal_plan saves nothing when any date is out of range', async () => {
@@ -412,4 +429,47 @@ test('update_workout_plan refuses unknown plans and moves into the past', async 
     ctx(missing.db),
   )
   assert.equal(badId.result.is_error, true)
+})
+
+test('every tool declares a scope that matches what it does', () => {
+  for (const tool of TOOLS) {
+    const name = tool.definition.name
+    assert.ok(tool.title.trim(), `${name} needs a title`)
+    if (name.startsWith('get_')) {
+      assert.equal(tool.scope, 'read', `${name} reads, so its scope is read`)
+      assert.equal(tool.destructive, undefined, `${name} is read-only`)
+    } else {
+      assert.equal(tool.scope, 'write', `${name} changes data, so its scope is write`)
+    }
+  }
+})
+
+test('get_grocery_list and get_meal_plans return row ids so agents can target edits', async () => {
+  const { db } = fakeDb((sql) => {
+    if (sql.includes('from public.grocery_items')) {
+      return [
+        { id: 'g1', name: 'Milk', category: 'dairy', is_purchased: false },
+        { id: 'g2', name: 'Eggs', category: 'protein', is_purchased: true },
+      ]
+    }
+    if (sql.includes('from public.meal_plans')) {
+      return [{ id: 'm1', planned_date: '2026-11-16', meal_type: 'dinner', name: 'Tacos', calories: 600 }]
+    }
+    return []
+  })
+  const groceries = await runTool('get_grocery_list', { include_purchased: true }, ctx(db))
+  assert.ok(groceries.ok)
+  assert.deepEqual((groceries.outcome.result as { items: unknown[] }).items, [
+    { id: 'g1', name: 'Milk', category: 'dairy' },
+    { id: 'g2', name: 'Eggs', category: 'protein', purchased: true },
+  ])
+
+  const meals = await runTool(
+    'get_meal_plans',
+    { range: 'custom', start_date: '2026-11-16', end_date: '2026-11-22' },
+    ctx(db),
+  )
+  assert.ok(meals.ok)
+  const days = (meals.outcome.result as { days_with_plans: { meals: { id: string }[] }[] }).days_with_plans
+  assert.equal(days[0]!.meals[0]!.id, 'm1')
 })

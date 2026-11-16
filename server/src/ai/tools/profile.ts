@@ -5,15 +5,17 @@ const KG_PER_LB = 0.45359237
 const CM_PER_IN = 2.54
 
 export const getProfile = defineTool({
+  title: 'Get profile and goals',
+  scope: 'read',
   definition: {
     name: 'get_profile',
     description:
-      "Get the user's goals and settings: daily calorie goal, daily water goal, weight, height, age and unit system. Weight and height are also given in the user's units when they use imperial.",
+      "Get the user's goals and settings: daily calorie goal, daily water goal, weight, height, age and unit system, plus today's date and the user's timezone. Weight and height are also given in the user's units when they use imperial.",
     strict: true,
     input_schema: { type: 'object', properties: {}, required: [], additionalProperties: false },
   },
   schema: z.object({}),
-  async run(_input, { db, userId }) {
+  async run(_input, { db, userId, tz, today }) {
     const { rows } = await db.query<{
       daily_calorie_goal: number
       daily_water_goal_ml: number
@@ -27,7 +29,7 @@ export const getProfile = defineTool({
       [userId],
     )
     const p = rows[0]
-    if (!p) return { result: { profile: null, note: 'No profile found' } }
+    if (!p) return { result: { profile: null, note: 'No profile found', today, timezone: tz } }
 
     const imperial = p.unit_system === 'imperial'
     return {
@@ -40,6 +42,8 @@ export const getProfile = defineTool({
         height_cm: round(p.height_cm, 0),
         ...(imperial && p.height_cm != null ? { height_in: round(p.height_cm / CM_PER_IN, 0) } : {}),
         age: p.age,
+        today,
+        timezone: tz,
       },
     }
   },
