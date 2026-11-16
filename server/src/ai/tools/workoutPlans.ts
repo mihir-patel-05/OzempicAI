@@ -6,7 +6,7 @@ import { WEEKDAYS, formatSpan } from './mealPlans.js'
 import { KG_PER_LB } from './profile.js'
 import { WORKOUT_PRESETS, rangeFromInput, rangeProperties, rangeSchema } from './range.js'
 import { insertedChanges, snapshotRows } from './snapshots.js'
-import { ToolInputError, defineTool } from './types.js'
+import { ToolInputError, defineTool, rowId } from './types.js'
 
 /** Matches the workout_plans.workout_type check constraint and WorkoutType. */
 export const WORKOUT_TYPES = ['push', 'pull', 'legs', 'full_body', 'cardio', 'other'] as const
@@ -373,8 +373,6 @@ export const createWorkoutPlans = defineTool({
   },
 })
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
 export const updateWorkoutPlan = defineTool({
   title: 'Edit a planned workout',
   scope: 'write',
@@ -395,7 +393,7 @@ export const updateWorkoutPlan = defineTool({
     },
   },
   schema: z.object({
-    plan_id: z.string().regex(UUID, 'must be a plan_id from get_workout_plans'),
+    plan_id: rowId('get_workout_plans'),
     unit_system: z.enum(UNIT_SYSTEMS),
     workout: workoutSchema,
   }),

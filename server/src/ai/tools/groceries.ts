@@ -1,6 +1,7 @@
 import { z } from 'zod'
-import { insertedChanges } from './snapshots.js'
-import { defineTool } from './types.js'
+import type { Db } from '../../db.js'
+import { insertedChanges, snapshotRows } from './snapshots.js'
+import { ToolInputError, defineTool, missingIds, plural, repeatedIds, rowId } from './types.js'
 
 /** Matches the grocery_items.category check constraint and GroceryCategory. */
 export const GROCERY_CATEGORIES = [
@@ -16,10 +17,18 @@ export const GROCERY_CATEGORIES = [
 export const MAX_GROCERY_ITEMS = 40
 const MAX_NAME = 80
 const LIST_LIMIT = 300
+export const MAX_GROCERY_REMOVALS = 100
+/** Purchased items cleared per call; the result says when more remain. */
+export const MAX_CLEARED = 500
 
 /** Case- and whitespace-insensitive key for duplicate checks. */
 export function groceryKey(name: string): string {
   return name.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+/** Trimmed, with runs of whitespace collapsed. */
+function cleanName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ')
 }
 
 export interface GroceryInput {
@@ -36,7 +45,7 @@ export function filterNewGroceries(items: GroceryInput[], existingUnpurchased: s
   const toAdd: GroceryInput[] = []
   const skipped: string[] = []
   for (const item of items) {
-    const name = item.name.trim().replace(/\s+/g, ' ')
+    const name = cleanName(item.name)
     const key = groceryKey(name)
     if (seen.has(key)) {
       skipped.push(name)
@@ -163,6 +172,177 @@ export const addGroceryItems = defineTool({
         'grocery-items',
         inserted.map((r) => r.id),
       ),
+    }
+  },
+})
+
+// ─── Editing (AI apps only) ─────────────────────────────────────────────────
+
+/**
+ * Lock the user's grocery items with these ids for the rest of the
+ * transaction. Throws, naming every unknown id, unless all of them exist.
+ */
+async function lockItems(db: Db, userId: string, ids: string[], action: string): Promise<void> {
+  const repeated = repeatedIds(ids)
+  if (repeated.length > 0) {
+    throw new ToolInputError(`Nothing was ${action}: each id may appear once (repeated: ${repeated.join(', ')}).`)
+  }
+  const { rows } = await db.query<{ id: string }>(
+    'select id from public.grocery_items where id = any($1::uuid[]) and user_id = $2 for update',
+    [ids, userId],
+  )
+  const missing = missingIds(
+    ids,
+    rows.map((r) => r.id),
+  )
+  if (missing.length > 0) {
+    throw new ToolInputError(
+      `Nothing was ${action}: no grocery item with id ${missing.join(', ')}. Call get_grocery_list for current ids.`,
+    )
+  }
+}
+
+const itemEdit = z
+  .object({
+    id: rowId('get_grocery_list'),
+    name: z.string().trim().min(1).max(MAX_NAME).optional(),
+    category: z.enum(GROCERY_CATEGORIES).optional(),
+    purchased: z.boolean().optional(),
+  })
+  .refine((edit) => edit.name !== undefined || edit.category !== undefined || edit.purchased !== undefined, {
+    message: 'give at least one of name, category or purchased',
+  })
+
+export const updateGroceryItems = defineTool({
+  title: 'Edit grocery items',
+  scope: 'write',
+  destructive: true,
+  idempotent: true,
+  surfaces: { coach: false },
+  definition: {
+    name: 'update_grocery_items',
+    description: `Edit items on the user's grocery list: rename, change category, or mark purchased (true) or still needed (false). Call get_grocery_list first for the ids. Send only the fields that change; at most ${MAX_GROCERY_ITEMS} items per call, names up to ${MAX_NAME} characters. If any id is unknown, nothing is changed.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid', description: 'From get_grocery_list' },
+              name: { type: 'string' },
+              category: { type: 'string', enum: [...GROCERY_CATEGORIES] },
+              purchased: { type: 'boolean' },
+            },
+            required: ['id'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ['items'],
+      additionalProperties: false,
+    },
+  },
+  schema: z.object({ items: z.array(itemEdit).min(1).max(MAX_GROCERY_ITEMS) }),
+  async run({ items }, { db, userId }) {
+    const ids = items.map((item) => item.id)
+    await lockItems(db, userId, ids, 'changed')
+    const before = await snapshotRows(db, 'grocery-items', ids)
+    const { rows } = await db.query<{ id: string; name: string; category: string; is_purchased: boolean }>(
+      `update public.grocery_items g
+          set name = coalesce(u.name, g.name),
+              category = coalesce(u.category, g.category),
+              is_purchased = coalesce(u.purchased, g.is_purchased)
+         from unnest($2::uuid[], $3::text[], $4::text[], $5::boolean[]) as u(id, name, category, purchased)
+        where g.id = u.id and g.user_id = $1
+        returning g.id, g.name, g.category, g.is_purchased`,
+      [
+        userId,
+        ids,
+        items.map((item) => (item.name === undefined ? null : cleanName(item.name))),
+        items.map((item) => item.category ?? null),
+        items.map((item) => item.purchased ?? null),
+      ],
+    )
+    const after = await snapshotRows(db, 'grocery-items', ids)
+    return {
+      result: {
+        updated: rows.map((r) => ({ id: r.id, name: r.name, category: r.category, purchased: r.is_purchased })),
+      },
+      summary: `Updated ${plural(rows.length, 'grocery item')}`,
+      resource: 'grocery-items',
+      changes: { before, after },
+    }
+  },
+})
+
+export const removeGroceryItems = defineTool({
+  title: 'Remove grocery items',
+  scope: 'write',
+  destructive: true,
+  idempotent: true,
+  surfaces: { coach: false },
+  definition: {
+    name: 'remove_grocery_items',
+    description: `Remove items from the user's grocery list by id (at most ${MAX_GROCERY_REMOVALS} per call). Call get_grocery_list first for the ids, and only remove what the user asked for. To remove everything already bought, use clear_purchased_groceries instead. If any id is unknown, nothing is removed.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        ids: { type: 'array', items: { type: 'string', format: 'uuid' }, description: 'From get_grocery_list' },
+      },
+      required: ['ids'],
+      additionalProperties: false,
+    },
+  },
+  schema: z.object({ ids: z.array(rowId('get_grocery_list')).min(1).max(MAX_GROCERY_REMOVALS) }),
+  async run({ ids }, { db, userId }) {
+    await lockItems(db, userId, ids, 'removed')
+    const before = await snapshotRows(db, 'grocery-items', ids)
+    await db.query('delete from public.grocery_items where id = any($1::uuid[]) and user_id = $2', [ids, userId])
+    return {
+      result: { removed: before.map((row) => row.name) },
+      summary: `Removed ${plural(before.length, 'item')} from Groceries`,
+      resource: 'grocery-items',
+      changes: { before, after: [] },
+    }
+  },
+})
+
+export const clearPurchasedGroceries = defineTool({
+  title: 'Clear purchased groceries',
+  scope: 'write',
+  destructive: true,
+  idempotent: true,
+  surfaces: { coach: false },
+  definition: {
+    name: 'clear_purchased_groceries',
+    description:
+      "Remove every item the user has marked purchased from their grocery list, leaving the items they still need. Use when the user says they finished shopping or asks to clean up the list.",
+    input_schema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  schema: z.object({}),
+  async run(_input, { db, userId }) {
+    const { rows } = await db.query<{ id: string }>(
+      `select id from public.grocery_items
+        where user_id = $1 and is_purchased
+        order by created_at
+        limit $2
+          for update`,
+      [userId, MAX_CLEARED + 1],
+    )
+    const ids = rows.slice(0, MAX_CLEARED).map((r) => r.id)
+    const before = await snapshotRows(db, 'grocery-items', ids)
+    if (ids.length > 0) {
+      await db.query('delete from public.grocery_items where id = any($1::uuid[]) and user_id = $2', [ids, userId])
+    }
+    const more = rows.length > MAX_CLEARED
+    return {
+      result: { removed: ids.length, ...(more ? { more_remain: true } : {}) },
+      summary:
+        ids.length > 0 ? `Cleared ${plural(ids.length, 'purchased item')} from Groceries` : 'No purchased items to clear',
+      resource: 'grocery-items',
+      changes: { before, after: [] },
     }
   },
 })

@@ -509,3 +509,103 @@ test('sameJson compares snapshots regardless of key order', () => {
   assert.ok(!sameJson({ a: null }, { a: 0 }))
   assert.ok(!sameJson([], {}))
 })
+
+// ─── Grocery edits (AI apps only) ───────────────────────────────────────────
+
+const G1 = 'aaaaaaaa-0000-4000-8000-000000000001'
+const G2 = 'aaaaaaaa-0000-4000-8000-000000000002'
+
+test('grocery edit tools are offered to AI apps, not the coach', async () => {
+  const { db, calls } = fakeDb()
+  for (const name of ['update_grocery_items', 'remove_grocery_items', 'clear_purchased_groceries']) {
+    assert.ok(!TOOL_DEFINITIONS.some((tool) => tool.name === name), name)
+    const out = await executeTool(toolUse(name, { ids: [G1] }), ctx(db))
+    assert.equal(out.result.content, `Unknown tool: ${name}`)
+  }
+  assert.equal(calls.length, 0)
+})
+
+test('update_grocery_items changes nothing when an id is unknown, repeated or the edit is empty', async () => {
+  const { db, calls } = fakeDb((sql) => (sql.includes('for update') ? [{ id: G1 }] : []))
+  const unknown = await runTool('update_grocery_items', { items: [{ id: G1, purchased: true }, { id: G2, name: 'Oats' }] }, ctx(db), 'mcp')
+  assert.equal(unknown.ok, false)
+  assert.match(!unknown.ok ? unknown.message : '', new RegExp(`no grocery item with id ${G2}`))
+
+  const repeated = await runTool('update_grocery_items', { items: [{ id: G1, purchased: true }, { id: G1, name: 'Oats' }] }, ctx(db), 'mcp')
+  assert.equal(repeated.ok, false)
+
+  const empty = await runTool('update_grocery_items', { items: [{ id: G1 }] }, ctx(db), 'mcp')
+  assert.equal(empty.ok, false)
+  assert.match(!empty.ok ? empty.message : '', /at least one of name, category or purchased/)
+
+  const notAnId = await runTool('update_grocery_items', { items: [{ id: 'Milk', purchased: true }] }, ctx(db), 'mcp')
+  assert.equal(notAnId.ok, false)
+  assert.ok(!calls.some((sql) => sql.includes('update public.grocery_items')))
+})
+
+test('update_grocery_items edits the named fields and snapshots before and after', async () => {
+  let snapshots = 0
+  const params: unknown[][] = []
+  const { db } = fakeDb((sql, p) => {
+    if (sql.includes('for update')) return [{ id: G1 }, { id: G2 }]
+    if (sql.includes('to_jsonb')) {
+      snapshots++
+      return [
+        { row: { id: G1, name: 'Milk', is_purchased: snapshots > 1 } },
+        { row: { id: G2, name: snapshots > 1 ? 'Rolled oats' : 'Oats', is_purchased: false } },
+      ]
+    }
+    if (sql.includes('update public.grocery_items')) {
+      params.push(p)
+      return [
+        { id: G1, name: 'Milk', category: 'dairy', is_purchased: true },
+        { id: G2, name: 'Rolled oats', category: 'grains', is_purchased: false },
+      ]
+    }
+    return []
+  })
+  const run = await runTool(
+    'update_grocery_items',
+    { items: [{ id: G1, purchased: true }, { id: G2, name: '  Rolled   oats ', category: 'grains' }] },
+    ctx(db),
+    'mcp',
+  )
+  assert.ok(run.ok)
+  assert.equal(run.outcome.summary, 'Updated 2 grocery items')
+  assert.deepEqual(params[0]!.slice(2), [[null, 'Rolled oats'], [null, 'grains'], [true, null]])
+  assert.equal(run.outcome.changes?.before[1]!.name, 'Oats')
+  assert.equal(run.outcome.changes?.after[1]!.name, 'Rolled oats')
+})
+
+test('remove_grocery_items deletes the rows and keeps them for Undo', async () => {
+  const { db, calls } = fakeDb((sql) => {
+    if (sql.includes('for update')) return [{ id: G1 }]
+    if (sql.includes('to_jsonb')) return [{ row: { id: G1, name: 'Milk' } }]
+    return []
+  })
+  const run = await runTool('remove_grocery_items', { ids: [G1] }, ctx(db), 'mcp')
+  assert.ok(run.ok)
+  assert.deepEqual(run.outcome.result, { removed: ['Milk'] })
+  assert.equal(run.outcome.summary, 'Removed 1 item from Groceries')
+  assert.deepEqual(run.outcome.changes, { before: [{ id: G1, name: 'Milk' }], after: [] })
+  assert.ok(calls.some((sql) => sql.startsWith('delete from public.grocery_items')))
+})
+
+test('clear_purchased_groceries removes only purchased items, in bounded batches', async () => {
+  const none = fakeDb()
+  const empty = await runTool('clear_purchased_groceries', {}, ctx(none.db), 'mcp')
+  assert.ok(empty.ok)
+  assert.equal(empty.outcome.summary, 'No purchased items to clear')
+  assert.ok(!none.calls.some((sql) => sql.startsWith('delete')))
+
+  const ids = Array.from({ length: 501 }, (_, i) => `aaaaaaaa-0000-4000-8000-${String(i).padStart(12, '0')}`)
+  const many = fakeDb((sql, p) => {
+    if (sql.includes('is_purchased') && sql.includes('for update')) return ids.map((id) => ({ id }))
+    if (sql.includes('to_jsonb')) return (p[0] as string[]).map((id) => ({ row: { id } }))
+    return []
+  })
+  const run = await runTool('clear_purchased_groceries', {}, ctx(many.db), 'mcp')
+  assert.ok(run.ok)
+  assert.deepEqual(run.outcome.result, { removed: 500, more_remain: true })
+  assert.equal(run.outcome.changes?.before.length, 500)
+})
