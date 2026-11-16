@@ -65,9 +65,14 @@ async function userTimezone(db: Db, userId: string): Promise<string> {
 }
 
 async function recordActivity(db: Db, caller: McpCaller, tool: CoachTool, outcome: ToolOutcome) {
+  const changes = outcome.changes
+  // A call that changed nothing (everything was already on the list) isn't
+  // worth a line in the activity feed.
+  if (changes && changes.before.length === 0 && changes.after.length === 0) return
   await db.query(
-    `insert into public.agent_activity (user_id, grant_id, client_name, tool_name, summary, resource, created_ids)
-     values ($1, $2, $3, $4, $5, $6, $7::uuid[])`,
+    `insert into public.agent_activity
+       (user_id, grant_id, client_name, tool_name, summary, resource, created_ids, before, after)
+     values ($1, $2, $3, $4, $5, $6, $7::uuid[], $8::jsonb, $9::jsonb)`,
     [
       caller.userId,
       caller.grantId,
@@ -76,6 +81,8 @@ async function recordActivity(db: Db, caller: McpCaller, tool: CoachTool, outcom
       outcome.summary ?? null,
       outcome.resource ?? null,
       outcome.createdIds ?? [],
+      changes ? JSON.stringify(changes.before) : null,
+      changes ? JSON.stringify(changes.after) : null,
     ],
   )
 }

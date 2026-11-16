@@ -6,6 +6,7 @@ import { summarizeCalories } from './calories.js'
 import { filterNewGroceries } from './groceries.js'
 import { TOOLS, TOOL_DEFINITIONS, executeTool, offeredOn, runTool, toolsOn } from './index.js'
 import { formatSpan, mealPlanProblems } from './mealPlans.js'
+import { sameJson } from './snapshots.js'
 import type { ToolContext } from './types.js'
 import { exerciseToRow, rowToExercise, workoutPlanProblems } from './workoutPlans.js'
 
@@ -161,6 +162,7 @@ test('create_meal_plan saves nothing when any date is out of range', async () =>
 
 test('add_grocery_items reports created ids and skipped duplicates', async () => {
   const { db, calls } = fakeDb((sql) => {
+    if (sql.includes('to_jsonb')) return [{ row: { id: 'g1', name: 'Milk', category: 'dairy', is_purchased: false } }]
     if (sql.includes('not is_purchased')) return [{ name: 'Eggs' }]
     if (sql.includes('insert into public.grocery_items')) return [{ id: 'g1', name: 'Milk' }]
     return []
@@ -179,7 +181,8 @@ test('add_grocery_items reports created ids and skipped duplicates', async () =>
   assert.deepEqual(out.event.created_ids, ['g1'])
   assert.equal(out.event.resource, 'grocery-items')
   assert.equal(out.event.summary, 'Added 1 item to Groceries')
-  assert.equal(calls.length, 2)
+  // Duplicate check, insert, then the snapshot Undo uses.
+  assert.equal(calls.length, 3)
 })
 
 // ─── Tool definitions ───────────────────────────────────────────────────────
@@ -341,7 +344,9 @@ test('create_workout_plans saves plans with exercises, skips duplicates and repo
 })
 
 test('update_workout_plan replaces the workout and returns the previous version', async () => {
+  let snapshots = 0
   const { db, calls } = fakeDb((sql) => {
+    if (sql.includes('to_jsonb')) return [{ row: { id: PLAN_ID, notes: snapshots++ === 0 ? null : 'Go light' } }]
     if (sql.includes('for update')) {
       return [{ id: PLAN_ID, name: 'Push day', workout_type: 'push', planned_date: '2026-11-10', notes: null, completed_at: null }]
     }
@@ -389,6 +394,7 @@ test('update_workout_plan replaces the workout and returns the previous version'
   assert.equal(out.event.resource, 'workout-plans')
   assert.equal(out.event.summary, 'Updated Push day for Tue, Nov 10')
   assert.ok(calls.some((sql) => sql.includes('delete from public.workout_plan_exercises')))
+  assert.equal(snapshots, 2, 'one snapshot before the edit and one after')
 })
 
 test('update_workout_plan refuses unknown plans and moves into the past', async () => {
@@ -494,4 +500,12 @@ test('a tool can stay out of the coach and still be offered to AI apps', () => {
   for (const tool of TOOLS) {
     assert.equal(coachNames.has(tool.definition.name), offeredOn(tool, 'coach'), tool.definition.name)
   }
+})
+
+test('sameJson compares snapshots regardless of key order', () => {
+  assert.ok(sameJson({ a: 1, b: [1, { c: null }] }, { b: [1, { c: null }], a: 1 }))
+  assert.ok(!sameJson({ a: 1 }, { a: 1, b: 2 }))
+  assert.ok(!sameJson({ a: [1, 2] }, { a: [2, 1] }))
+  assert.ok(!sameJson({ a: null }, { a: 0 }))
+  assert.ok(!sameJson([], {}))
 })

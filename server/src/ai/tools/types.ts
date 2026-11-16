@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import type { z } from 'zod'
 import type { Db } from '../../db.js'
+import type { RowChanges } from './snapshots.js'
 
 /** Everything a tool may use. `db` is already scoped to the user by withUser(). */
 export interface ToolContext {
@@ -23,6 +24,8 @@ export interface ToolOutcome {
   /** Rows the tool inserted, for Undo (which deletes them). Edits leave this empty. */
   createdIds?: string[]
   resource?: ToolResource
+  /** Writes only: the rows of `resource` before and after, for the activity feed's Undo. */
+  changes?: RowChanges
 }
 
 /** What an MCP connection must be granted to see and call a tool. */

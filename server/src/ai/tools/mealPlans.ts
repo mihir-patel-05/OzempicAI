@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { PLAN_HORIZON_DAYS, addDays, daysBetween, isValidDate, isoWeekday } from '../dates.js'
 import { groceryKey } from './groceries.js'
 import { PLAN_PRESETS, rangeFromInput, rangeProperties, rangeSchema } from './range.js'
+import { insertedChanges } from './snapshots.js'
 import { ToolInputError, defineTool } from './types.js'
 
 export const PLAN_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
@@ -194,6 +195,7 @@ export const createMealPlan = defineTool({
           : 'Those meals were already planned',
       createdIds: ids,
       resource: 'meal-plans',
+      changes: await insertedChanges(db, 'meal-plans', ids),
     }
   },
 })

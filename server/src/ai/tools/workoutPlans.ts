@@ -5,6 +5,7 @@ import { groceryKey } from './groceries.js'
 import { WEEKDAYS, formatSpan } from './mealPlans.js'
 import { KG_PER_LB } from './profile.js'
 import { WORKOUT_PRESETS, rangeFromInput, rangeProperties, rangeSchema } from './range.js'
+import { insertedChanges, snapshotRows } from './snapshots.js'
 import { ToolInputError, defineTool } from './types.js'
 
 /** Matches the workout_plans.workout_type check constraint and WorkoutType. */
@@ -363,6 +364,11 @@ export const createWorkoutPlans = defineTool({
       summary: createdSummary(saved),
       createdIds: saved.map((s) => s.plan_id),
       resource: 'workout-plans',
+      changes: await insertedChanges(
+        db,
+        'workout-plans',
+        saved.map((s) => s.plan_id),
+      ),
     }
   },
 })
@@ -411,6 +417,7 @@ export const updateWorkoutPlan = defineTool({
     }
 
     const beforeExercises = (await exercisesByPlan(db, [plan_id])).get(plan_id) ?? []
+    const beforeSnapshot = await snapshotRows(db, 'workout-plans', [plan_id])
     const units = await unitSystemOf(db, userId)
 
     const updated = await db.query<PlanRow>(
@@ -433,6 +440,7 @@ export const updateWorkoutPlan = defineTool({
       },
       summary: updatedSummary(after),
       resource: 'workout-plans',
+      changes: { before: beforeSnapshot, after: await snapshotRows(db, 'workout-plans', [plan_id]) },
     }
   },
 })

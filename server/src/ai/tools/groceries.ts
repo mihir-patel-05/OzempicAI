@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { insertedChanges } from './snapshots.js'
 import { defineTool } from './types.js'
 
 /** Matches the grocery_items.category check constraint and GroceryCategory. */
@@ -157,6 +158,11 @@ export const addGroceryItems = defineTool({
           : 'Everything was already on your grocery list',
       createdIds: inserted.map((r) => r.id),
       resource: 'grocery-items',
+      changes: await insertedChanges(
+        db,
+        'grocery-items',
+        inserted.map((r) => r.id),
+      ),
     }
   },
 })
