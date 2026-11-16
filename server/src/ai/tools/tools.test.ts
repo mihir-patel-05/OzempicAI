@@ -589,6 +589,12 @@ test('remove_grocery_items deletes the rows and keeps them for Undo', async () =
   assert.equal(run.outcome.summary, 'Removed 1 item from Groceries')
   assert.deepEqual(run.outcome.changes, { before: [{ id: G1, name: 'Milk' }], after: [] })
   assert.ok(calls.some((sql) => sql.startsWith('delete from public.grocery_items')))
+
+  // Postgres matches uuids in any case; the snapshot must too, or the
+  // removal would go unlogged and couldn't be undone.
+  const upper = await runTool('remove_grocery_items', { ids: [G1.toUpperCase()] }, ctx(db), 'mcp')
+  assert.ok(upper.ok)
+  assert.equal(upper.outcome.changes?.before.length, 1)
 })
 
 test('clear_purchased_groceries removes only purchased items, in bounded batches', async () => {

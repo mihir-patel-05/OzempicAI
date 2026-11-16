@@ -63,9 +63,15 @@ export function defineTool<S extends z.ZodType>(tool: CoachTool<S>): CoachTool<S
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/** A row id the model copied from a read tool's result. */
+/**
+ * A row id the model copied from a read tool's result, lower-cased the way
+ * Postgres prints uuids so every later lookup by id agrees with the database.
+ */
 export function rowId(readTool: string) {
-  return z.string().regex(UUID, `must be an id from ${readTool}`)
+  return z
+    .string()
+    .regex(UUID, `must be an id from ${readTool}`)
+    .transform((id) => id.toLowerCase())
 }
 
 /** Ids that appear more than once, so a call can't name a row twice. */

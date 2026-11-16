@@ -42,8 +42,8 @@ const SNAPSHOT_SQL: Record<ToolResource, string> = {
 export async function snapshotRows(db: Db, resource: ToolResource, ids: readonly string[]): Promise<RowSnapshot[]> {
   if (ids.length === 0) return []
   const { rows } = await db.query<{ row: RowSnapshot }>(SNAPSHOT_SQL[resource], [ids])
-  const byId = new Map(rows.map((r) => [r.row.id, r.row]))
-  return ids.flatMap((id) => byId.get(id) ?? [])
+  const byId = new Map(rows.map((r) => [r.row.id.toLowerCase(), r.row]))
+  return ids.flatMap((id) => byId.get(id.toLowerCase()) ?? [])
 }
 
 /** Changes for rows a tool inserted. */
