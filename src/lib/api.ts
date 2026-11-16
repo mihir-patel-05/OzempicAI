@@ -127,7 +127,7 @@ async function send(url: string, init: { method: string; body?: unknown; accept?
     throw new ApiError('Your account changed. Please try again.', 409)
   }
 
-  if (response.status === 401 && session) {
+  if (response.status === 401 && session && loadSession()?.access_token === session.access_token) {
     // The stored token was revoked or expired: drop it so the app shows login.
     storeSession(null)
   }

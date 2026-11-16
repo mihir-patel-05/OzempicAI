@@ -52,3 +52,23 @@ test('a response started for the old account never populates the new account cac
   await assert.rejects(request, /account changed/)
   assert.equal(c.loadSession()?.user.id, 'B')
 })
+
+test('a delayed 401 cannot remove a newly authenticated session', async (t) => {
+  const c = await client()
+  c.storeSession(A)
+  let finish!: (res: Response) => void
+  t.mock.method(globalThis, 'fetch', () => new Promise<Response>(r => { finish = r }))
+  const request = c.api('/auth/user')
+  c.storeSession(B)
+  finish(new Response(JSON.stringify({ error: 'Expired old token' }), { status: 401 }))
+  await assert.rejects(request, /Expired old token/)
+  assert.equal(c.loadSession()?.access_token, 'B')
+})
+
+test('a 401 for the current token still signs out the expired session', async (t) => {
+  const c = await client()
+  c.storeSession(A)
+  t.mock.method(globalThis, 'fetch', async () => new Response('{}', { status: 401 }))
+  await assert.rejects(c.api('/auth/user'))
+  assert.equal(c.loadSession(), null)
+})
