@@ -1,5 +1,8 @@
 # OzempicAI application and MCP security review
 
+> Follow-up review and patches (2026-11-16): see [the current report](/Users/mihirpatel/Downloads/OzempicAI/docs/security/review-2026-11-16/REPORT.md). It records eight additional/remaining findings, their separate fixes and final validation. The historical review below is preserved.
+
+
 ## Executive summary
 
 Reviewed 2026-11-15 at commit `92f956dbd8eb9dbb0668f7727b3372e850f19d02`. The owner confirmed they are currently the only user. **The most urgent reproduced issues are incomplete account recovery, bypassable IP rate limits, and unauthenticated event-loop denial of service in email validation.** Before adding users, also address resource/cost controls, OAuth scope reduction, consent-page framing, and cross-user foreign-key references.

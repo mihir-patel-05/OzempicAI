@@ -21,7 +21,7 @@ This is a **new review of the current implementation**. The existing root securi
 
 ## Remediation status
 
-The findings below describe the reviewed baseline. Fixes are being committed separately, authored by Mihir Patel with Codex as co-author.
+The findings below describe the reviewed baseline. All eight fixes are committed separately, authored by Mihir Patel with Codex as co-author. They are local changes; production has not been deployed. The original evidence below is retained as the review baseline.
 
 | Finding | Status | Validation |
 | --- | --- | --- |
@@ -32,7 +32,18 @@ The findings below describe the reviewed baseline. Fixes are being committed sep
 | 05 | Fixed through controlled invitations | Every signup now needs a single-use, email-bound, expiring owner-issued invitation, even when SIGNUP_MODE=open. Added migration 00020, owner CLI and signup UI. Tests cover expiry, mismatch, replay, concurrent claim and role permissions. Mailbox verification is not implemented; invitation delivery is the admission trust boundary. |
 | 06 | Fixed; upstream metadata still flags locally patched code | Upgraded Vite/React/PWA/Workbox and patched glob/minimatch. Pinned and locally patched deepmerge because upstream has no fixed release. Fresh npm ci, prototype-poisoning regression test and PWA build pass. Audit retains four low package entries for the locally patched advisory; zero moderate/high/critical. See dependency-remediation.md. |
 | 07 | Fixed | A 401 clears only the token used for that request. Tests cover a delayed old-token 401 and normal current-token expiration. |
-| 08 | Pending | See the original evidence below. |
+| 08 | Fixed | Added an in-memory session fallback, preserved credentials across read/write failures, prevented stale storage from restoring old tokens in the tab, and kept external account invalidation. Tests cover independent and combined storage failures. |
+
+### Final patch validation
+
+- Server: **104 tests passed, zero skipped**, against the isolated PostgreSQL 18 database with all **21 migrations**, including new migration `00020_signup_invitations.sql`.
+- Frontend: **35 tests passed**. Both TypeScript checks and both production builds passed. The PWA build generated its service worker and precache manifest.
+- A fresh `npm ci` successfully applied the dependency patch. The installed-dependency regression test blocks prototype poisoning. The audit has zero moderate/high/critical entries; four low entries trace to the same locally patched deepmerge advisory. See [dependency-remediation.md](/Users/mihirpatel/Downloads/OzempicAI/docs/security/review-2026-11-16/dependency-remediation.md).
+- The compiled owner invitation CLI generated an email-bound signup link using a synthetic address. No invitations or messages were sent to real people, and no paid model calls were made.
+- Browser interactions and a Docker image build were not run. Client tests simulate browser storage/events/network. The Dockerfile now copies the patch script before its install step.
+- Deployment must apply migration 00020 before starting the new API. Signup requires an owner-issued invitation even with `SIGNUP_MODE=open`; invitation creation is documented in README.md. Existing accounts keep their login credentials.
+- Linked plans are protected by refusing AI removal and undo-of-creation until their dependent links are removed. Historical deleted-parent snapshots cannot recover already lost links, so unsafe older undo operations return 409.
+- The baseline reproduction scripts intentionally assert the old vulnerable behavior and are retained as historical evidence. Use the application regression tests for validation of the patched tree.
 
 ## High-priority security findings
 

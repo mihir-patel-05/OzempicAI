@@ -33,17 +33,24 @@ export class ApiError extends Error {
 
 type SessionListener = (session: Session | null) => void
 const listeners = new Set<SessionListener>()
+let memorySession: Session | null = null
+let storageUnavailable = false
 let observedToken = loadSession()?.access_token ?? null
 let switchingAccounts = false
+
+function reloadAccountView() {
+  if (switchingAccounts) return
+  switchingAccounts = true
+  for (const listener of listeners) listener(null)
+  if (typeof window !== 'undefined') window.location.reload()
+}
 
 // A different tab can replace shared storage while this tab still displays
 // the previous user's forms and cached health data. Reload the entire account
 // view, and refuse work in the old document until that reload completes.
 function checkSessionChange(): void {
   if (!switchingAccounts && (loadSession()?.access_token ?? null) !== observedToken) {
-    switchingAccounts = true
-    for (const listener of listeners) listener(null)
-    if (typeof window !== 'undefined') window.location.reload()
+    reloadAccountView()
   }
   if (switchingAccounts) throw new ApiError('Your account changed in another tab. Reload to continue.', 409)
 }
@@ -51,28 +58,40 @@ function checkSessionChange(): void {
 if (typeof window !== 'undefined') {
   const synchronize = () => { try { checkSessionChange() } catch { /* Reload already requested. */ } }
   window.addEventListener('storage', (event) => {
-    if (event.key === SESSION_KEY || event.key === null) synchronize()
+    if (event.key === SESSION_KEY || event.key === null) {
+      // We cannot inspect shared storage in fallback mode, but another tab's
+      // session event still invalidates the old account view.
+      if (storageUnavailable) reloadAccountView()
+      else synchronize()
+    }
   })
   window.addEventListener('focus', synchronize)
 }
 
 export function loadSession(): Session | null {
+  if (storageUnavailable) return memorySession
   try {
     const raw = localStorage.getItem(SESSION_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Session
-    return parsed?.access_token && parsed.user?.id ? parsed : null
+    const parsed = raw ? JSON.parse(raw) as Session : null
+    memorySession = parsed?.access_token && parsed.user?.id ? parsed : null
+    return memorySession
   } catch {
-    return null
+    storageUnavailable = true
+    return memorySession
   }
 }
 
 export function storeSession(session: Session | null) {
+  // Always keep the credential used by requests aligned with the session
+  // announced to React, including when storage writes or reads fail.
+  memorySession = session
   try {
     if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session))
     else localStorage.removeItem(SESSION_KEY)
+    storageUnavailable = false
   } catch {
-    // Private mode or storage disabled: the session lives for this tab only.
+    // Do not reread a stale persisted token after a failed write/sign-out.
+    storageUnavailable = true
   }
   observedToken = session?.access_token ?? null
   for (const listener of listeners) listener(session)
