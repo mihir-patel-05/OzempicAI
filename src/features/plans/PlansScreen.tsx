@@ -19,6 +19,7 @@ import {
 } from '../../hooks/usePlans'
 import type { GroceryCategory, MealPlan, MealType } from '../../types/db'
 import { WorkoutPlanner } from '../workouts/WorkoutPlanner'
+import { AgentActivityCard } from './AgentActivityCard'
 
 type Tab = 'meals' | 'workouts' | 'groceries'
 const TABS: readonly Tab[] = ['meals', 'workouts', 'groceries']
@@ -69,6 +70,7 @@ export function PlansScreen() {
       {tab === 'meals' && <MealPlanner />}
       {tab === 'workouts' && <WorkoutPlanner />}
       {tab === 'groceries' && <GroceryList />}
+      <AgentActivityCard />
     </div>
   )
 }
