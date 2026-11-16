@@ -1,3 +1,4 @@
+import { testInvitation } from './test-support.js'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { after, before, test } from 'node:test'
@@ -25,7 +26,7 @@ for (const operation of ['reset', 'password'] as const) {
       method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify(body),
     })
-    const signup = await call('signup', { email, password })
+    const signup = await call('signup', { email, password, invite_token: await testInvitation(email) })
     assert.equal(signup.status, 201)
     const user = await signup.json() as { user: { id: string }; access_token: string }
     let verified!: () => void

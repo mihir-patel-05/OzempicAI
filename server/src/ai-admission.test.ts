@@ -1,3 +1,4 @@
+import { testInvitation } from './test-support.js'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { after, before, test } from 'node:test'
@@ -24,8 +25,9 @@ test('AI slots cover pending database work, enforce global/user caps and release
   })
   const users: { access_token: string; user: { id: string } }[] = []
   for (let i = 0; i < 2; i++) {
+    const email = `admission-${randomUUID()}@example.test`
     const res = await app.request('/api/auth/signup', { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: `admission-${randomUUID()}@example.test`, password: 'test password' }) })
+      body: JSON.stringify({ email, password: 'test password', invite_token: await testInvitation(email) }) })
     assert.equal(res.status, 201)
     users.push(await res.json() as typeof users[number])
   }

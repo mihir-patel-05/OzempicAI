@@ -315,9 +315,8 @@ export const authRoutes = new Hono<AppEnv>()
 
 /**
  * Whether new accounts can be created. SIGNUP_MODE=open or closed; when unset
- * it is closed in production and open elsewhere. Sign-up doesn't verify the
- * email address yet, so an open deployment lets anyone create accounts (and
- * claim an address they don't own); keep it closed until that exists.
+ * it is closed in production and open elsewhere. Every new account also
+ * requires a single-use invitation for its email, issued by the owner CLI.
  */
 export function signupsOpen(): boolean {
   const mode = process.env.SIGNUP_MODE?.trim().toLowerCase()
@@ -333,12 +332,29 @@ authRoutes.post('/signup', async (c) => {
   const email = readEmail(body.email)
   const password = readPassword(body.password)
   const name = typeof body.name === 'string' ? body.name.trim().slice(0, 200) : ''
+  const invitation = typeof body.invite_token === 'string' ? body.invite_token : ''
+  const invalidInvite = () => new HttpError(400, 'A valid invitation for this email address is required.')
+  if (!invitation || invitation.length > 100) throw invalidInvite()
+  const tokenHash = hashToken(invitation)
+  const live = await pool.query(
+    'select 1 from auth.signup_invitations where token_hash=$1 and email=$2 and used_at is null and expires_at>now()',
+    [tokenHash, email],
+  )
+  if (!live.rowCount) throw invalidInvite()
 
   // Checked again inside the transaction; this one avoids hashing for nothing.
   const taken = await pool.query('select 1 from auth.users where lower(email) = $1', [email])
   if (taken.rowCount) throw new HttpError(409, 'An account with this email already exists.')
   const hash = await hashPassword(password)
   const session = await withTransaction(async (db) => {
+    // Atomic claim prevents concurrent requests from multiplying accounts.
+    // It rolls back with the account insert if any later step fails.
+    const claimed = await db.query(
+      `update auth.signup_invitations set used_at=now()
+       where token_hash=$1 and email=$2 and used_at is null and expires_at>now() returning token_hash`,
+      [tokenHash, email],
+    )
+    if (!claimed.rowCount) throw invalidInvite()
     const existing = await db.query('select 1 from auth.users where lower(email) = $1', [email])
     if (existing.rowCount) throw new HttpError(409, 'An account with this email already exists.')
     // The on_auth_user_created trigger creates the matching public.users row.
@@ -528,6 +544,7 @@ authRoutes.post('/reset', async (c) => {
 
 /** Housekeeping for expired rows; called on an interval from index.ts. */
 export async function purgeExpiredAuthRows() {
+  await pool.query("delete from auth.signup_invitations where expires_at < now() - interval '1 day' or used_at < now() - interval '1 day'")
   await pool.query(
     'delete from auth.sessions where expires_at < now() or created_at < now() - make_interval(days => $1)',
     [SESSION_MAX_DAYS],

@@ -1,3 +1,4 @@
+import { testInvitation } from '../test-support.js'
 /**
  * Phase 2 end to end: AI-app edits are logged with snapshots, and Undo puts
  * them back unless the rows changed since. Like flow.test.ts, these run only
@@ -60,7 +61,7 @@ async function signUp(): Promise<User> {
   const res = await app.request('/api/auth/signup', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-real-ip': '10.8.0.1' },
-    body: JSON.stringify({ email, password: 'correct horse battery', name: 'Test' }),
+    body: JSON.stringify({ email, password: 'correct horse battery', name: 'Test', invite_token: await testInvitation(email) }),
   })
   assert.equal(res.status, 201)
   const data = (await res.json()) as { access_token: string; user: { id: string } }

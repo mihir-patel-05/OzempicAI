@@ -29,7 +29,8 @@ The findings below describe the reviewed baseline. Fixes are being committed sep
 | 02 | Fixed | Slots are reserved synchronously before database setup and released on setup/stream failures. Database-backed admission tests cover both caps and failure cleanup. |
 | 03 | Fixed | External session changes clear the account view, reload the tab and block stale work. Old-account responses are rejected. Three client tests pass. |
 | 04 | Fixed with a safety restriction | AI deletion and undo-of-creation refuse plans with linked groceries/workouts; parent locks prevent new links racing deletion. Unlinked deletion remains undoable. Older deleted-parent snapshots without a link check are refused because lost links cannot be reconstructed. Integration tests cover both parent types. |
-| 05–08 | Pending | See the original evidence below. |
+| 05 | Fixed through controlled invitations | Every signup now needs a single-use, email-bound, expiring owner-issued invitation, even when SIGNUP_MODE=open. Added migration 00020, owner CLI and signup UI. Tests cover expiry, mismatch, replay, concurrent claim and role permissions. Mailbox verification is not implemented; invitation delivery is the admission trust boundary. |
+| 06–08 | Pending | See the original evidence below. |
 
 ## High-priority security findings
 

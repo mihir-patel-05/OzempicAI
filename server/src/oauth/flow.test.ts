@@ -1,3 +1,4 @@
+import { testInvitation } from '../test-support.js'
 /**
  * The whole OAuth flow against a real database. Runs only when
  * TEST_DATABASE_URL points at a migrated, disposable Postgres, e.g.
@@ -43,7 +44,7 @@ async function signUp(): Promise<string> {
   const res = await app.request('/api/auth/signup', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: 'correct horse battery', name: 'Test' }),
+    body: JSON.stringify({ email, password: 'correct horse battery', name: 'Test', invite_token: await testInvitation(email) }),
   })
   assert.equal(res.status, 201)
   return (await json(res)).access_token as string

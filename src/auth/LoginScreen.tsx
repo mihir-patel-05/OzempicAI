@@ -20,13 +20,20 @@ export function LoginScreen() {
       ? from
       : `${from?.pathname ?? '/'}${from?.search ?? ''}${from?.hash ?? ''}`
 
-  const [mode, setMode] = useState<Mode>('signin')
+  const [invitation] = useState(() => new URLSearchParams(window.location.hash.slice(1)))
+  const [inviteToken, setInviteToken] = useState(invitation.get('invite') ?? '')
+  const [mode, setMode] = useState<Mode>(invitation.has('invite') ? 'signup' : 'signin')
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(invitation.get('email') ?? '')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Keep the invitation out of the address bar/history after reading it.
+    if (invitation.has('invite')) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search)
+  }, [invitation])
 
   useEffect(() => {
     if (!loading && session) navigate(redirectTo, { replace: true })
@@ -45,7 +52,7 @@ export function LoginScreen() {
         await signIn(email, password)
         navigate(redirectTo, { replace: true })
       } else {
-        const signedIn = await signUp(name, email, password)
+        const signedIn = await signUp(name, email, password, inviteToken)
         if (signedIn) {
           navigate(redirectTo, { replace: true })
         } else {
@@ -105,6 +112,9 @@ export function LoginScreen() {
 
           <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             {mode === 'signup' && (
+              <Field label="Invitation code" value={inviteToken} onChange={setInviteToken} autoComplete="off" placeholder="Your single-use invitation" />
+            )}
+            {mode === 'signup' && (
               <Field
                 label="Name"
                 value={name}
@@ -143,7 +153,7 @@ export function LoginScreen() {
         {error && <Banner tone="error">{error}</Banner>}
         {info && <Banner tone="info">{info}</Banner>}
 
-        <PrimaryButton type="submit" loading={submitting} disabled={!email.trim() || (mode !== 'forgot' && (!password || (mode === 'signup' && (!name.trim() || password.length < 8))))}>
+        <PrimaryButton type="submit" loading={submitting} disabled={!email.trim() || (mode !== 'forgot' && (!password || (mode === 'signup' && (!name.trim() || !inviteToken.trim() || password.length < 8))))}>
           {mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
         </PrimaryButton>
 

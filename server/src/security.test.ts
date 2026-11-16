@@ -1,3 +1,4 @@
+import { testInvitation } from './test-support.js'
 /**
  * Regression tests for the security review (security_best_practices_report.md).
  * Each test is named after the finding it keeps fixed. Like flow.test.ts, they
@@ -74,7 +75,7 @@ const get = (path: string, bearer?: string) => call('GET', path, { bearer })
 
 async function signUp(password = PASSWORD) {
   const email = `sec-${randomBytes(6).toString('hex')}@example.com`
-  const res = await post('/api/auth/signup', { email, password, name: 'Test' })
+  const res = await post('/api/auth/signup', { email, password, name: 'Test', invite_token: await testInvitation(email) })
   assert.equal(res.status, 201)
   return { email, session: res.data.access_token as string, id: res.data.user.id as string }
 }

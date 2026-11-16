@@ -129,8 +129,14 @@ Both app services build from this GitHub repo with their Dockerfiles and redeplo
   - `RESEND_API_KEY`, `EMAIL_FROM` — password reset email. Without them, reset requests are
     accepted but no email is sent (a warning is logged).
   - `SIGNUP_MODE` — `open` or `closed`. Unset means **closed in production**: the sign-up form
-    returns "New sign-ups are closed right now." Set `open` only while you are onboarding
-    people; sign-up does not verify email addresses yet.
+    returns "New sign-ups are closed right now." Set `open` when you are onboarding
+    people. Every signup also requires a single-use, email-bound invitation.
+    On a trusted machine with the API database configured, run
+    `npm --prefix server run invite -- person@example.com` (or `node dist/invite.js`
+    in the API container). Set `APP_URL` to the public web origin. Give the
+    resulting link only to that person over a trusted channel; it expires in
+    seven days. Invitation links are credentials: do not post them publicly.
+    This controls admission; it does not independently verify mailbox ownership.
   - `ANTHROPIC_API_KEY` — enables the AI coach. Without it every `/api/ai/*` route returns 503
     and the rest of the app works normally (this is also the rollback switch).
   - `AI_MODEL` (default `claude-opus-5-5`, e.g. `claude-sonnet-5-5` to cut cost) and
