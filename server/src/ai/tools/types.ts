@@ -28,6 +28,9 @@ export interface ToolOutcome {
 /** What an MCP connection must be granted to see and call a tool. */
 export type ToolScope = 'read' | 'write'
 
+/** Who can call a tool: the built-in coach, or AI apps connected over MCP. */
+export type ToolSurface = 'coach' | 'mcp'
+
 export interface CoachTool<S extends z.ZodType = z.ZodType> {
   definition: Anthropic.Beta.BetaTool
   /** Short human-readable name, shown by MCP clients such as Claude. */
@@ -37,6 +40,12 @@ export interface CoachTool<S extends z.ZodType = z.ZodType> {
   destructive?: boolean
   /** Write tools only: repeating a call with the same input changes nothing more. */
   idempotent?: boolean
+  /**
+   * Where the tool is offered; every surface unless set to false. Each coach
+   * tool is re-sent with every coach request, so tools only AI apps need can
+   * stay out of its prompt and cost.
+   */
+  surfaces?: Partial<Record<ToolSurface, boolean>>
   /** Validates the model's input on the server, even when `strict` is set. */
   schema: S
   run(input: z.infer<S>, ctx: ToolContext): Promise<ToolOutcome>

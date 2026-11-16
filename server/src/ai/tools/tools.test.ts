@@ -4,7 +4,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import type { Db } from '../../db.js'
 import { summarizeCalories } from './calories.js'
 import { filterNewGroceries } from './groceries.js'
-import { TOOLS, TOOL_DEFINITIONS, executeTool, runTool } from './index.js'
+import { TOOLS, TOOL_DEFINITIONS, executeTool, offeredOn, runTool, toolsOn } from './index.js'
 import { formatSpan, mealPlanProblems } from './mealPlans.js'
 import type { ToolContext } from './types.js'
 import { exerciseToRow, rowToExercise, workoutPlanProblems } from './workoutPlans.js'
@@ -128,14 +128,14 @@ test('executeTool rejects unknown tools and invalid input without touching the d
 
 test('runTool reports problems as messages and successes as outcomes', async () => {
   const { db, calls } = fakeDb((sql) => (sql.includes('from public.users') ? [{ daily_calorie_goal: 1800 }] : []))
-  const unknown = await runTool('delete_everything', {}, ctx(db))
+  const unknown = await runTool('delete_everything', {}, ctx(db), 'coach')
   assert.deepEqual(unknown, { ok: false, message: 'Unknown tool: delete_everything' })
 
-  const invalid = await runTool('get_grocery_list', {}, ctx(db))
+  const invalid = await runTool('get_grocery_list', {}, ctx(db), 'coach')
   assert.equal(invalid.ok, false)
   assert.equal(calls.length, 0)
 
-  const ok = await runTool('get_profile', {}, ctx(db))
+  const ok = await runTool('get_profile', {}, ctx(db), 'coach')
   assert.ok(ok.ok)
   const profile = ok.outcome.result as { daily_calorie_goal: number; today: string; timezone: string }
   assert.equal(profile.daily_calorie_goal, 1800)
@@ -457,7 +457,7 @@ test('get_grocery_list and get_meal_plans return row ids so agents can target ed
     }
     return []
   })
-  const groceries = await runTool('get_grocery_list', { include_purchased: true }, ctx(db))
+  const groceries = await runTool('get_grocery_list', { include_purchased: true }, ctx(db), 'mcp')
   assert.ok(groceries.ok)
   assert.deepEqual((groceries.outcome.result as { items: unknown[] }).items, [
     { id: 'g1', name: 'Milk', category: 'dairy' },
@@ -468,8 +468,30 @@ test('get_grocery_list and get_meal_plans return row ids so agents can target ed
     'get_meal_plans',
     { range: 'custom', start_date: '2026-11-16', end_date: '2026-11-22' },
     ctx(db),
+    'mcp',
   )
   assert.ok(meals.ok)
   const days = (meals.outcome.result as { days_with_plans: { meals: { id: string }[] }[] }).days_with_plans
   assert.equal(days[0]!.meals[0]!.id, 'm1')
+})
+
+test('a tool can stay out of the coach and still be offered to AI apps', () => {
+  const [base] = TOOLS
+  assert.ok(base)
+  assert.equal(offeredOn(base, 'coach'), true)
+  assert.equal(offeredOn(base, 'mcp'), true)
+  const mcpOnly = { ...base, surfaces: { coach: false } }
+  assert.equal(offeredOn(mcpOnly, 'coach'), false)
+  assert.equal(offeredOn(mcpOnly, 'mcp'), true)
+
+  const coachNames = new Set(TOOL_DEFINITIONS.map((tool) => tool.name))
+  assert.deepEqual(
+    [...coachNames].sort(),
+    toolsOn('coach')
+      .map((tool) => tool.definition.name)
+      .sort(),
+  )
+  for (const tool of TOOLS) {
+    assert.equal(coachNames.has(tool.definition.name), offeredOn(tool, 'coach'), tool.definition.name)
+  }
 })

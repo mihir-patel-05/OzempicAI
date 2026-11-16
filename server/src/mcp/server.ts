@@ -6,7 +6,7 @@ import { rateLimit } from '../auth.js'
 import { withUser } from '../db.js'
 import type { Db } from '../db.js'
 import { isValidTimezone, todayIn } from '../ai/dates.js'
-import { TOOLS, findTool, runTool } from '../ai/tools/index.js'
+import { findTool, runTool, toolsOn } from '../ai/tools/index.js'
 import type { CoachTool, ToolOutcome } from '../ai/tools/types.js'
 import type { Scope } from '../oauth/config.js'
 
@@ -31,7 +31,8 @@ export const INSTRUCTIONS = [
 
 /** The tools a connection with these scopes may see, in MCP's shape. */
 export function toolsFor(scopes: readonly Scope[]): Tool[] {
-  return TOOLS.filter((tool) => scopes.includes(tool.scope))
+  return toolsOn('mcp')
+    .filter((tool) => scopes.includes(tool.scope))
     .map(
       (tool): Tool => ({
         name: tool.definition.name,
@@ -84,7 +85,7 @@ async function recordActivity(db: Db, caller: McpCaller, tool: CoachTool, outcom
  * applies. A write and its activity row commit together or not at all.
  */
 export async function callTool(caller: McpCaller, name: string, args: unknown): Promise<CallToolResult> {
-  const tool = findTool(name)
+  const tool = findTool(name, 'mcp')
   if (!tool) return errorResult(`Unknown tool: ${name}`)
   if (!caller.scopes.includes(tool.scope)) {
     return errorResult(
@@ -102,7 +103,7 @@ export async function callTool(caller: McpCaller, name: string, args: unknown): 
   try {
     const run = await withUser(caller.userId, async (db) => {
       const tz = await userTimezone(db, caller.userId)
-      const result = await runTool(name, args ?? {}, { db, userId: caller.userId, tz, today: todayIn(tz) })
+      const result = await runTool(name, args ?? {}, { db, userId: caller.userId, tz, today: todayIn(tz) }, 'mcp')
       if (result.ok && tool.scope === 'write') await recordActivity(db, caller, tool, result.outcome)
       return result
     })
