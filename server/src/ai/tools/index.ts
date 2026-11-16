@@ -8,7 +8,7 @@ import {
   removeGroceryItems,
   updateGroceryItems,
 } from './groceries.js'
-import { createMealPlan, getMealPlans } from './mealPlans.js'
+import { createMealPlan, deletePlannedMeals, getMealPlans, updatePlannedMeals } from './mealPlans.js'
 import { getProfile } from './profile.js'
 import { getExerciseSummary, getWeightTrend } from './trends.js'
 import { createWorkoutPlans, getWorkoutPlans, updateWorkoutPlan } from './workoutPlans.js'
@@ -26,6 +26,8 @@ const REGISTRY: CoachTool[] = [
   clearPurchasedGroceries,
   getMealPlans,
   createMealPlan,
+  updatePlannedMeals,
+  deletePlannedMeals,
   getWeightTrend,
   getExerciseSummary,
   getWorkoutPlans,

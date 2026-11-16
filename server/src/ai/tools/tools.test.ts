@@ -615,3 +615,81 @@ test('clear_purchased_groceries removes only purchased items, in bounded batches
   assert.deepEqual(run.outcome.result, { removed: 500, more_remain: true })
   assert.equal(run.outcome.changes?.before.length, 500)
 })
+
+// ─── Meal plan edits (AI apps only) ─────────────────────────────────────────
+
+const M1 = 'bbbbbbbb-0000-4000-8000-000000000001'
+const M2 = 'bbbbbbbb-0000-4000-8000-000000000002'
+
+test('update_planned_meals only checks dates that move, and changes nothing on any problem', async () => {
+  const { db, calls } = fakeDb((sql) =>
+    sql.includes('for update')
+      ? [
+          { id: M1, planned_date: '2026-11-10' },
+          { id: M2, planned_date: '2026-11-15' },
+        ]
+      : [],
+  )
+  const bad = await runTool(
+    'update_planned_meals',
+    {
+      meals: [
+        { id: M1, planned_date: '2026-11-10', calories: 650 }, // past but unchanged: fine
+        { id: M2, planned_date: '2026-11-13' }, // moved into the past
+      ],
+    },
+    ctx(db),
+    'mcp',
+  )
+  assert.equal(bad.ok, false)
+  assert.match(!bad.ok ? bad.message : '', /meals\[1\].*between 2026-11-14 and 2026-12-05/)
+  assert.doesNotMatch(!bad.ok ? bad.message : '', /meals\[0\]/)
+  assert.ok(!calls.some((sql) => sql.includes('update public.meal_plans')))
+
+  const empty = await runTool('update_planned_meals', { meals: [{ id: M1 }] }, ctx(db), 'mcp')
+  assert.equal(empty.ok, false)
+})
+
+test('update_planned_meals sends only the changed fields', async () => {
+  const params: unknown[][] = []
+  const { db } = fakeDb((sql, p) => {
+    if (sql.includes('for update')) return [{ id: M1, planned_date: '2026-11-16' }]
+    if (sql.includes('to_jsonb')) return [{ row: { id: M1 } }]
+    if (sql.includes('update public.meal_plans')) {
+      params.push(p)
+      return [{ id: M1, planned_date: '2026-11-17', meal_type: 'dinner', name: 'Salmon bowl', calories: 640 }]
+    }
+    return []
+  })
+  const run = await runTool(
+    'update_planned_meals',
+    { meals: [{ id: M1, planned_date: '2026-11-17', name: 'Salmon bowl' }] },
+    ctx(db),
+    'mcp',
+  )
+  assert.ok(run.ok)
+  assert.deepEqual(params[0]!.slice(2), [['2026-11-17'], [null], ['Salmon bowl'], [null]])
+  assert.equal(run.outcome.summary, 'Updated 1 planned meal')
+  assert.equal(run.outcome.resource, 'meal-plans')
+})
+
+test('delete_planned_meals refuses unknown ids and removes the rest only when all exist', async () => {
+  const missing = fakeDb((sql) => (sql.includes('for update') ? [{ id: M1 }] : []))
+  const refused = await runTool('delete_planned_meals', { ids: [M1, M2] }, ctx(missing.db), 'mcp')
+  assert.equal(refused.ok, false)
+  assert.match(!refused.ok ? refused.message : '', /no planned meal with id .*get_meal_plans/)
+  assert.ok(!missing.calls.some((sql) => sql.startsWith('delete')))
+
+  const { db, calls } = fakeDb((sql) => {
+    if (sql.includes('for update')) return [{ id: M1 }]
+    if (sql.includes('to_jsonb')) {
+      return [{ row: { id: M1, planned_date: '2026-11-16', meal_type: 'dinner', name: 'Tacos', calories: 600 } }]
+    }
+    return []
+  })
+  const run = await runTool('delete_planned_meals', { ids: [M1] }, ctx(db), 'mcp')
+  assert.ok(run.ok)
+  assert.deepEqual(run.outcome.result, { removed: [{ planned_date: '2026-11-16', meal_type: 'dinner', name: 'Tacos' }] })
+  assert.equal(run.outcome.changes?.after.length, 0)
+  assert.ok(calls.some((sql) => sql.startsWith('delete from public.meal_plans')))
+})
