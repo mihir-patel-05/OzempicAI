@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import type { Db } from '../../db.js'
 import { insertedChanges, snapshotRows } from './snapshots.js'
-import { ToolInputError, defineTool, missingIds, plural, repeatedIds, rowId } from './types.js'
+import { lockOwnRows } from './rows.js'
+import { defineTool, plural, rowId } from './types.js'
 
 /** Matches the grocery_items.category check constraint and GroceryCategory. */
 export const GROCERY_CATEGORIES = [
@@ -178,30 +178,6 @@ export const addGroceryItems = defineTool({
 
 // ─── Editing (AI apps only) ─────────────────────────────────────────────────
 
-/**
- * Lock the user's grocery items with these ids for the rest of the
- * transaction. Throws, naming every unknown id, unless all of them exist.
- */
-async function lockItems(db: Db, userId: string, ids: string[], action: string): Promise<void> {
-  const repeated = repeatedIds(ids)
-  if (repeated.length > 0) {
-    throw new ToolInputError(`Nothing was ${action}: each id may appear once (repeated: ${repeated.join(', ')}).`)
-  }
-  const { rows } = await db.query<{ id: string }>(
-    'select id from public.grocery_items where id = any($1::uuid[]) and user_id = $2 for update',
-    [ids, userId],
-  )
-  const missing = missingIds(
-    ids,
-    rows.map((r) => r.id),
-  )
-  if (missing.length > 0) {
-    throw new ToolInputError(
-      `Nothing was ${action}: no grocery item with id ${missing.join(', ')}. Call get_grocery_list for current ids.`,
-    )
-  }
-}
-
 const itemEdit = z
   .object({
     id: rowId('get_grocery_list'),
@@ -247,7 +223,7 @@ export const updateGroceryItems = defineTool({
   schema: z.object({ items: z.array(itemEdit).min(1).max(MAX_GROCERY_ITEMS) }),
   async run({ items }, { db, userId }) {
     const ids = items.map((item) => item.id)
-    await lockItems(db, userId, ids, 'changed')
+    await lockOwnRows(db, 'grocery-items', userId, ids, 'changed')
     const before = await snapshotRows(db, 'grocery-items', ids)
     const { rows } = await db.query<{ id: string; name: string; category: string; is_purchased: boolean }>(
       `update public.grocery_items g
@@ -297,7 +273,7 @@ export const removeGroceryItems = defineTool({
   },
   schema: z.object({ ids: z.array(rowId('get_grocery_list')).min(1).max(MAX_GROCERY_REMOVALS) }),
   async run({ ids }, { db, userId }) {
-    await lockItems(db, userId, ids, 'removed')
+    await lockOwnRows(db, 'grocery-items', userId, ids, 'removed')
     const before = await snapshotRows(db, 'grocery-items', ids)
     await db.query('delete from public.grocery_items where id = any($1::uuid[]) and user_id = $2', [ids, userId])
     return {
