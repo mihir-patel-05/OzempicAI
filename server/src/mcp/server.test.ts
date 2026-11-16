@@ -31,6 +31,19 @@ test('toolsFor hides write tools from read-only connections', () => {
     idempotentHint: true,
     openWorldHint: false,
   })
+  for (const name of [
+    'update_grocery_items',
+    'remove_grocery_items',
+    'clear_purchased_groceries',
+    'update_planned_meals',
+    'delete_planned_meals',
+    'delete_workout_plans',
+  ]) {
+    const tool = all.find((t) => t.name === name)
+    assert.equal(tool?.annotations?.destructiveHint, true, `${name} asks before running`)
+    assert.ok(!readOnly.some((t) => t.name === name), `${name} needs write access`)
+  }
+  assert.equal(all.find((t) => t.name === 'complete_workout_plan')?.annotations?.destructiveHint, false)
   const add = all.find((tool) => tool.name === 'add_grocery_items')!
   assert.equal(add.annotations?.destructiveHint, false)
   assert.equal(add.inputSchema.type, 'object')
@@ -52,6 +65,7 @@ test('an MCP client can list and call tools through buildMcpServer', async () =>
   await client.connect(clientSide)
 
   assert.match(client.getInstructions() ?? '', /get_profile first/)
+  assert.match(client.getInstructions() ?? '', /Plans → AI activity/)
   const { tools } = await client.listTools()
   assert.ok(tools.some((tool) => tool.name === 'get_profile'))
   assert.ok(!tools.some((tool) => tool.name === 'create_meal_plan'))

@@ -11,8 +11,10 @@ consent screen, and a few changes to the tools.
 
 **Status (2026-11-15):** phase 1 is built on `MCP_Feature`: tool changes, migrations
 `00013`–`00015`, OAuth discovery, registration, consent, tokens and revocation, `/api/mcp`, and
-Profile → Connected AI apps. Not yet tried against claude.ai or the iPhone app. Phase 2 is not
-started.
+Profile → Connected AI apps. Not yet tried against claude.ai or the iPhone app.
+
+**Status (2026-11-16):** phase 2 is built on `MCP_Feature` (see §4 for what changed from the
+original sketch). Also not yet tried against claude.ai or the iPhone app.
 
 ### Decisions (2026-11-15)
 
@@ -159,6 +161,24 @@ sign in.
 ---
 
 ## 4. Phase 2: Full editing and the activity feed
+
+**Built (2026-11-16).** Differences from the sketch below:
+
+- Meal edits are `update_planned_meals` (plural, up to 35 meals per call, only the changed
+  fields) rather than `update_planned_meal`, so swapping a week of dinners is one call and one
+  Undo. `complete_workout_plan` takes `completed: true | false`.
+- All new tools are MCP-only (`surfaces: { coach: false }`); the coach's tools and prompt are
+  unchanged. Edits and removals refuse the whole call if any id is unknown or repeated.
+- `agent_activity` gained `before` **and** `after` (migration `00019`): `to_jsonb()` snapshots of
+  the affected rows, workout plans with their exercises. Undo compares the current rows with
+  `after` to detect later changes, since the tables have no `updated_at`. Calls that changed
+  nothing are not logged.
+- Undo runs on the server (`POST /api/agent-activity/:id/undo`, session only) in one
+  transaction: deletes inserted rows, restores edited ones, re-inserts removed ones with their
+  original ids. It returns 409 and changes nothing if any row changed since. Known limits:
+  restoring a removed meal does not re-link grocery items that pointed at it, and a removed
+  workout plan comes back without its link to sessions logged from it.
+- The feed is a card under the Plans tabs, shown only when there is activity.
 
 ### 4.1 Tool gaps
 

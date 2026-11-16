@@ -10,6 +10,7 @@ import { OAuthError } from './oauth/errors.js'
 import { wellKnownRoutes } from './oauth/metadata.js'
 import { oauthRoutes } from './oauth/routes.js'
 import { mcpRoutes } from './mcp/routes.js'
+import { activityRoutes } from './routes/activity.js'
 import { aiRoutes } from './routes/ai.js'
 import { analyticsRoutes } from './routes/analytics.js'
 import { connectionRoutes } from './routes/connections.js'
@@ -106,6 +107,7 @@ data.route('/', workoutRoutes)
 data.route('/', analyticsRoutes)
 data.route('/', aiRoutes)
 data.route('/', connectionRoutes)
+data.route('/', activityRoutes)
 app.route('/api', data)
 
 app.notFound((c) => c.json({ error: 'Not found' }, 404))

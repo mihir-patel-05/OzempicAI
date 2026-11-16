@@ -8,7 +8,11 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host",
     "typecheck": "tsc -b --noEmit",
-    "test": "node --import tsx --test 'src/**/*.test.ts'"
+    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "postinstall": "node scripts/patch-deepmerge.mjs",
+    "prebuild": "node scripts/patch-deepmerge.mjs",
+    "predev": "node scripts/patch-deepmerge.mjs",
+    "prepreview": "node scripts/patch-deepmerge.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.59.0",
@@ -22,10 +26,19 @@
     "@types/node": "24.13.6",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "^5.2.0",
     "tsx": "4.23.13",
     "typescript": "^5.5.4",
-    "vite": "^5.4.8",
-    "vite-plugin-pwa": "^0.20.5"
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "workbox-build": "^7.4.1",
+    "workbox-window": "^7.4.1"
+  },
+  "overrides": {
+    "glob": "14.0.6",
+    "deepmerge": "4.3.1"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

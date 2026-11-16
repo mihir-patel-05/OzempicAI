@@ -1,13 +1,25 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { DateInputError } from '../dates.js'
 import { getCalorieEntries, getCalorieSummary } from './calories.js'
-import { addGroceryItems, getGroceryList } from './groceries.js'
-import { createMealPlan, getMealPlans } from './mealPlans.js'
+import {
+  addGroceryItems,
+  clearPurchasedGroceries,
+  getGroceryList,
+  removeGroceryItems,
+  updateGroceryItems,
+} from './groceries.js'
+import { createMealPlan, deletePlannedMeals, getMealPlans, updatePlannedMeals } from './mealPlans.js'
 import { getProfile } from './profile.js'
 import { getExerciseSummary, getWeightTrend } from './trends.js'
-import { createWorkoutPlans, getWorkoutPlans, updateWorkoutPlan } from './workoutPlans.js'
+import {
+  completeWorkoutPlan,
+  createWorkoutPlans,
+  deleteWorkoutPlans,
+  getWorkoutPlans,
+  updateWorkoutPlan,
+} from './workoutPlans.js'
 import { ToolInputError } from './types.js'
-import type { CoachTool, ToolContext, ToolOutcome, ToolResource } from './types.js'
+import type { CoachTool, ToolContext, ToolOutcome, ToolResource, ToolSurface } from './types.js'
 
 const REGISTRY: CoachTool[] = [
   getProfile,
@@ -15,13 +27,20 @@ const REGISTRY: CoachTool[] = [
   getCalorieEntries,
   getGroceryList,
   addGroceryItems,
+  updateGroceryItems,
+  removeGroceryItems,
+  clearPurchasedGroceries,
   getMealPlans,
   createMealPlan,
+  updatePlannedMeals,
+  deletePlannedMeals,
   getWeightTrend,
   getExerciseSummary,
   getWorkoutPlans,
   createWorkoutPlans,
   updateWorkoutPlan,
+  deleteWorkoutPlans,
+  completeWorkoutPlan,
 ]
 
 const BY_NAME = new Map(REGISTRY.map((tool) => [tool.definition.name, tool]))
@@ -29,13 +48,23 @@ const BY_NAME = new Map(REGISTRY.map((tool) => [tool.definition.name, tool]))
 /** Every tool, in registry order. */
 export const TOOLS: readonly CoachTool[] = REGISTRY
 
+export function offeredOn(tool: CoachTool, surface: ToolSurface): boolean {
+  return tool.surfaces?.[surface] !== false
+}
+
+/** The tools one surface may see and call, in registry order. */
+export function toolsOn(surface: ToolSurface): CoachTool[] {
+  return REGISTRY.filter((tool) => offeredOn(tool, surface))
+}
+
 /**
- * Tool definitions in a fixed order. Tools render first in the prompt, so the
- * list must be identical on every request for prompt caching to work.
+ * The coach's tool definitions in a fixed order. Tools render first in the
+ * prompt, so the list must be identical on every request for prompt caching
+ * to work.
  */
-export const TOOL_DEFINITIONS: Anthropic.Beta.BetaTool[] = REGISTRY.map((tool) => tool.definition).sort(
-  (a, b) => a.name.localeCompare(b.name),
-)
+export const TOOL_DEFINITIONS: Anthropic.Beta.BetaTool[] = toolsOn('coach')
+  .map((tool) => tool.definition)
+  .sort((a, b) => a.name.localeCompare(b.name))
 
 /** What the browser hears about a tool call (SSE `tool` event). */
 export interface ToolEvent {
@@ -63,17 +92,20 @@ export function toolFailure(block: Anthropic.Beta.BetaToolUseBlock, message: str
 /** The outcome of one tool call, independent of who asked (coach or MCP). */
 export type ToolRun = { ok: true; outcome: ToolOutcome } | { ok: false; message: string }
 
-export function findTool(name: string): CoachTool | undefined {
-  return BY_NAME.get(name)
+/** A tool by name, if `surface` offers it. */
+export function findTool(name: string, surface: ToolSurface): CoachTool | undefined {
+  const tool = BY_NAME.get(name)
+  return tool && offeredOn(tool, surface) ? tool : undefined
 }
 
 /**
- * Validate and run one tool by name. Bad input and unknown tools come back as
- * `{ ok: false }` with a message the model can act on. Database and other
- * unexpected errors are rethrown so the caller's transaction rolls back.
+ * Validate and run one tool by name. Bad input and tools `surface` doesn't
+ * offer come back as `{ ok: false }` with a message the model can act on.
+ * Database and other unexpected errors are rethrown so the caller's
+ * transaction rolls back.
  */
-export async function runTool(name: string, input: unknown, ctx: ToolContext): Promise<ToolRun> {
-  const tool = BY_NAME.get(name)
+export async function runTool(name: string, input: unknown, ctx: ToolContext, surface: ToolSurface): Promise<ToolRun> {
+  const tool = findTool(name, surface)
   if (!tool) return { ok: false, message: `Unknown tool: ${name}` }
 
   const parsed = tool.schema.safeParse(input)
@@ -97,7 +129,7 @@ export async function executeTool(
   block: Anthropic.Beta.BetaToolUseBlock,
   ctx: ToolContext,
 ): Promise<ToolExecution> {
-  const run = await runTool(block.name, block.input, ctx)
+  const run = await runTool(block.name, block.input, ctx, 'coach')
   if (!run.ok) return toolFailure(block, run.message)
   const { outcome } = run
   return {

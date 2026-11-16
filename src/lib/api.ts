@@ -5,7 +5,7 @@
  */
 import { createSseParser } from './sse'
 
-const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
+const BASE = (import.meta.env?.VITE_API_URL ?? '').replace(/\/+$/, '')
 const SESSION_KEY = 'ozempicai.session'
 
 export interface SessionUser {
@@ -33,25 +33,67 @@ export class ApiError extends Error {
 
 type SessionListener = (session: Session | null) => void
 const listeners = new Set<SessionListener>()
+let memorySession: Session | null = null
+let storageUnavailable = false
+let observedToken = loadSession()?.access_token ?? null
+let switchingAccounts = false
+
+function reloadAccountView() {
+  if (switchingAccounts) return
+  switchingAccounts = true
+  for (const listener of listeners) listener(null)
+  if (typeof window !== 'undefined') window.location.reload()
+}
+
+// A different tab can replace shared storage while this tab still displays
+// the previous user's forms and cached health data. Reload the entire account
+// view, and refuse work in the old document until that reload completes.
+function checkSessionChange(): void {
+  if (!switchingAccounts && (loadSession()?.access_token ?? null) !== observedToken) {
+    reloadAccountView()
+  }
+  if (switchingAccounts) throw new ApiError('Your account changed in another tab. Reload to continue.', 409)
+}
+
+if (typeof window !== 'undefined') {
+  const synchronize = () => { try { checkSessionChange() } catch { /* Reload already requested. */ } }
+  window.addEventListener('storage', (event) => {
+    if (event.key === SESSION_KEY || event.key === null) {
+      // We cannot inspect shared storage in fallback mode, but another tab's
+      // session event still invalidates the old account view.
+      if (storageUnavailable) reloadAccountView()
+      else synchronize()
+    }
+  })
+  window.addEventListener('focus', synchronize)
+}
 
 export function loadSession(): Session | null {
+  if (storageUnavailable) return memorySession
   try {
     const raw = localStorage.getItem(SESSION_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Session
-    return parsed?.access_token && parsed.user?.id ? parsed : null
+    const parsed = raw ? JSON.parse(raw) as Session : null
+    memorySession = parsed?.access_token && parsed.user?.id ? parsed : null
+    return memorySession
   } catch {
-    return null
+    storageUnavailable = true
+    return memorySession
   }
 }
 
 export function storeSession(session: Session | null) {
+  // Always keep the credential used by requests aligned with the session
+  // announced to React, including when storage writes or reads fail.
+  memorySession = session
   try {
     if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session))
     else localStorage.removeItem(SESSION_KEY)
+    storageUnavailable = false
   } catch {
-    // Private mode or storage disabled: the session lives for this tab only.
+    // Do not reread a stale persisted token after a failed write/sign-out.
+    storageUnavailable = true
   }
+  observedToken = session?.access_token ?? null
   for (const listener of listeners) listener(session)
 }
 
@@ -80,6 +122,7 @@ function buildUrl(path: string, query?: Record<string, QueryValue>): string {
 }
 
 async function send(url: string, init: { method: string; body?: unknown; accept?: string }): Promise<Response> {
+  checkSessionChange()
   const session = loadSession()
   const headers: Record<string, string> = {}
   if (init.body !== undefined) headers['Content-Type'] = 'application/json'
@@ -97,7 +140,13 @@ async function send(url: string, init: { method: string; body?: unknown; accept?
     throw new ApiError('Could not reach the server. Check your connection and try again.', 0)
   }
 
-  if (response.status === 401 && session) {
+  // Don't return another account's data to an old request/cache after switching.
+  if (response.status !== 401 && session?.access_token !== loadSession()?.access_token) {
+    checkSessionChange()
+    throw new ApiError('Your account changed. Please try again.', 409)
+  }
+
+  if (response.status === 401 && session && loadSession()?.access_token === session.access_token) {
     // The stored token was revoked or expired: drop it so the app shows login.
     storeSession(null)
   }
@@ -116,10 +165,13 @@ async function send(url: string, init: { method: string; body?: unknown; accept?
 }
 
 export async function api<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
+  const token = loadSession()?.access_token
   const { method = 'GET', body, query } = options
   const response = await send(buildUrl(path, query), { method, body })
   if (response.status === 204) return undefined as T
-  return (await response.json()) as T
+  const data = (await response.json()) as T
+  if (token !== loadSession()?.access_token) throw new ApiError('Your account changed. Please try again.', 409)
+  return data
 }
 
 /**
@@ -133,6 +185,7 @@ export async function apiStream(
   body: unknown,
   onEvent: (event: string, data: unknown) => void,
 ): Promise<void> {
+  const token = loadSession()?.access_token
   const response = await send(buildUrl(path), { method: 'POST', body, accept: 'text/event-stream' })
   if (!response.body) throw new ApiError('Streaming is not supported in this browser.', 0)
 
@@ -150,6 +203,8 @@ export async function apiStream(
   try {
     while (true) {
       const { done, value } = await reader.read()
+      checkSessionChange()
+      if (token !== loadSession()?.access_token) throw new ApiError('Your account changed. Please try again.', 409)
       if (done) break
       parser.push(decoder.decode(value, { stream: true }))
     }

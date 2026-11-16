@@ -10,7 +10,7 @@ interface AuthContextValue {
   session: Session | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (name: string, email: string, password: string) => Promise<boolean>
+  signUp: (name: string, email: string, password: string, inviteToken: string) => Promise<boolean>
   resetPassword: (email: string) => Promise<void>
   completePasswordReset: (token: string, password: string) => Promise<void>
   updatePassword: (currentPassword: string, password: string) => Promise<void>
@@ -76,10 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         storeSession(next)
       },
-      signUp: async (name, email, password) => {
+      signUp: async (name, email, password, inviteToken) => {
         const next = await api<Session>('/auth/signup', {
           method: 'POST',
-          body: { name: name.trim(), email: email.trim(), password },
+          body: { name: name.trim(), email: email.trim(), password, invite_token: inviteToken.trim() },
         })
         storeSession(next)
         return true

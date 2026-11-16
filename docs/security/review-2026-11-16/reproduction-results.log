@@ -1,0 +1,31 @@
+POST /api/auth/signup 201 88ms
+POST /api/auth/reset 200 71ms
+POST /api/auth/login 200 143ms
+GET /api/profile 200 2ms
+CONFIRMED: old-password login creates a usable session after password reset
+POST /api/ai/chat 200 510ms
+POST /api/ai/chat 200 513ms
+POST /api/ai/chat 200 515ms
+POST /api/ai/chat 200 516ms
+POST /api/ai/chat 200 517ms
+POST /api/ai/chat 200 518ms
+POST /api/ai/chat 200 520ms
+POST /api/ai/chat 200 521ms
+POST /api/ai/chat 200 522ms
+POST /api/ai/chat 200 524ms
+{"event":"ai_turn","user_id":"5c41f086-5cf6-417e-8e48-79c613aa4347","conversation_id":"3a7a9bd5-d79b-4b58-a342-359ae7ebfaa9","ms":11,"iterations":1,"stop_reason":"end_turn","model":"mock","input_tokens":1,"output_tokens":1,"cache_read_tokens":0,"cache_write_tokens":0}
+{"event":"ai_turn","user_id":"5c41f086-5cf6-417e-8e48-79c613aa4347","conversation_id":"4f68a9cf-1cd7-4347-85c1-acb66682c37f","ms":10,"iterations":1,"stop_reason":"end_turn","model":"mock","input_tokens":1,"output_tokens":1,"cache_read_tokens":0,"cache_write_tokens":0}
+{"event":"ai_turn","user_id":"5c41f086-5cf6-417e-8e48-79c613aa4347","conversation_id":"aefa4c3b-f78a-4189-95b8-14c2f49f4ef2","ms":5,"iterations":1,"stop_reason":"end_turn","model":"mock","input_tokens":1,"output_tokens":1,"cache_read_tokens":0,"cache_write_tokens":0}
+{"event":"ai_turn","user_id":"5c41f086-5cf6-417e-8e48-79c613aa4347","conversation_id":"89678e58-fec8-41af-8029-ccb260201373","ms":12,"iterations":1,"stop_reason":"end_turn","model":"mock","input_tokens":1,"output_tokens":1,"cache_read_tokens":0,"cache_write_tokens":0}
+{"event":"ai_turn","user_id":"5c41f086-5cf6-417e-8e48-79c613aa4347","conversation_id":"98b7e2ff-d05b-4df1-88ab-b83a46adf7e2","ms":14,"iterations":1,"stop_reason":"end_turn","model":"mock","input_tokens":1,"output_tokens":1,"cache_read_tokens":0,"cache_write_tokens":0}
+{"event":"ai_turn","user_id":"5c41f086-5cf6-417e-8e48-79c613aa4347","conversation_id":"55536259-20e3-43aa-b938-f4bca8e03f45","ms":18,"iterations":1,"stop_reason":"end_turn","model":"mock","input_tokens":1,"output_tokens":1,"cache_read_tokens":0,"cache_write_tokens":0}
+{"event":"ai_turn","user_id":"5c41f086-5cf6-417e-8e48-79c613aa4347","conversation_id":"f0b13dcd-2025-4b55-9508-3fbcbf5029ab","ms":10,"iterations":1,"stop_reason":"end_turn","model":"mock","input_tokens":1,"output_tokens":1,"cache_read_tokens":0,"cache_write_tokens":0}
+{"event":"ai_turn","user_id":"5c41f086-5cf6-417e-8e48-79c613aa4347","conversation_id":"74855042-4b0d-467b-9052-83a9cff73588","ms":7,"iterations":1,"stop_reason":"end_turn","model":"mock","input_tokens":1,"output_tokens":1,"cache_read_tokens":0,"cache_write_tokens":0}
+{"event":"ai_turn","user_id":"5c41f086-5cf6-417e-8e48-79c613aa4347","conversation_id":"e64060c9-ef89-4d90-afbe-87903d28b4aa","ms":22,"iterations":1,"stop_reason":"end_turn","model":"mock","input_tokens":1,"output_tokens":1,"cache_read_tokens":0,"cache_write_tokens":0}
+{"event":"ai_turn","user_id":"5c41f086-5cf6-417e-8e48-79c613aa4347","conversation_id":"53454c81-02c5-4d73-b21f-adac37f75797","ms":8,"iterations":1,"stop_reason":"end_turn","model":"mock","input_tokens":1,"output_tokens":1,"cache_read_tokens":0,"cache_write_tokens":0}
+CONFIRMED: 10 simultaneous model calls for one user despite limits of 2/user and 8/global
+POST /api/meal-plans 201 2ms
+POST /api/grocery-items 201 2ms
+GET /api/agent-activity 200 1ms
+POST /api/agent-activity/e01aa7ad-abc2-4a06-b818-fb2f252c3a41/undo 200 2ms
+CONFIRMED: undoing meal deletion leaves its grocery relationship null

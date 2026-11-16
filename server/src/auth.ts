@@ -315,9 +315,8 @@ export const authRoutes = new Hono<AppEnv>()
 
 /**
  * Whether new accounts can be created. SIGNUP_MODE=open or closed; when unset
- * it is closed in production and open elsewhere. Sign-up doesn't verify the
- * email address yet, so an open deployment lets anyone create accounts (and
- * claim an address they don't own); keep it closed until that exists.
+ * it is closed in production and open elsewhere. Every new account also
+ * requires a single-use invitation for its email, issued by the owner CLI.
  */
 export function signupsOpen(): boolean {
   const mode = process.env.SIGNUP_MODE?.trim().toLowerCase()
@@ -333,12 +332,29 @@ authRoutes.post('/signup', async (c) => {
   const email = readEmail(body.email)
   const password = readPassword(body.password)
   const name = typeof body.name === 'string' ? body.name.trim().slice(0, 200) : ''
+  const invitation = typeof body.invite_token === 'string' ? body.invite_token : ''
+  const invalidInvite = () => new HttpError(400, 'A valid invitation for this email address is required.')
+  if (!invitation || invitation.length > 100) throw invalidInvite()
+  const tokenHash = hashToken(invitation)
+  const live = await pool.query(
+    'select 1 from auth.signup_invitations where token_hash=$1 and email=$2 and used_at is null and expires_at>now()',
+    [tokenHash, email],
+  )
+  if (!live.rowCount) throw invalidInvite()
 
   // Checked again inside the transaction; this one avoids hashing for nothing.
   const taken = await pool.query('select 1 from auth.users where lower(email) = $1', [email])
   if (taken.rowCount) throw new HttpError(409, 'An account with this email already exists.')
   const hash = await hashPassword(password)
   const session = await withTransaction(async (db) => {
+    // Atomic claim prevents concurrent requests from multiplying accounts.
+    // It rolls back with the account insert if any later step fails.
+    const claimed = await db.query(
+      `update auth.signup_invitations set used_at=now()
+       where token_hash=$1 and email=$2 and used_at is null and expires_at>now() returning token_hash`,
+      [tokenHash, email],
+    )
+    if (!claimed.rowCount) throw invalidInvite()
     const existing = await db.query('select 1 from auth.users where lower(email) = $1', [email])
     if (existing.rowCount) throw new HttpError(409, 'An account with this email already exists.')
     // The on_auth_user_created trigger creates the matching public.users row.
@@ -387,7 +403,18 @@ authRoutes.post('/login', async (c) => {
   forgiveHit(pairKey)
   forgiveHit(accountKey)
 
-  return c.json(await createSession(pool, { id: user.id, email: user.email, name: user.name }))
+  // Serialize issuance with password reset/change. Hashing stays outside the
+  // transaction; the locked recheck prevents a stale credential creating a
+  // session after recovery has revoked the old ones.
+  const session = await withTransaction(async (db) => {
+    const live = await db.query(
+      'select 1 from auth.users where id = $1 and encrypted_password = $2 for share',
+      [user.id, user.encrypted_password],
+    )
+    if (!live.rowCount) throw new HttpError(400, 'Invalid login credentials')
+    return createSession(db, user)
+  })
+  return c.json(session)
 })
 
 authRoutes.get('/user', requireUser, (c) => c.json({ user: toClientUser(c.get('user')) }))
@@ -419,10 +446,11 @@ authRoutes.post('/password', requireUser, async (c) => {
   }
   const hash = await hashPassword(password)
   await withTransaction(async (db) => {
-    await db.query(
-      'update auth.users set encrypted_password = $2, updated_at = now() where id = $1',
-      [user.id, hash],
+    const changed = await db.query(
+      'update auth.users set encrypted_password = $2, updated_at = now() where id = $1 and encrypted_password = $3 returning id',
+      [user.id, hash, stored.rows[0]!.encrypted_password],
     )
+    if (!changed.rowCount) throw new HttpError(409, 'Your password changed during this request. Sign in again.')
     await db.query('delete from auth.sessions where user_id = $1 and token_hash <> $2', [
       user.id,
       hashToken(c.get('token')),
@@ -516,6 +544,7 @@ authRoutes.post('/reset', async (c) => {
 
 /** Housekeeping for expired rows; called on an interval from index.ts. */
 export async function purgeExpiredAuthRows() {
+  await pool.query("delete from auth.signup_invitations where expires_at < now() - interval '1 day' or used_at < now() - interval '1 day'")
   await pool.query(
     'delete from auth.sessions where expires_at < now() or created_at < now() - make_interval(days => $1)',
     [SESSION_MAX_DAYS],
