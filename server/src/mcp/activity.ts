@@ -1,6 +1,6 @@
 import type { Db } from '../db.js'
 import { HttpError } from '../http.js'
-import { RESOURCE_TABLES, sameJson, snapshotRows } from '../ai/tools/snapshots.js'
+import { RESOURCE_TABLES, requireUnlinkedPlans, sameJson, snapshotRows } from '../ai/tools/snapshots.js'
 import type { RowSnapshot } from '../ai/tools/snapshots.js'
 import type { ToolResource } from '../ai/tools/types.js'
 
@@ -88,7 +88,12 @@ export async function undoActivity(db: Db, userId: string, id: string): Promise<
   const edited = before.filter((row) => afterIds.has(row.id))
   const removed = before.filter((row) => !afterIds.has(row.id))
 
+  // Old deleted-parent snapshots cannot establish whether links were lost.
+  if (resource !== 'grocery-items' && removed.some(row => row.links_checked !== true)) {
+    throw new HttpError(409, 'This older deletion cannot be safely undone because its linked records were not recorded.')
+  }
   if (inserted.length > 0) {
+    await requireUnlinkedPlans(db, resource, inserted)
     await db.query(`delete from public.${table} where id = any($1::uuid[]) and user_id = $2`, [inserted, userId])
   }
   if (edited.length > 0) await RESTORE[resource].update(db, userId, edited)

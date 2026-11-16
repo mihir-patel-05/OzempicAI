@@ -706,7 +706,7 @@ test('delete_workout_plans removes plans and keeps their exercises for Undo', as
   const run = await runTool('delete_workout_plans', { plan_ids: [PLAN_ID] }, ctx(db), 'mcp')
   assert.ok(run.ok)
   assert.equal(run.outcome.summary, 'Removed Push day on Thu, Nov 19')
-  assert.deepEqual(run.outcome.changes, { before: [snapshot], after: [] })
+  assert.deepEqual(run.outcome.changes, { before: [{ ...snapshot, links_checked: true }], after: [] })
   assert.ok(calls.some((sql) => sql.startsWith('delete from public.workout_plans')))
 })
 

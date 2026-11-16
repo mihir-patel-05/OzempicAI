@@ -5,7 +5,7 @@ import { groceryKey } from './groceries.js'
 import { WEEKDAYS, formatSpan } from './mealPlans.js'
 import { KG_PER_LB } from './profile.js'
 import { WORKOUT_PRESETS, rangeFromInput, rangeProperties, rangeSchema } from './range.js'
-import { insertedChanges, snapshotRows } from './snapshots.js'
+import { insertedChanges, requireUnlinkedPlans, snapshotRows } from './snapshots.js'
 import { lockOwnRows } from './rows.js'
 import { ToolInputError, defineTool, plural, rowId } from './types.js'
 
@@ -468,7 +468,8 @@ export const deleteWorkoutPlans = defineTool({
   schema: z.object({ plan_ids: z.array(rowId('get_workout_plans')).min(1).max(MAX_WORKOUT_REMOVALS) }),
   async run({ plan_ids }, { db, userId }) {
     await lockOwnRows(db, 'workout-plans', userId, plan_ids, 'removed')
-    const before = await snapshotRows(db, 'workout-plans', plan_ids)
+    await requireUnlinkedPlans(db, 'workout-plans', plan_ids)
+    const before = (await snapshotRows(db, 'workout-plans', plan_ids)).map((row): typeof row => ({ ...row, links_checked: true }))
     // Exercises go with the plan (on delete cascade); logged sessions keep
     // their data and lose only the link (on delete set null).
     await db.query('delete from public.workout_plans where id = any($1::uuid[]) and user_id = $2', [plan_ids, userId])

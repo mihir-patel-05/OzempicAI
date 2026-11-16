@@ -1,5 +1,6 @@
 import type { Db } from '../../db.js'
 import type { ToolResource } from './types.js'
+import { HttpError } from '../../http.js'
 
 /**
  * Row snapshots taken around a write, so the activity feed can undo it.
@@ -23,6 +24,20 @@ export const RESOURCE_TABLES: Record<ToolResource, string> = {
   'grocery-items': 'grocery_items',
   'meal-plans': 'meal_plans',
   'workout-plans': 'workout_plans',
+}
+
+/** Call with the parent rows locked FOR UPDATE so new links cannot race deletion. */
+export async function requireUnlinkedPlans(db: Db, resource: ToolResource, ids: readonly string[]): Promise<void> {
+  if (resource === 'grocery-items' || ids.length === 0) return
+  const table = resource === 'meal-plans' ? 'grocery_items' : 'workout_sessions'
+  const column = resource === 'meal-plans' ? 'meal_plan_id' : 'plan_id'
+  const { rows } = await db.query<{ linked: boolean }>(
+    `select exists (select 1 from public.${table} where ${column} = any($1::uuid[])) as linked`,
+    [ids],
+  )
+  // ON DELETE SET NULL would destroy links that the parent snapshot cannot
+  // restore. Refuse the whole operation instead of reporting a partial Undo.
+  if (rows[0]?.linked) throw new HttpError(409, 'This plan has linked groceries or logged workouts. Remove those links before deleting or undoing this plan.')
 }
 
 const SNAPSHOT_SQL: Record<ToolResource, string> = {

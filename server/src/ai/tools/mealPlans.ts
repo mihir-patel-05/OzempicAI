@@ -3,7 +3,7 @@ import { PLAN_HORIZON_DAYS, addDays, daysBetween, isValidDate, isoWeekday } from
 import { groceryKey } from './groceries.js'
 import { PLAN_PRESETS, rangeFromInput, rangeProperties, rangeSchema } from './range.js'
 import { lockOwnRows } from './rows.js'
-import { insertedChanges, snapshotRows } from './snapshots.js'
+import { insertedChanges, requireUnlinkedPlans, snapshotRows } from './snapshots.js'
 import { ToolInputError, defineTool, plural, rowId } from './types.js'
 
 export const PLAN_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
@@ -340,7 +340,8 @@ export const deletePlannedMeals = defineTool({
   schema: z.object({ ids: z.array(rowId('get_meal_plans')).min(1).max(MAX_MEAL_REMOVALS) }),
   async run({ ids }, { db, userId }) {
     await lockOwnRows(db, 'meal-plans', userId, ids, 'removed')
-    const before = await snapshotRows(db, 'meal-plans', ids)
+    await requireUnlinkedPlans(db, 'meal-plans', ids)
+    const before = (await snapshotRows(db, 'meal-plans', ids)).map((row): typeof row => ({ ...row, links_checked: true }))
     await db.query('delete from public.meal_plans where id = any($1::uuid[]) and user_id = $2', [ids, userId])
     return {
       result: {

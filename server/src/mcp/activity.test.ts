@@ -240,3 +240,41 @@ test('activity is private to its user, and no-op calls are not logged', { skip }
 
   assert.equal((await undo(owner, 'not-a-uuid')).status, 400)
 })
+
+test('linked meal/workout plans cannot be deleted by AI or by undoing their creation', { skip }, async () => {
+  for (const kind of ['meal', 'workout'] as const) {
+    const user = await signUp()
+    let id: string
+    if (kind === 'meal') {
+      await user.tool('create_meal_plan', { meals: [{ planned_date: today, meal_type: 'lunch', name: 'Linked meal', calories: 500 }] })
+      const meals = await user.tool('get_meal_plans', { range: 'custom', start_date: today, end_date: today })
+      id = meals.days_with_plans[0].meals[0].id
+      assert.equal((await request('POST', '/api/grocery-items', user.session, { name: 'Ingredient', category: 'other', meal_plan_id: id })).status, 201)
+    } else {
+      await user.tool('create_workout_plans', { unit_system: 'metric', workouts: [{ name: 'Linked workout', workout_type: 'other', planned_date: today, notes: '', exercises: [] }] })
+      id = (await user.tool('get_workout_plans', { range: 'custom', start_date: today, end_date: today })).plans[0].plan_id
+      assert.equal((await request('POST', '/api/workout-sessions', user.session, { name: 'Logged workout', workout_type: 'other', plan_id: id })).status, 201)
+    }
+    const [created] = await activity(user)
+    assert.equal((await undo(user, created!.id)).status, 409)
+    await assert.rejects(user.tool(kind === 'meal' ? 'delete_planned_meals' : 'delete_workout_plans', kind === 'meal' ? { ids: [id] } : { plan_ids: [id] }), /linked/)
+    const table = kind === 'meal' ? 'grocery_items' : 'workout_sessions'
+    const column = kind === 'meal' ? 'meal_plan_id' : 'plan_id'
+    const linked = await pool.query(`select count(*)::int as n from public.${table} where user_id=$1 and ${column}=$2`, [user.id, id])
+    assert.equal(linked.rows[0].n, 1)
+    assert.equal((await activity(user)).length, 1)
+  }
+})
+
+test('older deleted-parent snapshots are refused when safe restoration cannot be established', { skip }, async () => {
+  const user = await signUp()
+  await user.tool('create_meal_plan', { meals: [{ planned_date: today, meal_type: 'lunch', name: 'Legacy meal', calories: 500 }] })
+  const meal = (await user.tool('get_meal_plans', { range: 'custom', start_date: today, end_date: today })).days_with_plans[0].meals[0]
+  await user.tool('delete_planned_meals', { ids: [meal.id] })
+  const [removed] = await activity(user)
+  await pool.query("update public.agent_activity set before=(select jsonb_agg(r-'links_checked') from jsonb_array_elements(before) r) where id=$1", [removed!.id])
+  const refused = await undo(user, removed!.id)
+  assert.equal(refused.status, 409)
+  assert.match(refused.data.error, /older deletion/)
+  assert.equal((await pool.query('select 1 from public.meal_plans where id=$1', [meal.id])).rowCount, 0)
+})
