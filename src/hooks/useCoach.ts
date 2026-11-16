@@ -81,7 +81,8 @@ function userTimezone(): string {
 }
 
 /** Refetch what a coach write touched. Workout plans also feed Analytics. */
-function refreshResource(queryClient: QueryClient, resource: CoachResource) {
+/** Refetch the Plans data a write touched (coach or connected AI app). */
+export function refreshResource(queryClient: QueryClient, resource: CoachResource) {
   const keys = resource === 'workout-plans' ? [[resource], ['analytics']] : [[resource]]
   return Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })))
 }

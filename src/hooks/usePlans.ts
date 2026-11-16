@@ -24,6 +24,8 @@ export function useUpcomingMealPlans() {
     enabled: !!userId,
     queryKey: ['meal-plans', userId, today],
     queryFn: () => api<MealPlan[]>('/meal-plans', { query: { from_date: today, limit: 50 } }),
+    // Connected AI apps (e.g. Claude on the phone) edit the plan too.
+    refetchOnWindowFocus: true,
   })
 }
 
@@ -60,6 +62,8 @@ export function useGroceryItems() {
     enabled: !!userId,
     queryKey: ['grocery-items', userId],
     queryFn: () => api<GroceryItem[]>('/grocery-items'),
+    // Connected AI apps (e.g. Claude on the phone) edit the list too.
+    refetchOnWindowFocus: true,
   })
 }
 

@@ -31,6 +31,8 @@ export function useUpcomingWorkoutPlans() {
       api<WorkoutPlanWithExercises[]>('/workout-plans', {
         query: { from_date: today, limit: UPCOMING_LIMIT },
       }),
+    // Connected AI apps (e.g. Claude on the phone) edit the plan too.
+    refetchOnWindowFocus: true,
   })
 }
 
