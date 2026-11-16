@@ -387,7 +387,18 @@ authRoutes.post('/login', async (c) => {
   forgiveHit(pairKey)
   forgiveHit(accountKey)
 
-  return c.json(await createSession(pool, { id: user.id, email: user.email, name: user.name }))
+  // Serialize issuance with password reset/change. Hashing stays outside the
+  // transaction; the locked recheck prevents a stale credential creating a
+  // session after recovery has revoked the old ones.
+  const session = await withTransaction(async (db) => {
+    const live = await db.query(
+      'select 1 from auth.users where id = $1 and encrypted_password = $2 for share',
+      [user.id, user.encrypted_password],
+    )
+    if (!live.rowCount) throw new HttpError(400, 'Invalid login credentials')
+    return createSession(db, user)
+  })
+  return c.json(session)
 })
 
 authRoutes.get('/user', requireUser, (c) => c.json({ user: toClientUser(c.get('user')) }))
@@ -419,10 +430,11 @@ authRoutes.post('/password', requireUser, async (c) => {
   }
   const hash = await hashPassword(password)
   await withTransaction(async (db) => {
-    await db.query(
-      'update auth.users set encrypted_password = $2, updated_at = now() where id = $1',
-      [user.id, hash],
+    const changed = await db.query(
+      'update auth.users set encrypted_password = $2, updated_at = now() where id = $1 and encrypted_password = $3 returning id',
+      [user.id, hash, stored.rows[0]!.encrypted_password],
     )
+    if (!changed.rowCount) throw new HttpError(409, 'Your password changed during this request. Sign in again.')
     await db.query('delete from auth.sessions where user_id = $1 and token_hash <> $2', [
       user.id,
       hashToken(c.get('token')),
