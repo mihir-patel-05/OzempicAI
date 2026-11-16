@@ -26,7 +26,8 @@ The findings below describe the reviewed baseline. Fixes are being committed sep
 | Finding | Status | Validation |
 | --- | --- | --- |
 | 01 | Fixed | Login session creation locks and rechecks the verified password hash; stale password changes also fail. Two real-database reset/change race tests pass. |
-| 02–08 | Pending | See the original evidence below. |
+| 02 | Fixed | Slots are reserved synchronously before database setup and released on setup/stream failures. Database-backed admission tests cover both caps and failure cleanup. |
+| 03–08 | Pending | See the original evidence below. |
 
 ## High-priority security findings
 
