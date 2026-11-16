@@ -72,7 +72,11 @@ the API: discovery at `/.well-known/oauth-protected-resource/api/mcp` and
 `/api/oauth/register`, the consent screen at `/oauth/authorize` (a web route), and
 `/api/oauth/token` and `/api/oauth/revoke`. Access tokens last an hour; refresh tokens last
 60 days and rotate. Users choose read-only or read-and-edit, and every call runs through
-`withUser()` like the coach. Writes are logged to `agent_activity` (migration `00015`).
+`withUser()` like the coach. Besides the coach's tools, AI apps get edit and delete tools
+for groceries, planned meals and workouts (kept out of the coach's prompt). Every write is
+logged to `agent_activity` with before/after row snapshots (migrations `00015`, `00019`), and
+Plans → AI activity lists them with Undo (`GET /api/agent-activity`,
+`POST /api/agent-activity/:id/undo`), which refuses if the rows changed since.
 Profile → Connected AI apps lists connections and disconnects them. Off unless
 `MCP_ENABLED=true`. Design: `docs/mcp-server-plan.md`.
 
