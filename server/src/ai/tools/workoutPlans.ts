@@ -6,13 +6,15 @@ import { WEEKDAYS, formatSpan } from './mealPlans.js'
 import { KG_PER_LB } from './profile.js'
 import { WORKOUT_PRESETS, rangeFromInput, rangeProperties, rangeSchema } from './range.js'
 import { insertedChanges, snapshotRows } from './snapshots.js'
-import { ToolInputError, defineTool, rowId } from './types.js'
+import { lockOwnRows } from './rows.js'
+import { ToolInputError, defineTool, plural, rowId } from './types.js'
 
 /** Matches the workout_plans.workout_type check constraint and WorkoutType. */
 export const WORKOUT_TYPES = ['push', 'pull', 'legs', 'full_body', 'cardio', 'other'] as const
 export const UNIT_SYSTEMS = ['metric', 'imperial'] as const
 export const MAX_WORKOUTS = 14
 export const MAX_EXERCISES = 20
+export const MAX_WORKOUT_REMOVALS = 30
 const MAX_NAME = 80
 const MAX_NOTES = 500
 const LIST_LIMIT = 100
@@ -439,6 +441,101 @@ export const updateWorkoutPlan = defineTool({
       summary: updatedSummary(after),
       resource: 'workout-plans',
       changes: { before: beforeSnapshot, after: await snapshotRows(db, 'workout-plans', [plan_id]) },
+    }
+  },
+})
+
+// ─── Removing and completing (AI apps only) ─────────────────────────────────
+
+export const deleteWorkoutPlans = defineTool({
+  title: 'Remove planned workouts',
+  scope: 'write',
+  destructive: true,
+  idempotent: true,
+  surfaces: { coach: false },
+  definition: {
+    name: 'delete_workout_plans',
+    description: `Remove planned workouts, with their exercises, by plan_id (at most ${MAX_WORKOUT_REMOVALS} per call). Call get_workout_plans first for the ids, and only remove what the user asked for. To change a workout, use update_workout_plan instead. Workouts the user already logged stay in their history. If any plan_id is unknown, nothing is removed.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        plan_ids: { type: 'array', items: { type: 'string', format: 'uuid' }, description: 'From get_workout_plans' },
+      },
+      required: ['plan_ids'],
+      additionalProperties: false,
+    },
+  },
+  schema: z.object({ plan_ids: z.array(rowId('get_workout_plans')).min(1).max(MAX_WORKOUT_REMOVALS) }),
+  async run({ plan_ids }, { db, userId }) {
+    await lockOwnRows(db, 'workout-plans', userId, plan_ids, 'removed')
+    const before = await snapshotRows(db, 'workout-plans', plan_ids)
+    // Exercises go with the plan (on delete cascade); logged sessions keep
+    // their data and lose only the link (on delete set null).
+    await db.query('delete from public.workout_plans where id = any($1::uuid[]) and user_id = $2', [plan_ids, userId])
+    const removed = before.map((row) => ({ planned_date: String(row.planned_date), name: String(row.name) }))
+    return {
+      result: { removed },
+      summary:
+        removed.length === 1
+          ? `Removed ${removed[0]!.name} on ${dayLabel(removed[0]!.planned_date)}`
+          : `Removed ${plural(removed.length, 'planned workout')}`,
+      resource: 'workout-plans',
+      changes: { before, after: [] },
+    }
+  },
+})
+
+export const completeWorkoutPlan = defineTool({
+  title: 'Mark a workout done',
+  scope: 'write',
+  idempotent: true,
+  surfaces: { coach: false },
+  definition: {
+    name: 'complete_workout_plan',
+    description:
+      'Tick a planned workout off as done (completed: true), or un-tick it (completed: false), like the checkbox in Plans → Workouts. Call get_workout_plans first for the plan_id. This only marks the plan; it does not log sets or reps.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        plan_id: { type: 'string', format: 'uuid', description: 'From get_workout_plans' },
+        completed: { type: 'boolean' },
+      },
+      required: ['plan_id', 'completed'],
+      additionalProperties: false,
+    },
+  },
+  schema: z.object({ plan_id: rowId('get_workout_plans'), completed: z.boolean() }),
+  async run({ plan_id, completed }, { db, userId }) {
+    const [plan] = await lockOwnRows<{ id: string; name: string; planned_date: string; completed_at: string | null }>(
+      db,
+      'workout-plans',
+      userId,
+      [plan_id],
+      'changed',
+      'id, name, planned_date, completed_at',
+    )
+    const { name, planned_date } = plan!
+    const label = `${name} on ${dayLabel(planned_date)}`
+    if ((plan!.completed_at != null) === completed) {
+      return {
+        result: { plan_id, completed, unchanged: true },
+        summary: completed ? `${label} was already done` : `${label} wasn't marked done`,
+        resource: 'workout-plans',
+        changes: { before: [], after: [] },
+      }
+    }
+    const before = await snapshotRows(db, 'workout-plans', [plan_id])
+    await db.query(
+      `update public.workout_plans
+          set completed_at = case when $3 then now() else null end
+        where id = $1 and user_id = $2`,
+      [plan_id, userId, completed],
+    )
+    return {
+      result: { plan_id, completed },
+      summary: completed ? `Marked ${label} done` : `Marked ${label} not done`,
+      resource: 'workout-plans',
+      changes: { before, after: await snapshotRows(db, 'workout-plans', [plan_id]) },
     }
   },
 })

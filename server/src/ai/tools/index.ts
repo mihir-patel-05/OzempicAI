@@ -11,7 +11,13 @@ import {
 import { createMealPlan, deletePlannedMeals, getMealPlans, updatePlannedMeals } from './mealPlans.js'
 import { getProfile } from './profile.js'
 import { getExerciseSummary, getWeightTrend } from './trends.js'
-import { createWorkoutPlans, getWorkoutPlans, updateWorkoutPlan } from './workoutPlans.js'
+import {
+  completeWorkoutPlan,
+  createWorkoutPlans,
+  deleteWorkoutPlans,
+  getWorkoutPlans,
+  updateWorkoutPlan,
+} from './workoutPlans.js'
 import { ToolInputError } from './types.js'
 import type { CoachTool, ToolContext, ToolOutcome, ToolResource, ToolSurface } from './types.js'
 
@@ -33,6 +39,8 @@ const REGISTRY: CoachTool[] = [
   getWorkoutPlans,
   createWorkoutPlans,
   updateWorkoutPlan,
+  deleteWorkoutPlans,
+  completeWorkoutPlan,
 ]
 
 const BY_NAME = new Map(REGISTRY.map((tool) => [tool.definition.name, tool]))

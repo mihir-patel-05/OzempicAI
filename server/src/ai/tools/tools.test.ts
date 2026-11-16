@@ -693,3 +693,40 @@ test('delete_planned_meals refuses unknown ids and removes the rest only when al
   assert.equal(run.outcome.changes?.after.length, 0)
   assert.ok(calls.some((sql) => sql.startsWith('delete from public.meal_plans')))
 })
+
+// ─── Workout removal and completion (AI apps only) ──────────────────────────
+
+test('delete_workout_plans removes plans and keeps their exercises for Undo', async () => {
+  const snapshot = { id: PLAN_ID, name: 'Push day', planned_date: '2026-11-19', exercises: [{ exercise_name: 'Bench press' }] }
+  const { db, calls } = fakeDb((sql) => {
+    if (sql.includes('for update')) return [{ id: PLAN_ID }]
+    if (sql.includes('to_jsonb')) return [{ row: snapshot }]
+    return []
+  })
+  const run = await runTool('delete_workout_plans', { plan_ids: [PLAN_ID] }, ctx(db), 'mcp')
+  assert.ok(run.ok)
+  assert.equal(run.outcome.summary, 'Removed Push day on Thu, Nov 19')
+  assert.deepEqual(run.outcome.changes, { before: [snapshot], after: [] })
+  assert.ok(calls.some((sql) => sql.startsWith('delete from public.workout_plans')))
+})
+
+test('complete_workout_plan ticks a plan off once and leaves a done plan alone', async () => {
+  const plan = (completed_at: string | null) =>
+    fakeDb((sql) => {
+      if (sql.includes('for update')) return [{ id: PLAN_ID, name: 'Push day', planned_date: '2026-11-14', completed_at }]
+      if (sql.includes('to_jsonb')) return [{ row: { id: PLAN_ID } }]
+      return []
+    })
+
+  const open = plan(null)
+  const done = await runTool('complete_workout_plan', { plan_id: PLAN_ID, completed: true }, ctx(open.db), 'mcp')
+  assert.ok(done.ok)
+  assert.equal(done.outcome.summary, 'Marked Push day on Sat, Nov 14 done')
+  assert.ok(open.calls.some((sql) => sql.includes('set completed_at')))
+
+  const already = plan('2026-11-14T18:00:00Z')
+  const again = await runTool('complete_workout_plan', { plan_id: PLAN_ID, completed: true }, ctx(already.db), 'mcp')
+  assert.ok(again.ok)
+  assert.deepEqual(again.outcome.changes, { before: [], after: [] })
+  assert.ok(!already.calls.some((sql) => sql.includes('set completed_at')))
+})
