@@ -5,7 +5,7 @@
  */
 import { createSseParser } from './sse'
 
-const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
+const BASE = (import.meta.env?.VITE_API_URL ?? '').replace(/\/+$/, '')
 const SESSION_KEY = 'ozempicai.session'
 
 export interface SessionUser {
@@ -33,6 +33,28 @@ export class ApiError extends Error {
 
 type SessionListener = (session: Session | null) => void
 const listeners = new Set<SessionListener>()
+let observedToken = loadSession()?.access_token ?? null
+let switchingAccounts = false
+
+// A different tab can replace shared storage while this tab still displays
+// the previous user's forms and cached health data. Reload the entire account
+// view, and refuse work in the old document until that reload completes.
+function checkSessionChange(): void {
+  if (!switchingAccounts && (loadSession()?.access_token ?? null) !== observedToken) {
+    switchingAccounts = true
+    for (const listener of listeners) listener(null)
+    if (typeof window !== 'undefined') window.location.reload()
+  }
+  if (switchingAccounts) throw new ApiError('Your account changed in another tab. Reload to continue.', 409)
+}
+
+if (typeof window !== 'undefined') {
+  const synchronize = () => { try { checkSessionChange() } catch { /* Reload already requested. */ } }
+  window.addEventListener('storage', (event) => {
+    if (event.key === SESSION_KEY || event.key === null) synchronize()
+  })
+  window.addEventListener('focus', synchronize)
+}
 
 export function loadSession(): Session | null {
   try {
@@ -52,6 +74,7 @@ export function storeSession(session: Session | null) {
   } catch {
     // Private mode or storage disabled: the session lives for this tab only.
   }
+  observedToken = session?.access_token ?? null
   for (const listener of listeners) listener(session)
 }
 
@@ -80,6 +103,7 @@ function buildUrl(path: string, query?: Record<string, QueryValue>): string {
 }
 
 async function send(url: string, init: { method: string; body?: unknown; accept?: string }): Promise<Response> {
+  checkSessionChange()
   const session = loadSession()
   const headers: Record<string, string> = {}
   if (init.body !== undefined) headers['Content-Type'] = 'application/json'
@@ -95,6 +119,12 @@ async function send(url: string, init: { method: string; body?: unknown; accept?
     })
   } catch {
     throw new ApiError('Could not reach the server. Check your connection and try again.', 0)
+  }
+
+  // Don't return another account's data to an old request/cache after switching.
+  if (response.status !== 401 && session?.access_token !== loadSession()?.access_token) {
+    checkSessionChange()
+    throw new ApiError('Your account changed. Please try again.', 409)
   }
 
   if (response.status === 401 && session) {
@@ -116,10 +146,13 @@ async function send(url: string, init: { method: string; body?: unknown; accept?
 }
 
 export async function api<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
+  const token = loadSession()?.access_token
   const { method = 'GET', body, query } = options
   const response = await send(buildUrl(path, query), { method, body })
   if (response.status === 204) return undefined as T
-  return (await response.json()) as T
+  const data = (await response.json()) as T
+  if (token !== loadSession()?.access_token) throw new ApiError('Your account changed. Please try again.', 409)
+  return data
 }
 
 /**
@@ -133,6 +166,7 @@ export async function apiStream(
   body: unknown,
   onEvent: (event: string, data: unknown) => void,
 ): Promise<void> {
+  const token = loadSession()?.access_token
   const response = await send(buildUrl(path), { method: 'POST', body, accept: 'text/event-stream' })
   if (!response.body) throw new ApiError('Streaming is not supported in this browser.', 0)
 
@@ -150,6 +184,8 @@ export async function apiStream(
   try {
     while (true) {
       const { done, value } = await reader.read()
+      checkSessionChange()
+      if (token !== loadSession()?.access_token) throw new ApiError('Your account changed. Please try again.', 409)
       if (done) break
       parser.push(decoder.decode(value, { stream: true }))
     }
