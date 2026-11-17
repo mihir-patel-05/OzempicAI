@@ -4,7 +4,8 @@
 Fasting gets its own screen with history and analytics, a card on Today, and notifications when the
 goal is near and when it is reached, even with the app closed.
 
-**Status (2026-11-17):** planned. Phase 1 (backend) is being built on `Fasting_Feature`.
+**Status (2026-11-17):** phases 1 (backend) and 2 (Fasting screen) are built on `Fasting_Feature`.
+Until phase 3 adds the Today card, phones reach the screen only by going to `/fasting` directly.
 
 ### Decisions (2026-11-17)
 
@@ -80,26 +81,27 @@ Each phase can be deployed, and reverted, on its own. Notifications come last.
 
 **Phase 2: Fasting screen**
 5. `web: add fasting types and hooks`
-6. `web: add a ticking clock hook and fasting presets` (13:11, 16:8, 18:6, 20:4, OMAD, 36 h, custom)
-7. `web: add the fasting timer component`
-8. `web: add the Fasting screen with start, end and edit`
-9. `web: add Fasting to the desktop sidebar`
+6. `web: add a ticking clock hook, fasting presets and time formatting` (13:11, 16:8, 18:6, 20:4, OMAD, 36 h, custom)
+7. `web: add the fasting timer component` (its own `--dusk` ring colour, light and dark)
+8. `web: add the Fasting screen with start, end and history`
+9. `web: edit, delete and add past fasts`
+10. `web: add Fasting to the desktop sidebar`
 
 **Phase 3: Today**
-10. `web: show the running fast on Today` (countdown and End when running, one-tap start otherwise;
+11. `web: show the running fast on Today` (countdown and End when running, one-tap start otherwise;
     the way into Fasting on phones)
 
 **Phase 4: analytics**
-11. `web: compute fasting stats` (streaks, goal rate, average and longest, total hours; a fast counts
+12. `web: compute fasting stats` (streaks, goal rate, average and longest, total hours; a fast counts
     toward the local day it ended)
-12. `web: show fasting stats and a duration chart`
+13. `web: show fasting stats and a duration chart`
 
 **Phase 5: notifications**
-13. `db: add push subscriptions`
-14. `api: register devices for push and send VAPID web push`
-15. `api: notify when a fast is 1 hour from its goal and when it reaches it`
-16. `web: handle push in the service worker`
-17. `web: turn on fasting notifications`
+14. `db: add push subscriptions`
+15. `api: register devices for push and send VAPID web push`
+16. `api: notify when a fast is 1 hour from its goal and when it reaches it`
+17. `web: handle push in the service worker`
+18. `web: turn on fasting notifications`
 
 **Phase 6 (optional): AI**
-18. `tools: let the coach and AI apps read fasting history`
+19. `tools: let the coach and AI apps read fasting history`
