@@ -114,6 +114,17 @@ export interface WeightLog {
   logged_at: string
 }
 
+/** An intermittent fast (server/migrations/00021_fasts.sql). Running while ended_at is null. */
+export interface Fast {
+  id: string
+  started_at: string
+  /** The goal: 60 to 4,320 minutes (72 h). */
+  target_minutes: number
+  ended_at: string | null
+  notes: string | null
+  created_at: string
+}
+
 export interface DayLabel {
   id: string
   user_id: string
