@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Card } from '../../components/Card'
 import { SectionHeader } from '../../components/PageHeader'
 import { SegmentedPicker } from '../../components/SegmentedPicker'
 import type { Fast } from '../../types/db'
 import { formatDuration } from './progress'
-import { RANGE_DAYS, streaks, summarize } from './stats'
+import { RANGE_DAYS, dailyFasting, streaks, summarize } from './stats'
+
+// Recharts is big; only this card needs it, so it loads when the card does.
+const FastingChart = lazy(() => import('./FastingChart').then((module) => ({ default: module.FastingChart })))
 
 type RangeValue = `${(typeof RANGE_DAYS)[number]}`
 
@@ -30,6 +33,7 @@ export function FastingStats({ fasts, now }: FastingStatsProps) {
         <p className="empty-note">Finish a fast to see your streaks and averages here.</p>
       ) : (
         <div className="screen-stack" style={{ gap: 'var(--space-ms)' }}>
+          <SegmentedPicker options={RANGE_OPTIONS} value={range} onChange={setRange} ariaLabel="Fasting stats range" />
           <dl className="fasting-stats-grid">
             <Stat
               label="Streak"
@@ -52,7 +56,9 @@ export function FastingStats({ fasts, now }: FastingStatsProps) {
               detail={`In the last ${days} days`}
             />
           </dl>
-          <SegmentedPicker options={RANGE_OPTIONS} value={range} onChange={setRange} ariaLabel="Fasting stats range" />
+          <Suspense fallback={<div className="analytics-chart" role="status" aria-label="Loading chart" />}>
+            <FastingChart rows={dailyFasting(fasts, now, days)} />
+          </Suspense>
         </div>
       )}
     </Card>

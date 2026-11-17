@@ -1781,3 +1781,10 @@ h3 {
 .fasting-stats-grid dd {
   margin: 0;
 }
+
+.fasting-legend-goal {
+  width: 12px;
+  height: 0;
+  border-top: 2px solid var(--text-secondary);
+  border-radius: 1px;
+}
