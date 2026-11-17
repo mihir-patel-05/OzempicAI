@@ -1703,3 +1703,19 @@ h3 {
 .fasting-timer-facts dd {
   margin: 0;
 }
+
+.fasting-hint {
+  margin: var(--space-sm) 0 0;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.fasting-hint strong {
+  color: var(--text-primary);
+}
+
+.fasting-two-up {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}

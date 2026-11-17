@@ -16,6 +16,7 @@ import { WeightScreen } from './features/weight/WeightScreen'
 import { ExerciseScreen } from './features/exercise/ExerciseScreen'
 import { HeartRateScreen } from './features/heartRate/HeartRateScreen'
 import { WorkoutTrackerScreen } from './features/workouts/WorkoutTrackerScreen'
+import { FastingScreen } from './features/fasting/FastingScreen'
 
 const CoachScreen = lazy(() =>
   import('./features/coach/CoachScreen').then((module) => ({
@@ -59,6 +60,7 @@ export function App() {
                   <Route path="log/workout" element={<WorkoutTrackerScreen />} />
                   <Route path="log/heart-rate" element={<HeartRateScreen />} />
                   <Route path="plans" element={<PlansScreen />} />
+                  <Route path="fasting" element={<FastingScreen />} />
                   <Route
                     path="analytics"
                     element={
