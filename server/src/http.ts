@@ -44,6 +44,23 @@ export async function readJson(c: Context): Promise<Record<string, unknown>> {
   } catch {
     throw new HttpError(400, 'Request body must be JSON')
   }
+  return asObject(body)
+}
+
+/** Like readJson, but an empty body reads as `{}` (for actions whose fields are all optional). */
+export async function readOptionalJson(c: Context): Promise<Record<string, unknown>> {
+  const raw = await c.req.text()
+  if (raw.trim() === '') return {}
+  let body: unknown
+  try {
+    body = JSON.parse(raw)
+  } catch {
+    throw new HttpError(400, 'Request body must be JSON')
+  }
+  return asObject(body)
+}
+
+function asObject(body: unknown): Record<string, unknown> {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw new HttpError(400, 'Request body must be a JSON object')
   }
@@ -139,6 +156,7 @@ const PG_CLIENT_ERRORS: Record<string, { status: ContentfulStatusCode; message: 
   '23503': { status: 400, message: 'A linked record was not found.' },
   '23505': { status: 409, message: 'That already exists.' },
   '23514': { status: 400, message: 'One of the values is outside the allowed range.' },
+  '23P01': { status: 409, message: 'That overlaps an existing entry.' },
   '42501': { status: 403, message: 'You are not allowed to do that.' },
 }
 /** `raise exception` in our own SQL functions and triggers: the text is ours and safe to show. */
