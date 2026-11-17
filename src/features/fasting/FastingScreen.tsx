@@ -55,7 +55,7 @@ export function FastingScreen() {
           )}
         </div>
 
-        <FastHistory fasts={ended} isLoading={history.isLoading} now={now} />
+        <FastHistory fasts={ended} isLoading={history.isLoading} now={now} initialTarget={initialTarget} />
       </div>
     </div>
   )

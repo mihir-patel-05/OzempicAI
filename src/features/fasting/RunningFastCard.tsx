@@ -4,6 +4,7 @@ import { Card } from '../../components/Card'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { useEndFast } from '../../hooks/useFasts'
 import type { Fast } from '../../types/db'
+import { FastForm } from './FastForm'
 import { FastingTimer } from './FastingTimer'
 import { goalLabel } from './presets'
 import { fastProgress, formatDuration } from './progress'
@@ -14,10 +15,11 @@ interface RunningFastCardProps {
   onEnded: (fast: Fast) => void
 }
 
-/** The live timer with End. Ending before the goal asks first. */
+/** The live timer with End and Edit. Ending before the goal asks first. */
 export function RunningFastCard({ fast, now, onEnded }: RunningFastCardProps) {
   const endFast = useEndFast()
   const [confirming, setConfirming] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const p = fastProgress(fast, now)
 
@@ -39,7 +41,9 @@ export function RunningFastCard({ fast, now, onEnded }: RunningFastCardProps) {
 
         {error && <Banner tone="error">{error}</Banner>}
 
-        {confirming && !p.reached ? (
+        {editing ? (
+          <FastForm mode="edit" fast={fast} onDone={() => setEditing(false)} />
+        ) : confirming && !p.reached ? (
           <div className="screen-stack" style={{ gap: 'var(--space-sm)' }}>
             <p role="alert" style={{ margin: 0, textAlign: 'center', fontSize: 'var(--text-sm)' }}>
               End now? You're {formatDuration(p.remainingMs)} short of your {goalLabel(fast.target_minutes)} goal.
@@ -54,14 +58,14 @@ export function RunningFastCard({ fast, now, onEnded }: RunningFastCardProps) {
             </div>
           </div>
         ) : (
-          <PrimaryButton
-            type="button"
-            loading={endFast.isPending}
-            onClick={p.reached ? end : () => setConfirming(true)}
-            style={{ width: '100%' }}
-          >
-            End fast
-          </PrimaryButton>
+          <div className="fasting-two-up">
+            <PrimaryButton type="button" variant="outline" onClick={() => setEditing(true)}>
+              Edit
+            </PrimaryButton>
+            <PrimaryButton type="button" loading={endFast.isPending} onClick={p.reached ? end : () => setConfirming(true)}>
+              End fast
+            </PrimaryButton>
+          </div>
         )}
       </div>
     </Card>

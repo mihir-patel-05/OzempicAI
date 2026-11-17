@@ -18,6 +18,7 @@ export type IconName =
   | 'send'
   | 'undo'
   | 'chat'
+  | 'pencil'
 
 const PATHS: Record<IconName, JSX.Element> = {
   trash: <path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6.5 7l.9 12.1A2 2 0 0 0 9.4 21h5.2a2 2 0 0 0 2-1.9L17.5 7M10 11v6M14 11v6" />,
@@ -69,6 +70,7 @@ const PATHS: Record<IconName, JSX.Element> = {
   send: <path d="M12 19V5M6 11l6-6 6 6" />,
   undo: <path d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />,
   chat: <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.1A8 8 0 1 1 20 12Z" />,
+  pencil: <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4ZM13.5 6.5l4 4" />,
 }
 
 export function Icon({ name, size = 22, strokeWidth = 1.8 }: { name: IconName; size?: number; strokeWidth?: number }) {
