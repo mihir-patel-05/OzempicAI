@@ -27,6 +27,7 @@ const CLAIM_GOALS = `
     select id from public.fasts
      where ended_at is null and goal_notified_at is null
        and started_at + make_interval(mins => target_minutes) <= now()
+       and ($1::uuid[] is null or user_id = any($1::uuid[]))
      order by started_at
      limit ${BATCH}
      for update skip locked
@@ -46,6 +47,7 @@ const CLAIM_REMINDERS = `
      where ended_at is null and goal_notified_at is null and reminder_notified_at is null
        and target_minutes > 60
        and started_at + make_interval(mins => target_minutes - 60) <= now()
+       and ($1::uuid[] is null or user_id = any($1::uuid[]))
      order by started_at
      limit ${BATCH}
      for update skip locked
@@ -57,8 +59,8 @@ const CLAIM_REMINDERS = `
   returning f.id, f.user_id, f.target_minutes, f.created_at,
             f.started_at + make_interval(mins => f.target_minutes - 60) as due_at`
 
-async function claim(sql: string): Promise<Claimed[]> {
-  return withTransaction(async (db) => (await db.query<Claimed>(sql)).rows)
+async function claim(sql: string, userIds: string[] | null): Promise<Claimed[]> {
+  return withTransaction(async (db) => (await db.query<Claimed>(sql, [userIds])).rows)
 }
 
 export interface TickReport {
@@ -67,10 +69,14 @@ export interface TickReport {
   sent: number
 }
 
-/** One pass: claim what is due, then send it. Exposed for tests. */
-export async function notifyDueFasts(sender: PushSender): Promise<TickReport> {
-  const goals = await claim(CLAIM_GOALS)
-  const reminders = await claim(CLAIM_REMINDERS)
+/**
+ * One pass: claim what is due, then send it. `onlyUserIds` limits it to those
+ * accounts; tests pass it so they never touch fasts that other test files
+ * share the database with.
+ */
+export async function notifyDueFasts(sender: PushSender, onlyUserIds: string[] | null = null): Promise<TickReport> {
+  const goals = await claim(CLAIM_GOALS, onlyUserIds)
+  const reminders = await claim(CLAIM_REMINDERS, onlyUserIds)
   const now = Date.now()
   let sent = 0
 
