@@ -15,10 +15,13 @@ const RIGHT: Tab[] = [
   { to: '/analytics', label: 'Analytics', icon: 'chart' },
   { to: '/profile', label: 'Profile', icon: 'person' },
 ]
+// Fasting is a sidebar tab on desktop only. The phone bar has no room for a
+// fifth tab, so phones reach it from the fasting card on Today.
 const DESKTOP: Tab[] = [
   { to: '/', label: 'Today', icon: 'sun' },
   { to: '/log', label: 'Log', icon: 'plus' },
   { to: '/plans', label: 'Plans', icon: 'list' },
+  { to: '/fasting', label: 'Fasting', icon: 'timer' },
   { to: '/analytics', label: 'Analytics', icon: 'chart' },
   { to: '/profile', label: 'Profile', icon: 'person' },
 ]

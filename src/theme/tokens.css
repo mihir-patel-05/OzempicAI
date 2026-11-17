@@ -30,6 +30,7 @@
   --sage: #8aa07d;
   --sage-deep: #53694a;
   --plum: #6b3e4a;
+  --dusk: #4466b0; /* fasting: 4.8:1 on cream; dark #6688d8 is 4.1:1 or more. Chroma high enough to read as blue in a chart, not grey. */
 
   /* Chart series validated for colour-vision deficiency on --paper-bright. */
   --chart-trend: #1f74b0;
@@ -73,6 +74,7 @@
   --water-fill: var(--saffron);
   --exercise-ring: var(--ember);
   --heart-pulse: var(--ember);
+  --fasting-ring: var(--dusk);
   --glow-a: rgba(232, 166, 107, 0.15);
   --glow-b: rgba(138, 160, 125, 0.12);
 
@@ -148,6 +150,7 @@
     --sage: #9fb892;
     --sage-deep: #9fb892;
     --plum: #c99aa8;
+    --dusk: #6688d8;
 
     --chart-trend: #6cb4e6;
     --meal-breakfast: #e0ad4a;

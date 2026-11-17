@@ -3,6 +3,7 @@ import { app } from './app.js'
 import { purgeExpiredAuthRows } from './auth.js'
 import { pool } from './db.js'
 import { purgeExpiredOAuthRows } from './oauth/tokens.js'
+import { startFastingNotifier } from './push/fastingNotifier.js'
 
 const port = Number(process.env.PORT ?? 8787)
 // '::' accepts IPv4 and IPv6, which Railway's private network needs. Set
@@ -18,8 +19,11 @@ const housekeeping = setInterval(() => {
 }, 60 * 60_000)
 housekeeping.unref()
 
+const stopFastingNotifier = startFastingNotifier()
+
 function shutdown() {
   clearInterval(housekeeping)
+  stopFastingNotifier?.()
   server.close(() => {
     pool.end().finally(() => process.exit(0))
   })
