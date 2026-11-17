@@ -30,6 +30,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Push and notification-click handlers (fasting notifications) live in
+        // public/push-sw.js; the generated worker loads them.
+        importScripts: ['push-sw.js'],
         navigateFallback: '/index.html',
         // API calls are never navigations, but keep the SPA fallback off them.
         navigateFallbackDenylist: [/^\/api\//, /^\/\.well-known\//],
