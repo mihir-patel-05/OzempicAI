@@ -16,6 +16,7 @@ import { useUpcomingMealPlans } from '../../hooks/usePlans'
 import { toLocalDateKey } from '../../lib/date'
 import { formatWeight, weightFromKg, weightUnit, roundForDisplay } from '../../lib/units'
 import { workoutTypeLabel } from '../workouts/constants'
+import { FastingCard } from '../fasting/FastingCard'
 import type { MealType } from '../../types/db'
 
 const EXERCISE_GOAL_MINUTES = 30
@@ -139,7 +140,7 @@ export function TodayScreen() {
           </Card>
 
           {/* Today's timeline */}
-          <Card padding="lg" style={{ order: 3 }}>
+          <Card padding="lg" style={{ order: 4 }}>
             <SectionHeader
               title="Today"
               meta={sortedMeals.length ? `${sortedMeals.length} ${sortedMeals.length === 1 ? 'entry' : 'entries'}` : undefined}
@@ -217,8 +218,11 @@ export function TodayScreen() {
         </div>
 
         <div className="today-col">
+          {/* Fasting: right under calories on phones, where it is also the way into Fasting. */}
+          <FastingCard style={{ order: 2 }} />
+
           {/* Habits */}
-          <Card padding="lg" style={{ order: 2 }}>
+          <Card padding="lg" style={{ order: 3 }}>
             <SectionHeader title="Habits" />
             <div className="metric-row" style={{ paddingTop: 0 }}>
               <div className="metric-row-head">
@@ -273,7 +277,7 @@ export function TodayScreen() {
           </Card>
 
           {/* Body */}
-          <div style={{ order: 4, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 'var(--space-sm)' }}>
+          <div style={{ order: 5, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 'var(--space-sm)' }}>
             <BodyTile
               to="/log/weight"
               icon="scale"
