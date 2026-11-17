@@ -4,8 +4,8 @@
 Fasting gets its own screen with history and analytics, a card on Today, and notifications when the
 goal is near and when it is reached, even with the app closed.
 
-**Status (2026-11-17):** phases 1 (backend) and 2 (Fasting screen) are built on `Fasting_Feature`.
-Until phase 3 adds the Today card, phones reach the screen only by going to `/fasting` directly.
+**Status (2026-11-17):** phases 1 (backend), 2 (Fasting screen) and 3 (Today card) are built on
+`Fasting_Feature`.
 
 ### Decisions (2026-11-17)
 
@@ -88,20 +88,22 @@ Each phase can be deployed, and reverted, on its own. Notifications come last.
 10. `web: add Fasting to the desktop sidebar`
 
 **Phase 3: Today**
-11. `web: show the running fast on Today` (countdown and End when running, one-tap start otherwise;
-    the way into Fasting on phones)
+11. `web: share the end-fast confirmation so Today can use it`
+12. `web: add a compact fasting card for Today` (countdown and End when running; one-tap start with
+    the last goal otherwise; its header links to Fasting, the way in on phones)
+13. `web: show the running fast on Today` (under calories on phones, top of the right column on desktop)
 
 **Phase 4: analytics**
-12. `web: compute fasting stats` (streaks, goal rate, average and longest, total hours; a fast counts
+14. `web: compute fasting stats` (streaks, goal rate, average and longest, total hours; a fast counts
     toward the local day it ended)
-13. `web: show fasting stats and a duration chart`
+15. `web: show fasting stats and a duration chart`
 
 **Phase 5: notifications**
-14. `db: add push subscriptions`
-15. `api: register devices for push and send VAPID web push`
-16. `api: notify when a fast is 1 hour from its goal and when it reaches it`
-17. `web: handle push in the service worker`
-18. `web: turn on fasting notifications`
+16. `db: add push subscriptions`
+17. `api: register devices for push and send VAPID web push`
+18. `api: notify when a fast is 1 hour from its goal and when it reaches it`
+19. `web: handle push in the service worker`
+20. `web: turn on fasting notifications`
 
 **Phase 6 (optional): AI**
-19. `tools: let the coach and AI apps read fasting history`
+21. `tools: let the coach and AI apps read fasting history`
