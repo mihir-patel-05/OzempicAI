@@ -3,7 +3,8 @@ import { rateLimit } from '../auth.js'
 import type { AppEnv } from '../auth.js'
 import { withTransaction, withUser } from '../db.js'
 import { HttpError, readJson } from '../http.js'
-import { isPushEndpoint, pushConfig, pushSender, sendToUser } from '../push/send.js'
+import { isPushEndpoint, pushConfig } from '../push/config.js'
+import { pushSender, sendToUser } from '../push/send.js'
 
 /** Devices per account; registering another drops the one least recently registered. */
 const MAX_DEVICES = 10

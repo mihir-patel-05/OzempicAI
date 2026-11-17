@@ -1,6 +1,8 @@
 import { withTransaction } from '../db.js'
 import { pushSender, sendToUser } from './send.js'
 import type { PushMessage, PushSender, SendOptions } from './send.js'
+import { goalMessage, reminderMessage, worthSending } from './fastingMessages.js'
+import type { DueFast } from './fastingMessages.js'
 
 /**
  * "1 hour left" and "Goal reached" for running fasts (docs/fasting-plan.md,
@@ -11,19 +13,11 @@ import type { PushMessage, PushSender, SendOptions } from './send.js'
  */
 
 const TICK_MS = 30_000
-const HOUR_MS = 60 * 60_000
-/** After downtime, don't announce a moment from hours ago. */
-const STALE_MS = 6 * HOUR_MS
 /** Fasts handled per kind per tick; the rest wait for the next one. */
 const BATCH = 200
 
-interface Claimed {
-  id: string
+interface Claimed extends DueFast {
   user_id: string
-  target_minutes: number
-  created_at: Date
-  /** When the notification was due: the goal, or an hour before it. */
-  due_at: Date
 }
 
 // Goal first: a fast whose goal has already passed gets "Goal reached" only,
@@ -62,41 +56,6 @@ const CLAIM_REMINDERS = `
    where f.id = due.id
   returning f.id, f.user_id, f.target_minutes, f.created_at,
             f.started_at + make_interval(mins => f.target_minutes - 60) as due_at`
-
-/** "16:8" for the usual windows, otherwise "17h 30m". Matches the web app. */
-export function goalLabel(minutes: number): string {
-  const hours = Math.floor(minutes / 60)
-  const rest = minutes % 60
-  if (rest === 0 && [13, 16, 18, 20].includes(hours)) return `${hours}:${24 - hours}`
-  if (minutes === 23 * 60) return 'OMAD'
-  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`
-}
-
-function goalMessage(fast: Claimed): PushMessage {
-  return {
-    title: `You reached your ${goalLabel(fast.target_minutes)} goal`,
-    body: 'End your fast in OzempicAI whenever you’re ready.',
-    tag: `fast-${fast.id}`,
-    url: '/fasting',
-  }
-}
-
-function reminderMessage(fast: Claimed): PushMessage {
-  return {
-    title: '1 hour to go',
-    body: `Your ${goalLabel(fast.target_minutes)} fast reaches its goal in an hour.`,
-    tag: `fast-${fast.id}`,
-    url: '/fasting',
-  }
-}
-
-/**
- * Worth sending: due after the fast was saved (a fast backdated past its goal
- * doesn't announce it), and not so long ago it is no longer news.
- */
-export function worthSending(fast: Pick<Claimed, 'created_at' | 'due_at'>, now: number): boolean {
-  return fast.due_at.getTime() > fast.created_at.getTime() && now - fast.due_at.getTime() <= STALE_MS
-}
 
 async function claim(sql: string): Promise<Claimed[]> {
   return withTransaction(async (db) => (await db.query<Claimed>(sql)).rows)
