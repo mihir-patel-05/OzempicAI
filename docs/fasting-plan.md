@@ -4,8 +4,9 @@
 Fasting gets its own screen with history and analytics, a card on Today, and notifications when the
 goal is near and when it is reached, even with the app closed.
 
-**Status (2026-11-17):** phases 1 (backend), 2 (Fasting screen), 3 (Today card) and 4 (stats and
-chart) are built on `Fasting_Feature`.
+**Status (2026-11-17):** phases 1–5 (backend, Fasting screen, Today card, stats and chart,
+notifications) are built on `Fasting_Feature`. Notifications are tested against a fake push service
+only; they still need trying on a real phone and browser once `VAPID_*` is set (§3).
 
 ### Decisions (2026-11-17)
 
@@ -61,11 +62,32 @@ Web Push, sent by the API, so they arrive with the app closed.
 - A loop in the API (every 30 s, next to the hourly housekeeping) claims due fasts with
   `update … where goal_notified_at is null … for update skip locked … returning`, then sends. A
   restart or a second instance cannot send the same notification twice.
-- Notifications are tagged `fast-<id>`, so if the open app also shows one the OS keeps one.
+- Both notifications for a fast are tagged `fast-<id>`, so "Goal reached" replaces "1 hour to go" on
+  the device instead of stacking under it.
+- Nothing is sent for a moment that had already passed when the fast was saved (backdated), or that
+  is more than six hours old (after downtime); those are stamped as handled.
 - Configured by `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` on `api`. Unset means
   notifications are off and nothing else changes.
 - The service worker handler is `public/push-sw.js`, loaded through Workbox `importScripts`, so the
   existing `generateSW` setup stays.
+- **Endpoints are allow-listed** (FCM, Mozilla, Apple, Windows push services, https on the default
+  port). The server POSTs to whatever a browser registers, so anything else would let a client
+  point it at an internal address.
+- A browser's subscription belongs to whoever signed in on it last. Signing out unsubscribes it.
+  An account keeps at most 10 devices.
+- `web-push` is pinned at 3.6.7: 4.0.0 was released 2026-11-06 and had no type definitions yet.
+- **Dropped from the original plan:** the open app showing the notification itself when push is
+  off. It could only fire with notification permission granted while the server's push is off,
+  which the UI never sets up, and a user who turned notifications off wouldn't want it.
+
+**Turning it on (Railway, `api` service):**
+1. `cd server && npm run vapid:keys` locally; set the printed `VAPID_PUBLIC_KEY` and
+   `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT=mailto:<an address you read>`. Keep the pair: changing it
+   means every device has to turn notifications on again.
+2. Redeploy. The API logs `Fasting notifications are off …` at startup when any of the three is
+   missing.
+3. On the phone: add the app to the Home Screen (iPhone), open Fasting → Notifications → Turn on,
+   then Send a test.
 
 ---
 
@@ -106,8 +128,13 @@ Each phase can be deployed, and reverted, on its own. Notifications come last.
 18. `db: add push subscriptions`
 19. `api: register devices for push and send VAPID web push`
 20. `api: notify when a fast is 1 hour from its goal and when it reaches it`
-21. `web: handle push in the service worker`
-22. `web: turn on fasting notifications`
+21. `api: keep push config and notification text apart from the database` (so their tests run
+    without a database)
+22. `test: cover push subscriptions and fasting notifications`
+23. `web: handle push in the service worker`
+24. `web: add push subscription helpers`
+25. `web: turn on fasting notifications from the Fasting screen`
+26. `web: stop this device's notifications on sign-out`
 
 **Phase 6 (optional): AI**
-23. `tools: let the coach and AI apps read fasting history`
+27. `tools: let the coach and AI apps read fasting history`

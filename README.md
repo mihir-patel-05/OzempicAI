@@ -165,6 +165,8 @@ Before release, verify:
 - With `MCP_ENABLED=true`: `https://<app>/.well-known/oauth-authorization-server` returns JSON
   (not the SPA's HTML), a Claude custom connector can connect through the consent screen, and
   Disconnect in Profile cuts it off.
+- With `VAPID_*` set: Fasting → Notifications → Turn on, then Send a test, arrives on a phone (the
+  Home Screen app on iPhone), and a 1-hour test fast gets "Goal reached" with the app closed.
 
 ## Importing data from the old Supabase project
 
