@@ -4,8 +4,8 @@
 Fasting gets its own screen with history and analytics, a card on Today, and notifications when the
 goal is near and when it is reached, even with the app closed.
 
-**Status (2026-11-17):** phases 1 (backend), 2 (Fasting screen) and 3 (Today card) are built on
-`Fasting_Feature`.
+**Status (2026-11-17):** phases 1 (backend), 2 (Fasting screen), 3 (Today card) and 4 (stats and
+chart) are built on `Fasting_Feature`.
 
 ### Decisions (2026-11-17)
 
@@ -94,16 +94,20 @@ Each phase can be deployed, and reverted, on its own. Notifications come last.
 13. `web: show the running fast on Today` (under calories on phones, top of the right column on desktop)
 
 **Phase 4: analytics**
-14. `web: compute fasting stats` (streaks, goal rate, average and longest, total hours; a fast counts
+14. `web: make the fasting colour strong enough to chart` (`--dusk` is now `#4466b0`, dark `#6688d8`:
+    the first blue read as grey in bars)
+15. `web: compute fasting stats` (streaks, goal rate, average and longest, total hours; a fast counts
     toward the local day it ended)
-15. `web: show fasting stats and a duration chart`
+16. `web: show fasting stats on the Fasting screen` (7 / 30 / 90 days; the streak ignores the range)
+17. `web: chart each day's fasting against its goal` (lazy-loaded, so Recharts stays out of the main
+    bundle)
 
 **Phase 5: notifications**
-16. `db: add push subscriptions`
-17. `api: register devices for push and send VAPID web push`
-18. `api: notify when a fast is 1 hour from its goal and when it reaches it`
-19. `web: handle push in the service worker`
-20. `web: turn on fasting notifications`
+18. `db: add push subscriptions`
+19. `api: register devices for push and send VAPID web push`
+20. `api: notify when a fast is 1 hour from its goal and when it reaches it`
+21. `web: handle push in the service worker`
+22. `web: turn on fasting notifications`
 
 **Phase 6 (optional): AI**
-21. `tools: let the coach and AI apps read fasting history`
+23. `tools: let the coach and AI apps read fasting history`
