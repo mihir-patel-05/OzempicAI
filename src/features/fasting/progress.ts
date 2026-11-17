@@ -69,13 +69,16 @@ export function formatTime(ms: number): string {
   return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
+/** "today", "tomorrow", "yesterday", or "Tue, Nov 17". */
+export function dayLabel(ms: number, now: number): string {
+  const offset = dayOffset(ms, now)
+  if (offset === 0) return 'today'
+  if (offset === 1) return 'tomorrow'
+  if (offset === -1) return 'yesterday'
+  return new Date(ms).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
 /** "today, 8:30 PM", "tomorrow, 12:30 PM", "Tue, Nov 17, 8:30 PM". */
 export function formatWhen(ms: number, now: number): string {
-  const offset = dayOffset(ms, now)
-  const time = formatTime(ms)
-  if (offset === 0) return `today, ${time}`
-  if (offset === 1) return `tomorrow, ${time}`
-  if (offset === -1) return `yesterday, ${time}`
-  const date = new Date(ms).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
-  return `${date}, ${time}`
+  return `${dayLabel(ms, now)}, ${formatTime(ms)}`
 }

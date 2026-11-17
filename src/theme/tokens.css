@@ -30,6 +30,7 @@
   --sage: #8aa07d;
   --sage-deep: #53694a;
   --plum: #6b3e4a;
+  --dusk: #4a6a8f; /* fasting: 4.9:1 on cream, 7.1:1 in dark as #8fb0d6 */
 
   /* Chart series validated for colour-vision deficiency on --paper-bright. */
   --chart-trend: #1f74b0;
@@ -73,6 +74,7 @@
   --water-fill: var(--saffron);
   --exercise-ring: var(--ember);
   --heart-pulse: var(--ember);
+  --fasting-ring: var(--dusk);
   --glow-a: rgba(232, 166, 107, 0.15);
   --glow-b: rgba(138, 160, 125, 0.12);
 
@@ -148,6 +150,7 @@
     --sage: #9fb892;
     --sage-deep: #9fb892;
     --plum: #c99aa8;
+    --dusk: #8fb0d6;
 
     --chart-trend: #6cb4e6;
     --meal-breakfast: #e0ad4a;

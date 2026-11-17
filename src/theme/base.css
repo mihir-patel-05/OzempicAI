@@ -1661,3 +1661,45 @@ h3 {
   justify-content: flex-end;
   gap: var(--space-xs);
 }
+
+/* ─── Fasting ──────────────────────────────────────────────────────────── */
+
+.fasting-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.fasting-timer-readout {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.fasting-timer-clock {
+  font-family: var(--font-display);
+  font-size: clamp(34px, 9vw, 42px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: var(--tracking-title);
+  /* Equal-width digits, so the countdown doesn't wobble as it ticks. */
+  font-variant-numeric: tabular-nums;
+}
+
+.fasting-timer-sub {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.fasting-timer-facts {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.fasting-timer-facts dd {
+  margin: 0;
+}
