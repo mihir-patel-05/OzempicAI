@@ -16,6 +16,7 @@ import { analyticsRoutes } from './routes/analytics.js'
 import { connectionRoutes } from './routes/connections.js'
 import { fastingRoutes } from './routes/fasting.js'
 import { profileRoutes } from './routes/profile.js'
+import { pushRoutes } from './routes/push.js'
 import { resourceRoutes } from './routes/resources.js'
 import { workoutRoutes } from './routes/workouts.js'
 
@@ -106,6 +107,7 @@ data.route('/', resourceRoutes)
 data.route('/', profileRoutes)
 data.route('/', workoutRoutes)
 data.route('/', fastingRoutes)
+data.route('/', pushRoutes)
 data.route('/', analyticsRoutes)
 data.route('/', aiRoutes)
 data.route('/', connectionRoutes)

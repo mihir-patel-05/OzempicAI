@@ -146,6 +146,11 @@ Both app services build from this GitHub repo with their Dockerfiles and redeplo
     `APP_URL` set to the public https origin, which becomes the OAuth issuer; changing it later
     invalidates existing connections. Unset it to switch the feature off (connections are kept,
     and Disconnect in Profile still works).
+  - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` — turn on fasting notifications
+    (Web Push). Make the key pair once with `npm run vapid:keys` in `server/`; `VAPID_SUBJECT` is a
+    `mailto:` or `https:` contact for the push services. Keep the pair: changing it means every
+    device has to turn notifications on again. Without all three, notifications are off and the
+    rest of the app works normally. Design: `docs/fasting-plan.md`.
 
 Schema changes: add the next numbered `.sql` file to `server/migrations/`. Never edit one that
 has already run.

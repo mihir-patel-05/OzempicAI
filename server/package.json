@@ -16,7 +16,8 @@
     "test": "node --import tsx --test 'src/**/*.test.ts'",
     "import:supabase": "node dist/import-supabase.js",
     "smoke:ai": "tsx --env-file-if-exists=.env src/ai/smoke.ts",
-    "invite": "tsx --env-file-if-exists=.env src/invite.ts"
+    "invite": "tsx --env-file-if-exists=.env src/invite.ts",
+    "vapid:keys": "tsx src/push/vapid-keys.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
@@ -25,11 +26,13 @@
     "bcryptjs": "^3.0.3",
     "hono": "^4.13.18",
     "pg": "^8.23.1",
+    "web-push": "3.6.7",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "@types/pg": "^8.23.1",
+    "@types/web-push": "3.6.4",
     "tsx": "^4.23.15",
     "typescript": "~5.9"
   }
