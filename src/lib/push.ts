@@ -106,3 +106,17 @@ export async function unsubscribeThisDevice(): Promise<string | null> {
   await subscription.unsubscribe()
   return endpoint
 }
+
+/**
+ * For signing out: unsubscribe this browser without waiting for a service
+ * worker that may never come (development). Returns the endpoint it had.
+ */
+export async function forgetThisDevice(): Promise<string | null> {
+  if (!('serviceWorker' in navigator)) return null
+  const registration = await navigator.serviceWorker.getRegistration()
+  const subscription = await registration?.pushManager?.getSubscription()
+  if (!subscription) return null
+  const { endpoint } = subscription
+  await subscription.unsubscribe()
+  return endpoint
+}

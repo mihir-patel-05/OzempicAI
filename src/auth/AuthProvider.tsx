@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { useQueryClient } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { api, loadSession, onSessionChange, storeSession } from '../lib/api'
+import { forgetThisDevice } from '../lib/push'
 import type { Session, SessionUser } from '../lib/api'
 
 export type { Session } from '../lib/api'
@@ -99,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       signOut: async () => {
         try {
+          await stopNotificationsHere()
           await api('/auth/logout', { method: 'POST' })
         } finally {
           storeSession(null)
@@ -115,4 +117,17 @@ export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>')
   return ctx
+}
+
+/**
+ * Signing out stops this browser getting the account's fasting notifications,
+ * and unsubscribes it so the next person to sign in here doesn't inherit it.
+ * Best effort, and never holds up signing out for more than a few seconds.
+ */
+async function stopNotificationsHere(): Promise<void> {
+  const forget = (async () => {
+    const endpoint = await forgetThisDevice()
+    if (endpoint) await api('/push/subscriptions', { method: 'DELETE', body: { endpoint } })
+  })().catch(() => {})
+  await Promise.race([forget, new Promise((resolve) => setTimeout(resolve, 3000))])
 }
