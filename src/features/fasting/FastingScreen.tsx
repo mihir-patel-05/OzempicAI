@@ -6,6 +6,7 @@ import { useActiveFast, useFastHistory } from '../../hooks/useFasts'
 import { useNow } from '../../hooks/useNow'
 import type { Fast } from '../../types/db'
 import { FastHistory } from './FastHistory'
+import { FastingStats } from './FastingStats'
 import { RunningFastCard } from './RunningFastCard'
 import { StartFastCard } from './StartFastCard'
 import { DEFAULT_TARGET_MINUTES, goalLabel } from './presets'
@@ -53,6 +54,7 @@ export function FastingScreen() {
               <StartFastCard initialTarget={initialTarget} />
             </>
           )}
+          {history.data && <FastingStats fasts={history.data} now={now} />}
         </div>
 
         <FastHistory fasts={ended} isLoading={history.isLoading} now={now} initialTarget={initialTarget} />
