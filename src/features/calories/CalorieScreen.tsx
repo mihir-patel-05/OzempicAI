@@ -19,6 +19,7 @@ import { useNow } from '../../hooks/useNow'
 import { toLocalDateKey } from '../../lib/date'
 import { atTimeOn, dayLabel, dayPhrase, resolveDayParam } from './day'
 import { DayPicker } from './DayPicker'
+import { parseCalories } from './calories'
 
 const MEAL_OPTIONS: { value: MealType; label: string }[] = [
   { value: 'breakfast', label: 'Breakfast' },
@@ -70,12 +71,8 @@ export function CalorieScreen() {
       : String(logs.error)
     : null
 
-  const calorieNum = Number(calories)
-  const roundedCalories =
-    Number.isFinite(calorieNum) && calorieNum > 0
-      ? Math.max(1, Math.round(calorieNum))
-      : 0
-  const canSubmit = foodName.trim().length > 0 && roundedCalories > 0
+  const roundedCalories = parseCalories(calories)
+  const canSubmit = foodName.trim().length > 0 && roundedCalories !== null
 
   function selectDay(key: string) {
     const next = new URLSearchParams(params)
@@ -88,7 +85,7 @@ export function CalorieScreen() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!canSubmit) return
+    if (!canSubmit || roundedCalories === null) return
     setError(null)
     const eatenDate = atTimeOn(dayKey, eatenAt)
     if (!eatenDate) {
