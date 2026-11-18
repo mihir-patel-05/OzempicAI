@@ -18,7 +18,7 @@ interface CalorieEntryRowProps {
 /** One logged food. Its calories can be changed in place; food, meal and time stay as logged. */
 export function CalorieEntryRow({ row, tone, time, editing, onEdit, onDone, onDelete }: CalorieEntryRowProps) {
   const update = useUpdateCalorieLog()
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState(() => String(row.calories))
   const [error, setError] = useState<string | null>(null)
   const editButton = useRef<HTMLButtonElement>(null)
 
@@ -66,49 +66,50 @@ export function CalorieEntryRow({ row, tone, time, editing, onEdit, onDone, onDe
         ) : (
           <div className="row-meta">{time}</div>
         )}
-      </div>
-      {editing ? (
-        <>
-          <label className="row-edit-field">
-            <input
-              className="field-input"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onFocus={(e) => e.target.select()}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  void save()
-                } else if (e.key === 'Escape') {
-                  e.preventDefault()
-                  finish()
-                }
-              }}
-              aria-label={`Calories for ${row.food_name} at ${time}`}
-              aria-invalid={error ? true : undefined}
+        {editing && (
+          // On its own line under the name, so a phone-width row keeps the name readable.
+          <div className="row-edit-field">
+            <label>
+              <input
+                className="field-input"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    void save()
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault()
+                    finish()
+                  }
+                }}
+                aria-label={`Calories for ${row.food_name} at ${time}`}
+                aria-invalid={error ? true : undefined}
+                disabled={update.isPending}
+                autoFocus
+              />
+              <span aria-hidden="true">kcal</span>
+            </label>
+            <IconButton
+              icon="check"
+              label={`Save calories for ${row.food_name}`}
+              onClick={() => void save()}
               disabled={update.isPending}
-              autoFocus
             />
-            <span aria-hidden="true">kcal</span>
-          </label>
-          <IconButton
-            icon="check"
-            label={`Save calories for ${row.food_name}`}
-            onClick={() => void save()}
-            disabled={update.isPending}
-          />
-          <IconButton
-            icon="close"
-            label="Cancel editing"
-            onClick={finish}
-            disabled={update.isPending}
-            style={{ marginRight: -10 }}
-          />
-        </>
-      ) : (
+            <IconButton
+              icon="close"
+              label="Cancel editing"
+              onClick={finish}
+              disabled={update.isPending}
+            />
+          </div>
+        )}
+      </div>
+      {!editing && (
         <>
           <span className="row-value">{row.calories} kcal</span>
           <IconButton
