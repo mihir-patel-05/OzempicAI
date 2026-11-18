@@ -197,6 +197,13 @@ h3 {
   color: var(--danger);
 }
 
+.icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+  background: none;
+  color: var(--text-tertiary);
+}
+
 .chip {
   display: inline-flex;
   min-height: var(--tap);
@@ -625,6 +632,44 @@ h3 {
 .tracker-grid {
   display: grid;
   gap: var(--space-md);
+}
+
+/* Calories: which day you're viewing and logging to. */
+.day-picker {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.day-picker-prev svg {
+  transform: scaleX(-1);
+}
+
+.day-picker-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.day-picker-label {
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 500;
+  letter-spacing: var(--tracking-title);
+}
+
+.day-picker-input {
+  max-width: 220px;
+  text-align: center;
+}
+
+.day-picker-today {
+  display: flex;
+  margin: var(--space-sm) auto 0;
 }
 
 .today-columns {

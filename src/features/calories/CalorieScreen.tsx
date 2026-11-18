@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Card } from '../../components/Card'
 import { Field, CapsLabel } from '../../components/Field'
 import { IconButton } from '../../components/IconButton'
@@ -8,12 +9,16 @@ import { Banner } from '../../components/Banner'
 import { SegmentedPicker } from '../../components/SegmentedPicker'
 import { ScreenHeader } from '../../components/ScreenHeader'
 import {
-  useCalorieLogsToday,
+  useCalorieLogsForDay,
   useDeleteCalorieLog,
   useLogCalorie,
 } from '../../hooks/useCalorieLogs'
 import type { CalorieLog, MealType } from '../../types/db'
 import { useUserProfile } from '../../hooks/useUserProfile'
+import { useNow } from '../../hooks/useNow'
+import { toLocalDateKey } from '../../lib/date'
+import { atTimeOn, dayLabel, dayPhrase, resolveDayParam } from './day'
+import { DayPicker } from './DayPicker'
 
 const MEAL_OPTIONS: { value: MealType; label: string }[] = [
   { value: 'breakfast', label: 'Breakfast' },
@@ -30,7 +35,15 @@ const MEAL_TONE: Record<MealType, string> = {
 }
 
 export function CalorieScreen() {
-  const logs = useCalorieLogsToday()
+  // Re-check once a minute so "today" rolls over at midnight.
+  const todayKey = toLocalDateKey(new Date(useNow(60_000)))
+  const [params, setParams] = useSearchParams()
+  const dayKey = resolveDayParam(params.get('date'), todayKey)
+  const isToday = dayKey === todayKey
+  const label = dayLabel(dayKey, todayKey)
+  const phrase = dayPhrase(dayKey, todayKey)
+
+  const logs = useCalorieLogsForDay(dayKey)
   const logCalorie = useLogCalorie()
   const deleteLog = useDeleteCalorieLog()
   const profile = useUserProfile()
@@ -64,12 +77,25 @@ export function CalorieScreen() {
       : 0
   const canSubmit = foodName.trim().length > 0 && roundedCalories > 0
 
+  function selectDay(key: string) {
+    const next = new URLSearchParams(params)
+    if (key === todayKey) next.delete('date')
+    else next.set('date', key)
+    // Replace, so Back still leaves the screen instead of stepping through days.
+    setParams(next, { replace: true })
+    setError(null)
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
     setError(null)
-    const eatenDate = todayAtTime(eatenAt)
-    if (eatenDate && eatenDate.getTime() > Date.now() + 60_000) {
+    const eatenDate = atTimeOn(dayKey, eatenAt)
+    if (!eatenDate) {
+      setError('Enter the time you ate this.')
+      return
+    }
+    if (eatenDate.getTime() > Date.now() + 60_000) {
       setError("The eaten-at time can't be in the future.")
       return
     }
@@ -78,7 +104,7 @@ export function CalorieScreen() {
         food_name: foodName.trim(),
         calories: roundedCalories,
         meal_type: mealType,
-        logged_at: eatenDate?.toISOString(),
+        logged_at: eatenDate.toISOString(),
       })
       setFoodName('')
       setCalories('')
@@ -91,18 +117,20 @@ export function CalorieScreen() {
 
   function onEatenAtChange(value: string) {
     setEatenAt(value)
-    const date = todayAtTime(value)
+    const date = atTimeOn(dayKey, value)
     if (date && !mealTouched) setMealType(mealForHour(date.getHours()))
   }
 
   return (
     <div className="screen-stack">
-      <ScreenHeader title="Calories" subtitle={statusLine(logs.data?.length ?? 0, dailyTotal)} />
+      <ScreenHeader title="Calories" subtitle={statusLine(logs.data?.length ?? 0, dailyTotal, phrase)} />
 
       <div className="tracker-grid">
         <div className="screen-stack">
+          <DayPicker value={dayKey} todayKey={todayKey} onChange={selectDay} />
+
           <Card padding="lg" radius="hero">
-            <p className="eyebrow">{over > 0 ? 'Over goal' : 'Calories left'}</p>
+            <p className="eyebrow">{over > 0 ? 'Over goal' : isToday ? 'Calories left' : 'Under goal'}</p>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-sm)', marginTop: 6 }}>
               <strong
                 style={{
@@ -179,7 +207,7 @@ export function CalorieScreen() {
                   value={eatenAt}
                   onChange={onEatenAtChange}
                   type="time"
-                  hint="Today"
+                  hint={label}
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -200,7 +228,7 @@ export function CalorieScreen() {
                 loading={logCalorie.isPending}
                 disabled={!canSubmit}
               >
-                Log meal
+                {isToday ? 'Log meal' : `Log meal ${phrase}`}
               </PrimaryButton>
             </form>
           </Card>
@@ -208,7 +236,7 @@ export function CalorieScreen() {
 
         <Card padding="lg">
           <SectionHeader
-            title="Today"
+            title={label}
             meta={
               logs.data?.length
                 ? `${logs.data.length} ${logs.data.length === 1 ? 'entry' : 'entries'}`
@@ -216,12 +244,14 @@ export function CalorieScreen() {
             }
           />
 
-          {logs.isLoading && <p className="empty-note">Loading today's entries…</p>}
+          {logs.isLoading && <p className="empty-note">Loading entries…</p>}
 
           {logs.isError && <Banner tone="error">{logsError ?? 'Failed to load meals.'}</Banner>}
 
           {!logs.isLoading && !logs.isError && (logs.data?.length ?? 0) === 0 && (
-            <p className="empty-note">No meals logged yet today.</p>
+            <p className="empty-note">
+              {isToday ? 'No meals logged yet today.' : `No meals logged ${phrase}.`}
+            </p>
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -280,9 +310,9 @@ export function CalorieScreen() {
   )
 }
 
-function statusLine(count: number, total: number): string {
-  if (count === 0) return 'Nothing logged yet today'
-  return `${count} ${count === 1 ? 'meal' : 'meals'} · ${total.toLocaleString()} kcal today`
+function statusLine(count: number, total: number, phrase: string): string {
+  if (count === 0) return phrase === 'today' ? 'Nothing logged yet today' : `Nothing logged ${phrase}`
+  return `${count} ${count === 1 ? 'meal' : 'meals'} · ${total.toLocaleString()} kcal ${phrase}`
 }
 
 function groupByMeal(rows: CalorieLog[]): Record<MealType, CalorieLog[]> {
@@ -317,12 +347,4 @@ function mealForHour(h: number): MealType {
 function currentTimeValue(): string {
   const now = new Date()
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-}
-
-function todayAtTime(value: string): Date | null {
-  const match = /^(\d{2}):(\d{2})$/.exec(value)
-  if (!match) return null
-  const date = new Date()
-  date.setHours(Number(match[1]), Number(match[2]), 0, 0)
-  return date
 }
