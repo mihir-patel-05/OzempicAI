@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Card } from '../../components/Card'
 import { Field, CapsLabel } from '../../components/Field'
-import { IconButton } from '../../components/IconButton'
 import { SectionHeader } from '../../components/PageHeader'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { Banner } from '../../components/Banner'
@@ -19,6 +18,8 @@ import { useNow } from '../../hooks/useNow'
 import { toLocalDateKey } from '../../lib/date'
 import { atTimeOn, dayLabel, dayPhrase, resolveDayParam } from './day'
 import { DayPicker } from './DayPicker'
+import { parseCalories } from './calories'
+import { CalorieEntryRow } from './CalorieEntryRow'
 
 const MEAL_OPTIONS: { value: MealType; label: string }[] = [
   { value: 'breakfast', label: 'Breakfast' },
@@ -54,6 +55,7 @@ export function CalorieScreen() {
   const [mealTouched, setMealTouched] = useState(false)
   const [eatenAt, setEatenAt] = useState(currentTimeValue)
   const [error, setError] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const grouped = useMemo(() => groupByMeal(logs.data ?? []), [logs.data])
   const dailyTotal = useMemo(
@@ -70,12 +72,8 @@ export function CalorieScreen() {
       : String(logs.error)
     : null
 
-  const calorieNum = Number(calories)
-  const roundedCalories =
-    Number.isFinite(calorieNum) && calorieNum > 0
-      ? Math.max(1, Math.round(calorieNum))
-      : 0
-  const canSubmit = foodName.trim().length > 0 && roundedCalories > 0
+  const roundedCalories = parseCalories(calories)
+  const canSubmit = foodName.trim().length > 0 && roundedCalories !== null
 
   function selectDay(key: string) {
     const next = new URLSearchParams(params)
@@ -84,11 +82,12 @@ export function CalorieScreen() {
     // Replace, so Back still leaves the screen instead of stepping through days.
     setParams(next, { replace: true })
     setError(null)
+    setEditingId(null)
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!canSubmit) return
+    if (!canSubmit || roundedCalories === null) return
     setError(null)
     const eatenDate = atTimeOn(dayKey, eatenAt)
     if (!eatenDate) {
@@ -279,26 +278,18 @@ export function CalorieScreen() {
                     </span>
                   </div>
                   <ul className="row-list">
-                    {items.map((row) => {
-                      const time = formatTime(row.logged_at)
-                      return (
-                        <li key={row.id}>
-                          <span className="row-dot" style={{ background: MEAL_TONE[row.meal_type] }} aria-hidden="true" />
-                          <div className="row-main">
-                            <div className="row-title">{row.food_name}</div>
-                            <div className="row-meta">{time}</div>
-                          </div>
-                          <span className="row-value">{row.calories} kcal</span>
-                          <IconButton
-                            icon="trash"
-                            tone="danger"
-                            label={`Delete ${row.food_name} at ${time}`}
-                            onClick={() => deleteLog.mutate(row.id)}
-                            style={{ marginRight: -10 }}
-                          />
-                        </li>
-                      )
-                    })}
+                    {items.map((row) => (
+                      <CalorieEntryRow
+                        key={row.id}
+                        row={row}
+                        tone={MEAL_TONE[row.meal_type]}
+                        time={formatTime(row.logged_at)}
+                        editing={editingId === row.id}
+                        onEdit={() => setEditingId(row.id)}
+                        onDone={() => setEditingId(null)}
+                        onDelete={() => deleteLog.mutate(row.id)}
+                      />
+                    ))}
                   </ul>
                 </section>
               )

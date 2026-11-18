@@ -46,6 +46,7 @@ const RESOURCES: Record<string, ResourceConfig> = {
   'calorie-logs': {
     table: 'calorie_logs',
     insertable: { food_name: name, calories: int(1, 100_000), meal_type: oneOf(MEAL_TYPES), logged_at: when },
+    updatable: { calories: int(1, 100_000) },
     timeColumn: 'logged_at',
     orderBy: 'logged_at desc',
     defaultLimit: 500,
