@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { DateInputError } from '../dates.js'
 import { getCalorieEntries, getCalorieSummary } from './calories.js'
+import { getFastingHistory } from './fasting.js'
 import {
   addGroceryItems,
   clearPurchasedGroceries,
@@ -36,6 +37,7 @@ const REGISTRY: CoachTool[] = [
   deletePlannedMeals,
   getWeightTrend,
   getExerciseSummary,
+  getFastingHistory,
   getWorkoutPlans,
   createWorkoutPlans,
   updateWorkoutPlan,
