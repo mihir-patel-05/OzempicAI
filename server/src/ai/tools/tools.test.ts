@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import type Anthropic from '@anthropic-ai/sdk'
 import type { Db } from '../../db.js'
 import { summarizeCalories } from './calories.js'
+import { fastingStreaks } from './fasting.js'
 import { filterNewGroceries } from './groceries.js'
 import { TOOLS, TOOL_DEFINITIONS, executeTool, offeredOn, runTool, toolsOn } from './index.js'
 import { formatSpan, mealPlanProblems } from './mealPlans.js'
@@ -729,4 +730,89 @@ test('complete_workout_plan ticks a plan off once and leaves a done plan alone',
   assert.ok(again.ok)
   assert.deepEqual(again.outcome.changes, { before: [], after: [] })
   assert.ok(!already.calls.some((sql) => sql.includes('set completed_at')))
+})
+
+// ─── Fasting ────────────────────────────────────────────────────────────────
+
+test('fastingStreaks counts days in a row up to today, and the best run', () => {
+  const days = ['2026-11-14', '2026-11-13', '2026-11-12', '2026-11-08', '2026-11-07', '2026-11-06', '2026-11-05']
+  assert.deepEqual(fastingStreaks(days, '2026-11-14'), { current: 3, best: 4 })
+  // Today without a fast yet doesn't break the streak; a missed yesterday does.
+  assert.deepEqual(fastingStreaks(days, '2026-11-15'), { current: 3, best: 4 })
+  assert.deepEqual(fastingStreaks(days, '2026-11-16'), { current: 0, best: 4 })
+  // Across a month end.
+  assert.deepEqual(fastingStreaks(['2026-11-30', '2026-12-01'], '2026-12-01'), { current: 2, best: 2 })
+  assert.deepEqual(fastingStreaks([], '2026-11-14'), { current: 0, best: 0 })
+})
+
+test('get_fasting_history is read-only and offered to the coach and AI apps', () => {
+  const coach = toolsOn('coach').map((t) => t.definition.name)
+  const mcp = toolsOn('mcp').map((t) => t.definition.name)
+  assert.ok(coach.includes('get_fasting_history'))
+  assert.ok(mcp.includes('get_fasting_history'))
+  assert.equal(TOOLS.find((t) => t.definition.name === 'get_fasting_history')?.scope, 'read')
+})
+
+test('get_fasting_history shapes the running fast, totals, streak and list', async () => {
+  const { db, calls } = fakeDb((sql, params) => {
+    if (sql.includes('count(*)')) {
+      return [{ fasts: 3, goals_met: 2, avg_hours: 16.2333, longest_hours: 18.04, total_hours: 48.7 }]
+    }
+    if (sql.includes('ended_at is null')) {
+      return [{ started: '2026-11-14 20:00', goal_at: '2026-11-15 12:00', hours: 4.25, target_minutes: 960 }]
+    }
+    if (sql.includes('distinct')) return [{ day: '2026-11-14' }, { day: '2026-11-13' }, { day: '2026-11-11' }]
+    if (sql.includes('order by ended_at desc')) {
+      assert.deepEqual(params.slice(1), ['UTC', '2026-11-08', '2026-11-14'])
+      return [
+        { day: '2026-11-14', started: '2026-11-13 19:30', ended: '2026-11-14 11:32', hours: 16.04, target_minutes: 960, met: true, notes: 'x'.repeat(500) },
+        { day: '2026-11-12', started: '2026-11-11 20:00', ended: '2026-11-12 10:00', hours: 14, target_minutes: 23 * 60, met: false, notes: null },
+      ]
+    }
+    return []
+  })
+  const run = await runTool(
+    'get_fasting_history',
+    { range: 'custom', start_date: '2026-11-08', end_date: '2026-11-14' },
+    ctx(db),
+    'coach',
+  )
+  assert.ok(run.ok)
+  const result = run.outcome.result as Record<string, any>
+  assert.deepEqual(result.running, {
+    started: '2026-11-14 20:00',
+    goal: '16:8',
+    goal_hours: 16,
+    hours_so_far: 4.3,
+    goal_at: '2026-11-15 12:00',
+    reached: false,
+  })
+  assert.equal(result.ended_fasts, 3)
+  assert.equal(result.goals_met, 2)
+  assert.equal(result.goal_met_pct, 67)
+  assert.equal(result.avg_hours, 16.2)
+  assert.equal(result.longest_hours, 18)
+  assert.deepEqual(result.streak_days, { current: 2, best: 2 })
+  assert.equal(result.fasts.length, 2)
+  assert.equal(result.fasts[0].notes.length, 200)
+  assert.equal(result.fasts[1].goal, 'OMAD')
+  assert.equal('notes' in result.fasts[1], false)
+  // The range had 3 fasts and the list shows 2: say so rather than look complete.
+  assert.equal(result.fasts_not_listed, 1)
+  assert.equal(run.outcome.summary, undefined)
+  assert.equal(calls.length, 4)
+})
+
+test('get_fasting_history with no fasts reports zeros, not made-up averages', async () => {
+  const { db } = fakeDb((sql) => (sql.includes('count(*)') ? [{ fasts: 0, goals_met: 0, avg_hours: null, longest_hours: null, total_hours: null }] : []))
+  const run = await runTool('get_fasting_history', { range: 'last_7_days', start_date: null, end_date: null }, ctx(db), 'mcp')
+  assert.ok(run.ok)
+  const result = run.outcome.result as Record<string, unknown>
+  assert.equal(result.running, null)
+  assert.equal(result.ended_fasts, 0)
+  assert.equal(result.goal_met_pct, null)
+  assert.equal(result.avg_hours, null)
+  assert.equal(result.total_hours, 0)
+  assert.deepEqual(result.fasts, [])
+  assert.equal('fasts_not_listed' in result, false)
 })
