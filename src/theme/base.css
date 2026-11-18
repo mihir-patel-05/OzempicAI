@@ -344,6 +344,22 @@ h3 {
   white-space: nowrap;
 }
 
+/* A row's value opened for editing in place, e.g. a meal's calories. */
+.row-edit-field {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.row-edit-field .field-input {
+  width: 6.5em;
+  padding: 8px 10px;
+  text-align: right;
+}
+
 .row-dot {
   width: 10px;
   height: 10px;
