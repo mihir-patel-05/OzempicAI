@@ -1,17 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { useAuth } from '../auth/AuthProvider'
-import { todayRangeISO } from '../lib/date'
+import { dayRangeISO, toLocalDateKey } from '../lib/date'
 import type { CalorieLog, MealType } from '../types/db'
 
 export function useCalorieLogsToday() {
+  return useCalorieLogsForDay(toLocalDateKey())
+}
+
+/** Calorie logs for one local calendar day, given as "YYYY-MM-DD". */
+export function useCalorieLogsForDay(dateKey: string) {
   const { session } = useAuth()
   const userId = session?.user.id ?? null
-  const { startISO, endISO } = todayRangeISO()
+  const { startISO, endISO } = dayRangeISO(dateKey)
 
   return useQuery({
     enabled: !!userId,
-    queryKey: ['calorie-logs', userId, startISO.slice(0, 10)],
+    queryKey: ['calorie-logs', userId, dateKey],
     queryFn: () =>
       api<CalorieLog[]>('/calorie-logs', { query: { from: startISO, to: endISO } }),
   })
