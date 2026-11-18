@@ -342,6 +342,26 @@ test('SEC-03, SEC-18: over-long and wrongly typed fields are refused', { skip },
   )
 })
 
+test('calorie logs: the owner can edit calories, nobody else can, and nothing else changes', { skip }, async () => {
+  const owner = await signUp()
+  const other = await signUp()
+  const made = await post('/api/calorie-logs', { food_name: 'Toast', calories: 120, meal_type: 'breakfast' }, owner.session)
+  const path = `/api/calorie-logs/${made.data.id}`
+  const edit = (body: unknown, bearer: string) => call('PATCH', path, { body, bearer })
+
+  const edited = await edit({ calories: 180 }, owner.session)
+  assert.equal(edited.status, 200)
+  assert.equal(edited.data.calories, 180)
+  assert.equal(edited.data.food_name, 'Toast')
+  assert.equal(edited.data.logged_at, made.data.logged_at)
+
+  assert.equal((await edit({ calories: 0 }, owner.session)).status, 400)
+  assert.equal((await edit({ calories: '200' }, owner.session)).status, 400)
+  assert.equal((await edit({ food_name: 'Bagel' }, owner.session)).status, 400)
+  assert.equal((await edit({ calories: 999 }, other.session)).status, 404)
+  assert.equal((await get('/api/calorie-logs', owner.session)).data[0].calories, 180)
+})
+
 test('SEC-06: rows cannot link to another user\'s plan, and the error does not say why', { skip }, async () => {
   const owner = await signUp()
   const other = await signUp()
