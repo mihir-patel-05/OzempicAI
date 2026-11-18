@@ -5,6 +5,7 @@ const ACTIVITY: Record<string, string> = {
   get_calorie_entries: 'Reading your food entries…',
   get_weight_trend: 'Looking at your weight trend…',
   get_exercise_summary: 'Checking your exercise…',
+  get_fasting_history: 'Checking your fasting…',
   get_grocery_list: 'Checking your grocery list…',
   add_grocery_items: 'Adding to your grocery list…',
   get_meal_plans: 'Checking your meal plan…',
