@@ -4,8 +4,8 @@
 Fasting gets its own screen with history and analytics, a card on Today, and notifications when the
 goal is near and when it is reached, even with the app closed.
 
-**Status (2026-11-17):** phases 1–5 (backend, Fasting screen, Today card, stats and chart,
-notifications) are built on `Fasting_Feature`. Notifications are tested against a fake push service
+**Status (2026-11-17):** all six phases (backend, Fasting screen, Today card, stats and chart,
+notifications, AI tool) are built on `Fasting_Feature`. Notifications are tested against a fake push service
 only; they still need trying on a real phone and browser once `VAPID_*` is set (§3).
 
 ### Decisions (2026-11-17)
@@ -138,3 +138,14 @@ Each phase can be deployed, and reverted, on its own. Notifications come last.
 
 **Phase 6 (optional): AI**
 27. `tools: let the coach and AI apps read fasting history`
+28. `test: cover get_fasting_history`
+29. `ai: tell the coach when to read fasting history` (a Fasting section in the system prompt:
+    read-only, careful with long fasts alongside a GLP-1)
+30. `web: say "Checking your fasting…" while the coach reads it`
+31. `mcp: say that reading includes fasting history` (server instructions and consent screen)
+
+`get_fasting_history` takes the usual range presets and returns the running fast, totals for fasts
+that ended in the range (counted toward the local day they ended, like the stats on the Fasting
+screen), the goal-met streak and up to 60 fasts. It is read-only and under the plain `read` scope,
+so AI apps already connected with read access get it without reconnecting. There are no tools to
+start, end or edit fasts.

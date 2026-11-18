@@ -49,7 +49,7 @@ single-use link (`/reset-password#token=…`, valid 60 minutes) through
 [Resend](https://resend.com).
 
 **AI coach (backend).** `POST /api/ai/chat` runs a Claude tool-use loop (`server/src/ai/`) and
-streams the reply as server-sent events. The coach reads calorie, weight and exercise history,
+streams the reply as server-sent events. The coach reads calorie, weight, exercise and fasting history,
 the grocery list and meal plans, and can *insert* grocery items and planned meals; it has no
 tool that deletes or edits existing rows. Every tool runs through `withUser()`, so row level
 security applies to the AI exactly as it does to the user. Conversations are stored in

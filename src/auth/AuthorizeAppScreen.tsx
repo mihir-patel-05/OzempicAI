@@ -166,8 +166,8 @@ export function AuthorizeAppScreen() {
               <h2 style={sectionHeadingStyle}>{details.client_name} will be able to</h2>
               <ul style={listStyle}>
                 <li>
-                  Read your profile (height, weight, age, goals and timezone), your calorie, weight and exercise
-                  history, your workout plan, meal plan and grocery list
+                  Read your profile (height, weight, age, goals and timezone), your calorie, weight, exercise and
+                  fasting history, your workout plan, meal plan and grocery list
                 </li>
                 {canWrite && access === 'edit' && <li>Add and edit planned workouts, planned meals and grocery items</li>}
               </ul>

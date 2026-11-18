@@ -22,7 +22,7 @@ export const WRITES_PER_WINDOW = 40
 const WRITE_WINDOW_MS = 15 * 60_000
 
 export const INSTRUCTIONS = [
-  "OzempicAI is the user's health and fitness tracker. These tools read their calorie, weight and exercise history and read and edit their workout plan, meal plan and grocery list.",
+  "OzempicAI is the user's health and fitness tracker. These tools read their calorie, weight, exercise and fasting history and read and edit their workout plan, meal plan and grocery list.",
   "Call get_profile first: it gives today's date, the user's timezone, their unit system and their goals.",
   "Dates are YYYY-MM-DD in the user's timezone. Read before you write (get_grocery_list, get_meal_plans, get_workout_plans) so you don't create duplicates and so you have the ids that edits and removals need.",
   'Only remove or overwrite what the user asked you to. Every change you make is listed in the OzempicAI app under Plans → AI activity, where the user can undo it; mention that after making changes.',

@@ -251,3 +251,47 @@ test('a fast can be deleted', { skip }, async () => {
   assert.equal((await call('GET', '/api/fasts/active', me)).data, null)
   assert.equal((await call('DELETE', '/api/fasts/not-an-id', me)).status, 400)
 })
+
+test('get_fasting_history reads the user\'s own fasts for the coach and AI apps', { skip }, async () => {
+  const { withUser } = await import('./db.js')
+  const { runTool } = await import('./ai/tools/index.js')
+  const { todayIn } = await import('./ai/dates.js')
+  const me = await signUp()
+  const other = await signUp()
+
+  const met = await call('POST', '/api/fasts', me, { started_at: ago(40 * HOUR), ended_at: ago(22 * HOUR), target_minutes: 16 * 60, notes: 'Easy one' })
+  const short = await call('POST', '/api/fasts', me, { started_at: ago(20 * HOUR), ended_at: ago(8 * HOUR), target_minutes: 16 * 60 })
+  const running = await call('POST', '/api/fasts', me, { started_at: ago(2 * HOUR), target_minutes: 18 * 60 })
+  await call('POST', '/api/fasts', other, { started_at: ago(30 * HOUR), ended_at: ago(5 * HOUR), target_minutes: 20 * 60 })
+  for (const reply of [met, short, running]) assert.equal(reply.status, 201)
+
+  const { rows } = await pool.query<{ user_id: string }>('select user_id from public.fasts where id = $1', [met.data.id])
+  const userId = rows[0]!.user_id
+  const run = await withUser(userId, (db) =>
+    runTool(
+      'get_fasting_history',
+      { range: 'last_7_days', start_date: null, end_date: null },
+      { db, userId, tz: 'UTC', today: todayIn('UTC') },
+      'mcp',
+    ),
+  )
+  assert.ok(run.ok)
+  const result = run.outcome.result as Record<string, any>
+  assert.equal(result.running.goal, '18:6')
+  assert.ok(Math.abs(result.running.hours_so_far - 2) < 0.1)
+  assert.equal(result.running.reached, false)
+  assert.equal(result.ended_fasts, 2, 'the running fast and the other user\'s fast stay out')
+  assert.equal(result.goals_met, 1)
+  assert.equal(result.goal_met_pct, 50)
+  assert.equal(result.longest_hours, 18)
+  assert.equal(result.total_hours, 30)
+  assert.deepEqual(result.streak_days, { current: 1, best: 1 })
+  assert.deepEqual(
+    result.fasts.map((f: any) => [f.hours, f.goal, f.met, f.notes]),
+    [
+      [12, '16:8', false, undefined],
+      [18, '16:8', true, 'Easy one'],
+    ],
+  )
+  assert.match(result.fasts[0].started, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
+})
