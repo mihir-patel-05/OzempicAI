@@ -59,7 +59,7 @@ export function CalorieEntryRow({ row, tone, time, editing, onEdit, onDone, onDe
       <span className="row-dot" style={{ background: tone }} aria-hidden="true" />
       <div className="row-main">
         <div className="row-title">{row.food_name}</div>
-        {error ? (
+        {editing && error ? (
           <div className="row-meta" role="alert" style={{ color: 'var(--danger)' }}>
             {error}
           </div>
