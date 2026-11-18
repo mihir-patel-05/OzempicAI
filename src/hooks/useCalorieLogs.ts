@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { useAuth } from '../auth/AuthProvider'
 import { dayRangeISO, toLocalDateKey } from '../lib/date'
@@ -47,11 +48,7 @@ export function useLogCalorie() {
         },
       })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['calorie-logs'] })
-      queryClient.invalidateQueries({ queryKey: ['daily-total', 'calories'] })
-      queryClient.invalidateQueries({ queryKey: ['analytics'] })
-    },
+    onSuccess: () => invalidateCalorieQueries(queryClient),
   })
 }
 
@@ -64,10 +61,26 @@ export function useDeleteCalorieLog() {
       if (!userId) throw new Error('Not signed in')
       await api(`/calorie-logs/${id}`, { method: 'DELETE' })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['calorie-logs'] })
-      queryClient.invalidateQueries({ queryKey: ['daily-total', 'calories'] })
-      queryClient.invalidateQueries({ queryKey: ['analytics'] })
-    },
+    onSuccess: () => invalidateCalorieQueries(queryClient),
   })
+}
+
+/** Change the calories on an entry already logged; its food, meal and time stay as they were. */
+export function useUpdateCalorieLog() {
+  const { session } = useAuth()
+  const userId = session?.user.id ?? null
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, calories }: { id: string; calories: number }) => {
+      if (!userId) throw new Error('Not signed in')
+      return api<CalorieLog>(`/calorie-logs/${id}`, { method: 'PATCH', body: { calories } })
+    },
+    onSuccess: () => invalidateCalorieQueries(queryClient),
+  })
+}
+
+function invalidateCalorieQueries(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: ['calorie-logs'] })
+  queryClient.invalidateQueries({ queryKey: ['daily-total', 'calories'] })
+  queryClient.invalidateQueries({ queryKey: ['analytics'] })
 }
